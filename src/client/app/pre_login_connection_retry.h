@@ -1,0 +1,98 @@
+/**
+ * @file pre_login_connection_retry.h
+ * @brief ログイン前の既知一時切断だけを有限再試行へ分類する。
+ */
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+
+namespace zrdp::client::app {
+
+/// Windows event logでもSSL handshake失敗と一致したActiveX切断reason。
+inline constexpr long kTransientPreLoginDisconnectReason = 263L;
+
+/// ActiveXが追加情報を返さなかった場合のextended reason。
+inline constexpr long kNoPreLoginExtendedDisconnectReason = 0L;
+
+/// credential誤り等を無制限に再送しないための接続意図ごとの上限。
+inline constexpr std::size_t kMaximumPreLoginConnectionRetries = 1U;
+
+/// Microsoft RDP内部状態をcallback終了後に解放するための有限待機時間。
+inline constexpr std::uint32_t kPreLoginConnectionRetryDelayMilliseconds =
+    2000U;
+
+/**
+ * @brief ログイン前切断後に実施する処理を表す。
+ */
+enum class PreLoginConnectionRetryAction {
+    None,       ///< 対象外のため既存切断処理を続行する。
+    Schedule,   ///< 有限delay後の一回再試行を予約する。
+    Exhausted,  ///< 対象signatureだが既に上限へ到達している。
+};
+
+/**
+ * @brief ログイン前接続再試行の純粋な選択結果。
+ */
+struct PreLoginConnectionRetryDecision {
+    /// 呼出し側が実行する処理。
+    PreLoginConnectionRetryAction action{
+        PreLoginConnectionRetryAction::None};
+
+    /// `Schedule`の場合だけ使用する待機時間。
+    std::uint32_t delay_milliseconds{0U};
+};
+
+/**
+ * @brief 切断情報と現在試行状態から有限再試行の可否を選択する。
+ * @param[in] login_completed 現在の接続意図でlogin完了済みならtrue。
+ * @param[in] locally_requested ZRdp自身が切断を要求した場合はtrue。
+ * @param[in] credential_prompt_cancelled 利用者が認証UIを取り消した場合はtrue。
+ * @param[in] closing Window終了処理中の場合はtrue。
+ * @param[in] disconnect_reason ActiveX `OnDisconnected` reason。
+ * @param[in] extended_disconnect_reason ActiveX拡張切断reason。
+ * @param[in] retries_scheduled 現在の接続意図で予約済みの再試行数。
+ * @return 対象外、予約、上限到達のいずれか。
+ *
+ * 認証の利用者判断と成立済みsessionを尊重し、観測済みsignature以外を
+ * 一時障害として推測しない。
+ */
+[[nodiscard]] constexpr PreLoginConnectionRetryDecision
+SelectPreLoginConnectionRetry(
+    const bool login_completed,
+    const bool locally_requested,
+    const bool credential_prompt_cancelled,
+    const bool closing,
+    const long disconnect_reason,
+    const long extended_disconnect_reason,
+    const std::size_t retries_scheduled) noexcept {
+    // 成立済みsession、利用者起点、終了処理では自動接続を開始しない。
+    if (login_completed ||
+        locally_requested ||
+        credential_prompt_cancelled ||
+        closing) {
+        return {};
+    }
+
+    // ローカルlogとWindows SSL eventが一致した完全な数値組だけを対象にする。
+    if (disconnect_reason != kTransientPreLoginDisconnectReason ||
+        extended_disconnect_reason !=
+            kNoPreLoginExtendedDisconnectReason) {
+        return {};
+    }
+
+    // password再入力やaccount lockoutを誘発しないよう一回で必ず停止する。
+    if (retries_scheduled >= kMaximumPreLoginConnectionRetries) {
+        return {
+            PreLoginConnectionRetryAction::Exhausted,
+            0U,
+        };
+    }
+
+    return {
+        PreLoginConnectionRetryAction::Schedule,
+        kPreLoginConnectionRetryDelayMilliseconds,
+    };
+}
+
+}  // namespace zrdp::client::app

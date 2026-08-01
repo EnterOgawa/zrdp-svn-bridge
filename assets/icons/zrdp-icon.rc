@@ -1,0 +1,12 @@
+#pragma code_page(65001)
+
+/**
+ * @file zrdp-icon.rc
+ * @brief ClientとAgentが共有するapplication icon resourceを定義する。
+ */
+
+#include <windows.h>
+#include "../../src/common/resource_ids.h"
+
+// 配布EXEとruntime Windowへ同一の製品識別iconを埋め込む。
+IDI_ZRDP_APP ICON "zrdp.ico"

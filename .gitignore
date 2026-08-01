@@ -1,0 +1,59 @@
+# Visual Studio / CMake
+.vs/
+out/
+build/
+cmake-build-*/
+CMakeUserPresets.json
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+
+# Compiler and linker outputs
+*.obj
+*.pch
+*.pdb
+*.ilk
+*.exe
+*.dll
+*.lib
+*.exp
+*.tlh
+*.tli
+
+# Logs, dumps, and captures
+logs/
+dumps/
+captures/
+*.dmp
+*.pcap
+*.pcapng
+*.etl
+*.rdp
+*.log
+
+# Local environment configuration
+config/local/
+config/*.local.*
+agent.ini
+client.ini
+connection-history.bin*
+
+# Credentials and signing material
+.env
+.env.*
+*.pfx
+*.p12
+*.key
+*.pem
+
+# Packaged release artifacts
+*.msi
+*.msix
+*.cab
+*.zip
+*.7z
+
+# Temporary work and Subversion metadata
+work/tmp/
+.svn/

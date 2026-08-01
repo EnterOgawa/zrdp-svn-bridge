@@ -1,0 +1,9 @@
+; ZRdpSvnAgent Phase 3 allowlist template
+; Copy this file next to ZRdpSvnAgent.exe as agent.ini, then replace every
+; documentation-only address with an explicitly approved HTTP SVN endpoint.
+; Do not commit the resulting agent.ini.
+
+[allowlist]
+endpoint.1001=192.0.2.10:80
+endpoint.1002=198.51.100.20:8080
+endpoint.1003=203.0.113.30:80

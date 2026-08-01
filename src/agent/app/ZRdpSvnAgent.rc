@@ -1,0 +1,48 @@
+#pragma code_page(65001)
+
+/**
+ * @file ZRdpSvnAgent.rc
+ * @brief Agentのversion情報と共通application iconを定義する。
+ *
+ * @details 実allowlistやendpointをresourceへ埋め込まず、portable EXEの
+ *          固定metadataだけを保持する。
+ */
+
+#include <windows.h>
+#include <winver.h>
+
+// -----------------------------------------------------------------------------
+// Portable EXE version情報
+// -----------------------------------------------------------------------------
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 0,7,14,0
+PRODUCTVERSION 0,7,14,0
+ FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+ FILEFLAGS VS_FF_DEBUG
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041104B0"
+        BEGIN
+            VALUE "CompanyName", "EnterOgawa\0"
+            VALUE "FileDescription", "ZRdp SVN Agent\0"
+            VALUE "FileVersion", "0.7.14.0\0"
+            VALUE "InternalName", "ZRdpSvnAgent\0"
+            VALUE "OriginalFilename", "ZRdpSvnAgent.exe\0"
+            VALUE "ProductName", "ZRdp SVN Bridge\0"
+            VALUE "ProductVersion", "0.7.14.0\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0411, 1200
+    END
+END
