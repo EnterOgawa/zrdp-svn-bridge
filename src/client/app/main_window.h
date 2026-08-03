@@ -164,7 +164,7 @@ private:
     void BeginConnectionAttempt();
 
     /**
-     * @brief 観測済みログイン前切断に対する一回の遅延再試行を予約する。
+     * @brief 観測済みログイン前切断に対する次の遅延再試行を予約する。
      * @param[in] event 完全一致を確認済みの切断数値情報。
      * @param[in] delay_milliseconds COM callback後に待機する有限時間。
      * @return timerを予約できた場合はtrue。
@@ -511,11 +511,20 @@ private:
     /// 現在の表示更新要求に対して予約済みの一時失敗retry数。
     std::size_t dynamic_resolution_retries_scheduled_{0U};
 
-    /// ログイン前SSL失敗後の一回再試行timerが予約済みであることを示す。
+    /// ログイン前SSL失敗後の有限再試行timerが予約済みであることを示す。
     bool pre_login_connection_retry_timer_active_{false};
 
     /// 現在の接続意図に対して予約したログイン前接続再試行数。
     std::size_t pre_login_connection_retries_scheduled_{0U};
+
+    /// Microsoft認証dialogが表示処理中で、ZRdpがfocusを変更してはならない状態。
+    bool authentication_dialog_active_{false};
+
+    /// 現在の一回のConnect試行でMicrosoft認証dialogへ到達したことを示す。
+    bool authentication_dialog_was_displayed_{false};
+
+    /// credential UIと後続security UIを区別する、二回で飽和する表示回数。
+    std::size_t authentication_dialog_display_count_{0U};
 
     /// 現在の未応答PINGへ設定した単調clock上の期限。未設定時は0。
     std::uint64_t bridge_echo_deadline_tick_{0U};

@@ -33,7 +33,21 @@ session間で共有しない。一つのsessionでMicrosoft Controlの切断ま�
   `RdpConnectionSettings`とActiveX境界では結合済み値を拒否する。
 - UPN形式のユーザー名からdomainを推測しない。
 - CredSSPを有効化してreadbackし、NLAを弱めない。
-- server authentication failureは警告表示とし、自動承認しない。
+- server authenticationは`AuthenticationLevel=2`へ設定後にreadbackし、failure時は
+  Microsoft標準警告で利用者に継続可否を求める。警告を自動承認しない。
+- 2026年4月以降のWindows ActiveX dialog互換性として、接続前に
+  `RedirectionWarningDialogVersion=1 (VT_UI4)`を設定する。これは以前のMicrosoft
+  connection security dialogを選ぶだけで、server認証やcertificate検証を弱めない。
+  property未対応の旧ActiveXだけは従来既定を維持し、その他の設定失敗はConnect前に
+  fail-closedとする。
+- `OnAuthenticationWarningDisplayed`から`Dismissed`まで、親Windowの
+  `WM_SETFOCUS`でActiveX childへfocusを移し直さない。Microsoft dialogのmodal focusを
+  container側で奪わない。
+- `IMsRdpClientNonScriptable2::UIParentWindowHandle`へsession top-level Windowを
+  明示設定せず、credential UIと後続certificate UIの親をActiveX Control Windowの
+  既定処理へ一貫して委譲する。
+- Microsoft認証dialogを表示したConnect試行は、切断後に自動retryしない。
+  2秒／5秒の有限retryは認証UIへ到達する前の`263/0`完全一致だけに限定する。
 - credential保存を許可しない。
 - `mstsc.exe`、system DLL、RDP protocolをコピーまたは再実装しない。
 
@@ -202,14 +216,21 @@ error表示とする。`LoginComplete`後に接続先再起動、通信断、rem
 表示せずにWindowを閉じる。ZRdp自身の切断要求とcredential取消はこの外部切断
 判定から除外し、それぞれ既存の終了経路と未接続復帰へ委ねる。
 
-ただしVersion `0.7.14.0`は、ClientとWindows event logで観測したログイン前の
+同一接続試行で`OnAuthenticationWarningDisplayed`を二回以上受信し、login未完了、
+非local、credential取消以外、reason `263`、extended reason `0`が完全一致した場合は、
+Microsoft certificate警告の取消候補として追加errorとretryを行わず、対象session
+Windowだけを閉じる。表示回数は接続試行開始時にresetし、二回で飽和させる。
+ActiveXは警告buttonの選択値を公開しないため、これより広いreasonを取消扱いしない。
+このUI分類はcertificate検証、警告表示、利用者判断を変更しない。
+
+現在のClient候補は、ClientとWindows event logで観測したログイン前の
 `discReason=263`、`ExtendedDisconnectReason=0`完全一致だけを一時失敗候補とする。
-local切断、credential取消、Window終了中、login完了済み、一回予約済みのいずれでも
-ない場合に限り、COM callback終了後のWindow timerから2,000 ms後に同じ検証済み
-設定を再適用し、Microsoft ActiveXの通常`Connect()`を一度だけ呼ぶ。二度目の失敗、
-timer確保失敗、設定失敗、同期的`Connect()`失敗では追加再試行しない。
+local切断、credential取消、Window終了中、login完了済みを除外し、COM callback
+終了後のWindow timerから一回目を2,000 ms後、二回目を5,000 ms後に開始する。
+各回で同じ検証済み設定を再適用し、Microsoft ActiveXの通常`Connect()`を呼ぶ。
+初回を含む合計三回、またはtimer確保、設定、同期的`Connect()`の失敗で停止する。
 `mstsc.exe`を起動せず、passwordを取得せず、NLA、CredSSP、server certificate
-検証、認証警告を変更または自動承認しない。詳細はADR 0007に記録する。
+検証、認証警告を変更または自動承認しない。詳細はADR 0009に記録する。
 
 公開仕様上の`OnDisconnected` reasonと`ExtendedDisconnectReason`は診断logへ
 数値だけを残し、切断説明やcredential内容をlogへ出力しない。自動再接続中は
@@ -237,9 +258,10 @@ Windowを破棄する。既に`Disconnecting`の場合は二重呼出しを行�
 - 接続先の空、上限超過、埋め込みNULの拒否
 - 未接続時のSmart Sizing／動的解像度API拒否
 - credential promptキャンセルreasonのログイン前限定分類
+- 二回目の認証warning後かつ`263/0`完全一致だけの重複error抑止分類
 - ログイン完了有無とlocal／credential起点による外部切断Window終了policy
 - 未接続、接続中、切断中ごとのWindow終了開始policy
-- `263/0`完全一致だけの2秒後・最大一回ログイン前接続再試行policy
+- `263/0`完全一致だけの2秒後、5秒後・最大二回ログイン前接続再試行policy
 - 3つのラジオボタンresourceと既定等倍mode
 - 8方向の手動Window変更、反対辺anchor、最小寸法、無効値の比率計算
 - 同一COM STA上の二つのActiveX同時生成とinstance所有の独立性

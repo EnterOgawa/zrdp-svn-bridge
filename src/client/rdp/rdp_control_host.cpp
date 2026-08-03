@@ -40,6 +40,10 @@ constexpr std::size_t kMaximumFullScreenTitleCharacters =
 constexpr std::wstring_view kFullScreenConnectionLabelPrefix =
     L"ZRdp SVN Bridge - ";
 constexpr std::wstring_view kTruncatedConnectionLabelSuffix = L"...";
+constexpr wchar_t kSecurityDialogVersionPropertyName[] =
+    L"RedirectionWarningDialogVersion";
+/// 2026年4月更新前の、ActiveX container互換security dialog版。
+constexpr unsigned long kCompatibleSecurityDialogVersion = 1U;
 /// Windows credential promptを閉じた際に現在のActiveXが通知する切断reason。
 constexpr long kCredentialPromptCancellationDisconnectReason = 0x1F07L;
 /// credential promptキャンセル時に取得される追加情報なしの拡張reason。
@@ -55,6 +59,23 @@ constexpr long kNoExtendedDisconnectReason = 0L;
     return mode == RdpDisplayMode::NativeScroll ||
         mode == RdpDisplayMode::SmartSizing ||
         mode == RdpDisplayMode::DynamicResolution;
+}
+
+/**
+ * @brief 互換propertyを実装していない旧ActiveXのHRESULTか判定する。
+ * @param[in] result `IMsRdpExtendedSettings::put_Property`の結果。
+ * @return property未対応を表す既知結果ならtrue。
+ *
+ * 旧Windowsは更新前dialogを既定で使用するため、この分類だけは接続継続を
+ * 許可する。ほかの失敗を未対応と推測して隠さない。
+ */
+[[nodiscard]] constexpr bool IsUnsupportedSecurityDialogProperty(
+    const HRESULT result) noexcept {
+    return result == E_INVALIDARG ||
+        result == E_NOTIMPL ||
+        result == DISP_E_MEMBERNOTFOUND ||
+        result == DISP_E_UNKNOWNNAME ||
+        result == HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
 }
 
 // Microsoft IMsTscAxEvents dispinterfaceで定義されたイベントDISPID。
@@ -986,21 +1007,14 @@ public:
             return FAILED(last_result) ? last_result : E_NOINTERFACE;
         }
 
-        HRESULT result = ConfigureDialogParent(parent);
+        // credential UIと後続certificate UIのmodal ownershipを、同じ
+        // ActiveX Control Windowへ一貫して委譲する。
         common::WriteDiagnosticLog(
-            FAILED(result)
-                ? common::DiagnosticLevel::Error
-                : common::DiagnosticLevel::Information,
-            common::DiagnosticEvent::ParentWindowConfigurationReturned,
-            {common::DiagnosticHResult(result)});
-        // 標準認証ダイアログの親を設定できなければUIを不完全なまま公開しない。
-        if (FAILED(result)) {
-            Destroy();
-            return result;
-        }
+            common::DiagnosticLevel::Information,
+            common::DiagnosticEvent::ActiveXDefaultDialogParentSelected);
 
         ATL::CComPtr<IDispatch> event_sink;
-        result = RdpEventSink::Create(this_as_observer(), &event_sink);
+        HRESULT result = RdpEventSink::Create(this_as_observer(), &event_sink);
         // event sinkを生成できなければ状態追跡不能なのでhost全体を破棄する。
         if (FAILED(result)) {
             Destroy();
@@ -1130,6 +1144,13 @@ public:
             return result;
         }
 
+        // Windows更新後も利用者が操作できる以前の標準security dialogを選択する。
+        result = ConfigureConnectionSecurityDialog();
+        // S_FALSEはpropertyを持たない旧ActiveXであり、既定の旧dialogを維持する。
+        if (FAILED(result)) {
+            return result;
+        }
+
         // 接続前の基本表示値をMicrosoft Controlへ順番に適用する。
         result = client_->put_Server(server);
         if (FAILED(result)) {
@@ -1205,7 +1226,41 @@ public:
         result = authentication_settings->put_AuthenticationLevel(
             authentication_level_warn_on_failure);
         if (FAILED(result)) {
+            common::WriteDiagnosticLog(
+                common::DiagnosticLevel::Error,
+                common::DiagnosticEvent::
+                    AuthenticationLevelConfigurationReturned,
+                {
+                    common::DiagnosticHResult(result),
+                    common::DiagnosticValue(
+                        common::DiagnosticFieldName::AuthenticationLevel,
+                        authentication_level_warn_on_failure),
+                });
             return result;
+        }
+
+        unsigned int authentication_level_readback = 0U;
+        result = authentication_settings->get_AuthenticationLevel(
+            &authentication_level_readback);
+        common::WriteDiagnosticLog(
+            FAILED(result) ||
+                    authentication_level_readback !=
+                        authentication_level_warn_on_failure
+                ? common::DiagnosticLevel::Error
+                : common::DiagnosticLevel::Information,
+            common::DiagnosticEvent::
+                AuthenticationLevelConfigurationReturned,
+            {
+                common::DiagnosticHResult(result),
+                common::DiagnosticValue(
+                    common::DiagnosticFieldName::AuthenticationLevel,
+                    authentication_level_readback),
+            });
+        // setterが受理されても警告なし／hard-failへ変化したControlは使用しない。
+        if (FAILED(result) ||
+            authentication_level_readback !=
+                authentication_level_warn_on_failure) {
+            return FAILED(result) ? result : E_FAIL;
         }
 
         ATL::CComQIPtr<IMsRdpClientAdvancedSettings6> credential_security_settings(
@@ -2011,23 +2066,78 @@ private:
     }
 
     /**
-     * @brief Microsoft認証・警告ダイアログの親ウィンドウを設定する。
-     * @param parent 親にするトップレベルHWND。
-     * @return 設定結果を表すHRESULT。
+     * @brief Windows更新前と同じMicrosoft connection security dialogを選択する。
+     * @return 設定成功時はS_OK、旧ActiveXの未対応時はS_FALSE、それ以外は失敗HRESULT。
+     *
+     * warningの抑止や自動承認は行わず、利用者が継続可否を明示選択できる
+     * dialog実装だけを切り替える。write-only propertyへ未文書化readbackを行わない。
      */
-    [[nodiscard]] HRESULT ConfigureDialogParent(
-        const HWND parent) noexcept {
-        ATL::CComQIPtr<IMsRdpClientNonScriptable2> dialog_settings(control_);
-        // UI親を設定できないControlでは標準認証画面を安全に所有できない。
-        if (dialog_settings == nullptr) {
-            return E_NOINTERFACE;
+    [[nodiscard]] HRESULT ConfigureConnectionSecurityDialog() noexcept {
+        ATL::CComQIPtr<IMsRdpExtendedSettings> extended_settings(control_);
+        // interface自体がない旧Controlは更新前の既定dialogをそのまま使用する。
+        if (extended_settings == nullptr) {
+            common::WriteDiagnosticLog(
+                common::DiagnosticLevel::Warning,
+                common::DiagnosticEvent::
+                    SecurityDialogConfigurationReturned,
+                {
+                    common::DiagnosticHResult(E_NOINTERFACE),
+                    common::DiagnosticValue(
+                        common::DiagnosticFieldName::DialogVersion,
+                        kCompatibleSecurityDialogVersion),
+                    common::DiagnosticValue(
+                        common::DiagnosticFieldName::Enabled,
+                        0U),
+                });
+            return S_FALSE;
         }
 
-        RemotableHandle parent_handle{};
-        // USER handleは32-bit値のまま、同一process用wire形式で渡す。
-        parent_handle.fContext = WDT_INPROC_CALL;
-        parent_handle.u.hInproc = HandleToLong(parent);
-        return dialog_settings->put_UIParentWindowHandle(&parent_handle);
+        ATL::CComBSTR property_name(kSecurityDialogVersionPropertyName);
+        // 固定property名のBSTR割当失敗を未対応ActiveXとして扱わない。
+        if (property_name.m_str == nullptr) {
+            return E_OUTOFMEMORY;
+        }
+
+        ATL::CComVariant property_value;
+        property_value.vt = VT_UI4;
+        property_value.ulVal = kCompatibleSecurityDialogVersion;
+        const HRESULT result = extended_settings->put_Property(
+            property_name,
+            &property_value);
+        // property追加前のsystemは既定で旧dialogなので、既知未対応結果だけ継続する。
+        if (IsUnsupportedSecurityDialogProperty(result)) {
+            common::WriteDiagnosticLog(
+                common::DiagnosticLevel::Warning,
+                common::DiagnosticEvent::
+                    SecurityDialogConfigurationReturned,
+                {
+                    common::DiagnosticHResult(result),
+                    common::DiagnosticValue(
+                        common::DiagnosticFieldName::DialogVersion,
+                        kCompatibleSecurityDialogVersion),
+                    common::DiagnosticValue(
+                        common::DiagnosticFieldName::Enabled,
+                        0U),
+                });
+            return S_FALSE;
+        }
+
+        common::WriteDiagnosticLog(
+            FAILED(result)
+                ? common::DiagnosticLevel::Error
+                : common::DiagnosticLevel::Information,
+            common::DiagnosticEvent::
+                SecurityDialogConfigurationReturned,
+            {
+                common::DiagnosticHResult(result),
+                common::DiagnosticValue(
+                    common::DiagnosticFieldName::DialogVersion,
+                    kCompatibleSecurityDialogVersion),
+                common::DiagnosticValue(
+                    common::DiagnosticFieldName::Enabled,
+                    SUCCEEDED(result) ? 1U : 0U),
+            });
+        return result;
     }
 
     /// 存在するATL host子ウィンドウを破棄してHWNDを初期化する。

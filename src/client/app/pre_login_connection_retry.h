@@ -4,6 +4,7 @@
  */
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -15,19 +16,20 @@ inline constexpr long kTransientPreLoginDisconnectReason = 263L;
 /// ActiveXが追加情報を返さなかった場合のextended reason。
 inline constexpr long kNoPreLoginExtendedDisconnectReason = 0L;
 
-/// credential誤り等を無制限に再送しないための接続意図ごとの上限。
-inline constexpr std::size_t kMaximumPreLoginConnectionRetries = 1U;
+/// Microsoft RDP内部状態をcallback終了後に解放する段階的な有限待機時間。
+inline constexpr std::array<std::uint32_t, 2U>
+    kPreLoginConnectionRetryDelaysMilliseconds{{2000U, 5000U}};
 
-/// Microsoft RDP内部状態をcallback終了後に解放するための有限待機時間。
-inline constexpr std::uint32_t kPreLoginConnectionRetryDelayMilliseconds =
-    2000U;
+/// credential誤り等を無制限に再送しないための接続意図ごとの上限。
+inline constexpr std::size_t kMaximumPreLoginConnectionRetries =
+    kPreLoginConnectionRetryDelaysMilliseconds.size();
 
 /**
  * @brief ログイン前切断後に実施する処理を表す。
  */
 enum class PreLoginConnectionRetryAction {
     None,       ///< 対象外のため既存切断処理を続行する。
-    Schedule,   ///< 有限delay後の一回再試行を予約する。
+    Schedule,   ///< 有限delay後の次回再試行を予約する。
     Exhausted,  ///< 対象signatureだが既に上限へ到達している。
 };
 
@@ -48,6 +50,7 @@ struct PreLoginConnectionRetryDecision {
  * @param[in] login_completed 現在の接続意図でlogin完了済みならtrue。
  * @param[in] locally_requested ZRdp自身が切断を要求した場合はtrue。
  * @param[in] credential_prompt_cancelled 利用者が認証UIを取り消した場合はtrue。
+ * @param[in] authentication_dialog_displayed 現在試行でMicrosoft認証UIを表示した場合はtrue。
  * @param[in] closing Window終了処理中の場合はtrue。
  * @param[in] disconnect_reason ActiveX `OnDisconnected` reason。
  * @param[in] extended_disconnect_reason ActiveX拡張切断reason。
@@ -62,14 +65,16 @@ SelectPreLoginConnectionRetry(
     const bool login_completed,
     const bool locally_requested,
     const bool credential_prompt_cancelled,
+    const bool authentication_dialog_displayed,
     const bool closing,
     const long disconnect_reason,
     const long extended_disconnect_reason,
     const std::size_t retries_scheduled) noexcept {
-    // 成立済みsession、利用者起点、終了処理では自動接続を開始しない。
+    // 成立済みsession、利用者判断を伴う認証UI、終了処理では自動接続を開始しない。
     if (login_completed ||
         locally_requested ||
         credential_prompt_cancelled ||
+        authentication_dialog_displayed ||
         closing) {
         return {};
     }
@@ -81,7 +86,7 @@ SelectPreLoginConnectionRetry(
         return {};
     }
 
-    // password再入力やaccount lockoutを誘発しないよう一回で必ず停止する。
+    // password再入力やaccount lockoutを誘発しないよう有限表の終端で必ず停止する。
     if (retries_scheduled >= kMaximumPreLoginConnectionRetries) {
         return {
             PreLoginConnectionRetryAction::Exhausted,
@@ -91,7 +96,7 @@ SelectPreLoginConnectionRetry(
 
     return {
         PreLoginConnectionRetryAction::Schedule,
-        kPreLoginConnectionRetryDelayMilliseconds,
+        kPreLoginConnectionRetryDelaysMilliseconds[retries_scheduled],
     };
 }
 

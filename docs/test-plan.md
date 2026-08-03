@@ -1,6 +1,6 @@
 # ZRdp SVN Bridge テスト計画
 
-更新日: 2026-07-31
+更新日: 2026-08-03
 
 ## 1. 現在の対象
 
@@ -34,6 +34,10 @@ Version `0.7.10.0`では動的解像度の限定再試行と、実機で相互�
 回帰修正R-003では、まれなログイン前切断をClient／Windows event logで特定し、
 観測済みの`discReason=263`、`ExtendedDisconnectReason=0`だけを2秒後に一度
 再試行するVersion `0.7.14.0`候補をローカル検証した。
+回帰修正R-005では、同じ接続先についてZRdpと`mstsc.exe`の双方で二回続けて
+同じSSL handshake失敗が発生し、`mstsc.exe`の三回目で成立した観測結果を受け、
+対象条件を広げずClientの有限再試行だけを2秒後、5秒後の二段階へ拡張した。
+Agent、Virtual Channel、Proxy、protocol、認証条件は変更していない。
 
 - Client: `out/ZRdpSvnBridge.exe`
 - Agent: `out/ZRdpSvnAgent.exe`
@@ -124,7 +128,8 @@ ctest --preset release
 - 接続時desktop比率による4辺／4角のWindow矩形補正、反対辺anchor、
   最小寸法、不正値拒否
 - ログイン完了有無、local切断、credential取消による外部切断Window終了policy
-- ログイン前`263/0`完全一致だけの2秒後・最大一回接続再試行policyと全除外条件
+- ログイン前`263/0`完全一致だけの2秒後、5秒後・最大二回接続再試行policyと
+  全除外条件
 - 接続再試行の予約、開始、成功、上限到達を示す固定診断event
 - 接続名、接続先、domain、userが暗号化fileへ平文で残らないこと
 - portable EXEのx64種別とversion
@@ -856,7 +861,156 @@ Client固定診断logでも同Versionの`process.started`後に
 `rdp.event.login_complete`へ到達し、通常成功経路にretry eventがないことを
 確認した。自然再発は未発生のため、限定再試行経路は継続監視とする。
 
-## 25. 報告してほしい情報
+## 25. 回帰修正R-005 ログイン前再試行の二段階化
+
+### ローカル
+
+- [x] 同一事象で`mstsc.exe`も二回失敗し、三回目の通常handshakeで成立したことを
+      Client／Windows固定診断logから確認する
+- [x] 永続的なRDP接続履歴または保存済み`TERMSRV`資格情報の有無を原因と断定しない
+- [x] R-003の対象条件と除外条件を変更せず、delayだけを2,000 ms、5,000 msの
+      二段階へ拡張する
+- [x] 初回を含む三回目の失敗後は追加再試行せず、従来のerrorを表示する
+- [x] 二段階のdelay、上限到達、全除外条件を純粋policy testで確認する
+- [x] Debug／Release各30 CTestを成功させる
+- [x] Releaseでは`ZRdpSvnBridge.exe`だけをbuildする
+- [x] 作業前後の`ZRdpSvnAgent.exe` SHA-256が一致することを確認する
+- [x] Client候補がVersion `0.7.14.0`であることと、署名前正本を保全する
+- [x] Clientだけを署名し、Windows trust `Valid`、SHA-256、RFC 3161 timestamp、
+      既存Agentと同一署名者であることを確認する
+
+### ユーザー実機
+
+- [ ] 通常接続が従来どおり成立する
+- [ ] 自然再発時、初回または有限再試行内でRDP接続が成立する
+- [ ] 初回を含む三回とも同じ条件で失敗した場合だけ従来のerrorを表示する
+- [ ] Microsoft認証UIを取り消した場合は再試行しない
+- [ ] 接続成立後のAgent、Proxy、SVN／Trac、複数session、表示modeに回帰がない
+
+自然再発を強制するための接続先再起動、security設定変更、証明書操作は行わない。
+今回の候補はClientだけを差し替え、既存Agentを継続使用する。
+
+2026-08-03、新しい接続先で初回と二回のretryがすべて`263/0`となり、password入力を
+三回要求した。Windows標準Clientとの比較で、同Clientはcredential入力後にserver
+certificate警告を表示し、利用者の明示継続後にdesktopへ到達した。R-005の回数不足
+ではなく、ActiveX security dialog表示の互換性をR-006として修正する。
+
+## 26. 回帰修正R-006 certificate警告ダイアログ互換性
+
+### 解析／設計
+
+- [x] ZRdpの認証dialog eventと`263/0`を時系列で確認する
+- [x] Windows標準Clientでcredential UI後にcertificate警告が表示され、明示継続後に
+      desktopへ到達する差分を確認する
+- [x] `AuthenticationLevel=2`を維持し、値`0`／`1`、自動承認、証明書登録を採用しない
+- [x] Microsoft公開の`RedirectionWarningDialogVersion=1`を互換候補として採用する
+- [x] ADR 0010と修正提案へActiveX、security、protocol非影響、rollbackを記録する
+
+### ローカル
+
+- [x] `IMsRdpExtendedSettings::Property`へ`VT_UI4`の値`1`を接続前に設定する
+- [x] `ShowRedirectionWarningDialog=TRUE`候補が既存接続を壊すことを実機確認し撤回する
+- [x] `AuthenticationLevel=2`をsetter後にreadbackし、不一致をfail-closedにする
+- [x] 認証dialog表示中は親WindowからActiveX childへfocusを移し直さない
+- [x] Microsoft認証dialog表示後の`263/0`を自動retryから除外する
+- [x] 既存の2秒／5秒retryが認証UI表示前にだけ残ることを純粋policy testで確認する
+- [x] ActiveX smoke、retry policy、固定診断logの対象testを成功させる
+- [x] Debug／Release全CTestを成功させる
+- [x] Release Clientだけを更新し、AgentのSHA-256が変化しないことを確認する
+- [x] ClientのAuthenticode状態とSHA-256を確認する
+
+初回実機候補ではVersion 1とAuthenticationLevelの設定は成功したが、二回目のwarning
+eventが約1 msでdismissされて`263/0`となった。password要求を一回で止めるretry除外は
+成功した。`ShowRedirectionWarningDialog=TRUE`候補は既存接続先でも`Connect()`が
+`S_FALSE`、`disconnect code=1`となったため撤回した。
+
+### ユーザー実機
+
+- [ ] credential入力後にWindows標準certificate警告が表示される
+- [ ] 警告で「はい」を選ぶとdesktopへ到達する
+- [ ] 警告で「いいえ」を選ぶとpassword再入力や追加retryなしに未接続へ戻る
+- [x] R-006回帰撤回版で通常の信頼済み接続先へ従来どおり接続できる
+- [ ] 接続後のAgent、Proxy、SVN／Trac、複数session、表示modeに回帰がない
+- [ ] 固定logで`dialog_version=1 enabled=1`、`authentication_level=2`を確認する
+
+実機確認ではcertificateを登録せず、「今後確認しない」等の永続化optionも選ばない。
+ZRdpが警告を自動承認せず、利用者の今回の明示判断だけで接続できることを確認する。
+
+## 27. 回帰修正R-007 ActiveX既定の認証ダイアログ親Window
+
+### 解析／設計
+
+- [x] 回帰撤回版で従来接続先が復旧し、問題接続先だけが`263/0`で残ることを確認する
+- [x] Windows固定診断で`TsSslEventHandshakeContinueFailed (0x80004005)`を確認する
+- [x] `UIParentWindowHandle`の未設定時はActiveX Control Windowが既定親となる
+      Microsoft公開契約を確認する
+- [x] 修正提案へActiveX、security、protocol非影響、rollbackを記録する
+
+### ローカル
+
+- [x] session top-level Windowへの`UIParentWindowHandle`明示setterを削除する
+- [x] `rdp.activex_default_dialog_parent_selected`を固定eventとして追加する
+- [x] 対象のActiveX smoke、diagnostic log、source comment testを成功させる
+- [x] Debug／Release全30 CTestを成功させる
+- [x] Release Clientだけを更新し、AgentのSHA-256が変化しないことを確認する
+- [x] ClientのVersion、Authenticode状態、size、SHA-256を記録する
+
+### ユーザー実機
+
+- [x] R-007候補でも従来接続先へ回帰なく接続できる
+- [x] credential入力後にcertificate警告が操作可能な状態で表示される
+- [x] 警告で「はい」を選ぶとdesktopへ到達する
+- [x] 警告で「いいえ」を選ぶと`263/0`後に重複したRDP接続errorが表示される問題を再現する
+- [ ] 接続後のAgent、Proxy、SVN／Trac、複数session、表示modeに回帰がない
+- [x] 固定logに`rdp.activex_default_dialog_parent_selected`、`dialog_version=1`、
+      `authentication_level=2`が記録される
+
+2026-08-03の実機logでは、credential UIに対応する最初のwarning eventが約6秒、
+certificate UIに対応する二回目が約4秒表示された。二回目のdismiss後に自動retryを
+挟まず`OnConnected`、`OnLoginComplete`へ到達し、利用者操作による切断まで正常に
+維持された。
+
+NLA、CredSSP、server authentication、certificate検証は変更しない。警告の自動承認、
+certificate store／registry／GPO／RDP cache操作、`mstsc.exe` fallbackは行わない。
+
+## 28. 回帰修正R-008 certificate警告拒否後の重複error抑止
+
+### 解析／設計
+
+- [x] ActiveXが警告buttonの選択値を直接通知しない制約を確認する
+- [x] warning二回以上、login未完了、非local、credential取消以外、`263/0`完全一致へ
+      分類を限定する
+- [x] 修正提案へ誤分類可能性、security／protocol非影響、rollbackを記録する
+
+### ローカル
+
+- [x] warning表示回数を接続試行開始時にresetし、二回で飽和させる
+- [x] 完全一致時にretryと追加errorを行わず、対象session Windowだけを閉じる
+- [x] 固定field `security_warning_cancelled`を追加し、秘密情報を記録しない
+- [x] true条件とwarning一回、login済み、local、credential取消、reason違い、
+      extended reason違いの全除外条件を自動testする
+- [x] Debug／隔離Release各30 CTestを成功させる
+- [x] 標準`out`のresource／portable binary contractを成功させる
+- [x] AgentのSHA-256が作業前後で不変であることを確認する
+
+### ユーザー実機
+
+- [x] 従来接続先へ回帰なく接続できる
+- [x] certificate警告で「いいえ」を選ぶと追加errorなしで対象session Windowだけが閉じる
+- [x] 接続管理Windowが維持される
+- [ ] 同時接続中の他sessionが影響を受けない
+- [ ] certificate警告で「はい」を選ぶ接続とAgent／Proxyに回帰がない
+- [ ] 固定logに`security_warning_cancelled=1`と`263/0`が記録される
+
+certificateの登録、警告の永続承認、server設定変更は行わない。通常の利用者操作だけで
+確認し、接続先、certificate名、domain、ユーザー名を報告へ含めない。
+
+2026-08-03、ユーザー実機で「いいえ」後に追加errorなしで対象session Windowだけが
+閉じる期待動作を確認した。受入後のClientは既存Agentと同じ署名者で署名し、Windows
+trust `Valid`、SHA-256 signature、RFC 3161 timestamp、Version維持を静的確認した。
+署名後Clientの起動、RDP、Bridge、Proxyは別Gateとして残す。
+
+## 29. 報告してほしい情報
 
 成功時はチェック項目と概算所要時間だけでよい。失敗時は次の
 固定情報を報告する。

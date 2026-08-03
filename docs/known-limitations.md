@@ -1,6 +1,6 @@
 # ZRdp SVN Bridge 既知の制約と残存risk
 
-更新日: 2026-08-01
+更新日: 2026-08-03
 
 ## 1. Version 0.7.14の検証境界
 
@@ -23,10 +23,10 @@ conflict、Lock、Unlockは、Version `0.6.0.0`でユーザーから問題なし
   改善項目として再オープンする。
 - 実環境でStatic Virtual Channelの帯域、遅延、長時間安定性が不足する場合は、
   実測値とADRなしにDynamic Virtual Channelへ変更しない。
-- Release EXEは2026-08-01に署名され、Windows trust `Valid`、SHA-256、RFC 3161
-  timestamp、Version維持を確認した。署名後のClient／Agent、RDP、Bridge、Proxyの
-  smoke testもユーザー環境で通過した。最終文書受入と配布確認が未完のため、Release
-  Gate全体は未通過である。
+- Agentと従来Clientは2026-08-01、R-008 Clientは2026-08-03に署名され、Windows trust
+  `Valid`、SHA-256、RFC 3161 timestamp、Version維持、既存Agentとの署名者一致を
+  確認した。R-008署名後Clientの起動、RDP、Bridge、Proxy smoke test、最終文書受入、
+  配布確認が未完のため、Release Gate全体は未通過である。
 - Mylyn Trac `3.26.0`相当のWeb GET／XML-RPC POSTはMock Gateを通過し、
   実Tracの設定検証と同期もユーザー環境で成立した。ticket更新やattachmentは、
   必要になった安全な対象だけを個別確認する。
@@ -61,13 +61,30 @@ conflict、Lock、Unlockは、Version `0.6.0.0`でユーザーから問題なし
   機能することをユーザーが確認した。
 - ログイン完了後の外部切断を無通知終了する判定はローカルGateを通過したが、
   接続先再起動または通信断による実RDP切断のユーザー実機Gateは未通過である。
-  ログイン前の接続失敗は原則としてerror dialogを表示する。Version `0.7.14.0`は
-  観測済みの`discReason=263`、`ExtendedDisconnectReason=0`完全一致だけを
-  2秒後に一度再試行し、二度目の失敗では従来どおりerrorを表示する。このsignature
-  は公開仕様で原因が定義されておらず、Windows更新等で別reasonになった失敗は
-  自動回復しない。Version `0.7.14.0`の通常起動とRDPログイン完了はVersion
+  ログイン前の接続失敗は原則としてerror dialogを表示する。署名済みVersion
+  `0.7.14.0`は観測済みの`discReason=263`、`ExtendedDisconnectReason=0`完全一致を
+  2秒後に一度再試行する。2026-08-03のR-005 Client候補は、Microsoft RDP Clientが
+  三回目に成功した実測に合わせ、同じ完全一致だけを2秒後と5秒後に最大二回
+  再試行した。その後、新しい接続先ではcredential入力後のcertificate警告を
+  操作可能にならず、三回とも同じ失敗を反復することが判明した。R-006候補は
+  Microsoft認証dialogを表示した試行を自動retryから除外し、認証UIへ到達する前の
+  完全一致だけにR-005を残す。このsignatureは公開仕様で原因が定義されておらず、
+  Windows更新等で別reasonになった失敗は自動回復しない。Version `0.7.14.0`の通常起動とRDP
+  ログイン完了はVersion
   `0.7.13.0`のユーザー実機結果を基礎とし、終了経路変更後の実RDP終了も再確認済みで
-  ある。まれなsignatureの自然再発と自動復旧は未観測である。
+  ある。R-006初回候補は`RedirectionWarningDialogVersion=1`、`AuthenticationLevel=2`
+  readback、認証dialog中のfocus保護を実装した。実機では両設定に成功したが二回目の
+  warning eventが即時dismissされた。`ShowRedirectionWarningDialog=TRUE`候補は既存接続先も
+  `Connect()`の`S_FALSE`、`disconnect code=1`で失敗させたため撤回済みである。
+  回帰撤回版では従来接続先が再び接続できることをユーザーが確認した。次のR-007候補は
+  `UIParentWindowHandle`のsession top-level Window指定を外し、ActiveX Control Windowの
+  既定親へcredential UIとcertificate UIを一貫して委譲する。実機ではcertificate警告が
+  操作可能となり、利用者の明示継続後にdesktopへ到達した。従来接続先もR-007候補で
+  回帰なく接続できた。「いいえ」ではControlの`263/0`後にZRdpが重複errorを表示したため、
+  R-008候補はwarning二回以上かつlogin前の完全一致だけを利用者取消として扱い、対象
+  session Windowを閉じる。ActiveXはbutton選択値を公開しないため、「はい」の直後に
+  同じ`263/0`で別障害が起きた場合も取消分類へ一致し得る。R-008は実機で「いいえ」後に
+  重複errorなしで対象sessionだけが閉じることを確認し、受入後Clientを再署名した。
 - 枠なしのpopカラーiconは実機feedbackを受け、subject幅約96%／高さ約92%へ
   拡大し、黄色endpointをroyal purpleへ変更した。16、24、32、48pxの明暗背景と
   Debug／Release EXE埋め込みはローカル確認済みである。Explorer／taskbar／

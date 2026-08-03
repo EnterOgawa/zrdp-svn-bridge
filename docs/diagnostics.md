@@ -105,20 +105,60 @@ event=rdp.event.disconnected code=7943 extended_reason=0 locally_requested=0 cre
 通常のerror表示を維持する。
 
 ログイン完了前の`code=263 extended_reason=0`が、local切断、credential取消、
-Window終了中のいずれでもなく、現在の接続意図でまだ再試行していない場合だけ、
-2,000 ms後に一度再試行する。固定eventは次の順になる。
+Window終了中、Microsoft認証dialog表示済みのいずれでもない場合だけ、一回目を
+2,000 ms後、同じsignatureが続いた二回目を5,000 ms後に再試行する。固定eventは
+次の順になる。
 
 ```text
-event=rdp.pre_login_retry_scheduled attempt=1 max_attempts=1 reason=263 extended_reason=0 port=18080
+event=rdp.pre_login_retry_scheduled attempt=1 max_attempts=2 reason=263 extended_reason=0 port=18080
 event=rdp.pre_login_retry_started attempt=1 port=18080
-event=rdp.pre_login_retry_completed attempt=1 port=18080
+event=rdp.pre_login_retry_scheduled attempt=2 max_attempts=2 reason=263 extended_reason=0 port=18080
+event=rdp.pre_login_retry_started attempt=2 port=18080
+event=rdp.pre_login_retry_completed attempt=2 port=18080
 ```
 
-`completed`は二回目の接続で`OnLoginComplete`へ到達した場合だけ記録する。
-二回目も同じ数値組で切断された場合は、`rdp.pre_login_retry_exhausted`を記録して
-従来のerror dialogを表示する。異なるreason、credential取消、成立済みsessionの
+`completed`は二回目または三回目の接続で`OnLoginComplete`へ到達した場合だけ
+記録する。三回目も同じ数値組で切断された場合は、
+`rdp.pre_login_retry_exhausted attempt=2 max_attempts=2`を記録して従来のerror
+dialogを表示する。異なるreason、認証UI表示後、credential取消、成立済みsessionの
 切断は自動再試行しない。固定field以外の説明、接続先、domain、ユーザー名、
 credential、passwordは記録しない。
+
+Windowsのconnection security dialog互換設定とserver認証levelは、接続先や
+certificate情報を含めず次の固定数値だけを記録する。
+
+```text
+event=rdp.security_dialog_configuration_returned hresult=0x00000000 dialog_version=1 enabled=1
+event=rdp.authentication_level_configuration_returned hresult=0x00000000 authentication_level=2
+```
+
+`dialog_version=1`はMicrosoftが提供する更新前dialog互換値である。property追加前の
+旧ActiveXでは`enabled=0`と既知の未対応HRESULTをWarningで記録し、そのsystemの
+既定dialogを維持する。その他の失敗は接続前設定を停止する。
+`authentication_level=2`以外のreadbackではConnectを開始しない。certificate名、
+issuer、接続先、利用者の選択内容は記録しない。
+
+ActiveXの認証dialog親をControl Windowの既定処理へ委譲した候補は、一instance生成時に
+次の固定eventを記録する。
+
+```text
+event=rdp.activex_default_dialog_parent_selected
+```
+
+このeventは`UIParentWindowHandle`をsession top-level Windowへ明示設定していないことを
+示す。親HWND、Window title、接続先、certificate情報、利用者の選択は記録しない。
+
+Microsoft認証warningを同一試行で二回以上表示した後、login未完了、非local、
+credential取消以外、`discReason=263`、`ExtendedDisconnectReason=0`が完全一致した
+切断は、certificate警告の取消候補として次の固定fieldを記録する。
+
+```text
+event=rdp.event.disconnected disconnect_reason=263 extended_disconnect_reason=0 security_warning_cancelled=1
+```
+
+`security_warning_cancelled=1`では追加のRDP接続errorを表示せず、対象session Windowだけを
+閉じる。このfieldはActiveXが公開しないbutton選択値そのものではなく、warning表示段階と
+切断値の限定分類である。certificate名、接続先、利用者の選択文字列は記録しない。
 
 接続設定開始時の`display_mode`は、排他的な表示modeの選択を表す。
 

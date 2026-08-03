@@ -1,6 +1,6 @@
 # ZRdp SVN Bridge 開発ロードマップ
 
-更新日: 2026-08-01
+更新日: 2026-08-03
 
 ## 1. ロードマップの目的
 
@@ -54,9 +54,9 @@ RDP ActiveX で画面接続できることは必要な前提条件だが、プ�
 | Phase 6 Hardening | Gate通過 | health timeout、Agent強制終了／再起動、RDP継続を実機確認 |
 | Phase 7 実環境Read-only | Gate通過 | 2026-07-31 ユーザー受入済み |
 | Phase 8 実環境Write | Gate通過 | 2026-07-31 Commit等を含む全操作をユーザー受入済み |
-| Phase 9 改善 | R-004完了、ほかの残件は経過監視 | Version 0.7.14の終了経路をローカル／実RDPで確認済み |
+| Phase 9 改善 | R-008 Gate通過 | certificate警告拒否後に重複errorなしで対象sessionだけが閉じることを実機確認 |
 | Documentation Gate | 文書受入待ち | Version 0.7.14の仕様書、利用手順書、リリース文書へ同期済み |
-| Release Gate | 文書受入／配布確認待ち | 署名は`Valid`、署名後smoke test通過。未署名正本と署名後hashを保全・記録済み |
+| Release Gate | R-008署名後smoke待ち | ClientをAgentと同じ署名者で再署名し、Windows trustとRFC 3161 timestampを確認 |
 
 ## 4. 全体ロードマップ
 
@@ -88,7 +88,7 @@ RDP ActiveX で画面接続できることは必要な前提条件だが、プ�
 | Phase 6 | 異常系、資源制限、切断耐性 | ローカル／Test／ユーザー環境 | Gate通過（2026-07-31） |
 | Phase 7 | 実SVNのread-only操作 | 明示承認済み実環境 | Gate通過（2026-07-31） |
 | Phase 8 | 指定test pathのwrite操作 | ユーザー確認済み実環境 | Gate通過（2026-07-31） |
-| Phase 9 | ユーザー要望を一件ずつ改善 | 項目ごとの実装／検証／受入 | R-004完了、残件は社内試行で経過監視 |
+| Phase 9 | ユーザー要望を一件ずつ改善 | 項目ごとの実装／検証／受入 | R-005実装済み、実機確認待ち |
 | Documentation Gate | 最終仕様書と利用手順書 | 社内試行で残存項目を明示 | 文書作成済み、ユーザー受入待ち |
 | Release Gate | 署名済みportable配布物 | 実機終了確認、ユーザー署名／承認 | 署名後smoke test通過、文書受入／配布確認待ち |
 
@@ -832,6 +832,100 @@ cycleを検出せず、接続中ActiveXを直ちにATL OLE破棄する境界へ�
 - [x] 固定logで`rdp.event.disconnected`と`process.stopping`を確認する。
 - [x] ユーザー受入後にR-004を完了し、署名Gateへ進む。
 
+### R-005: ログイン前SSL handshake再試行の二段階化
+
+同一接続先への新規接続でZRdpの初回と一回再試行が`263/0`で終了し、その後の
+`mstsc.exe`も二回同じSSL handshake継続失敗となった後、三回目で成立した。
+永続的な接続履歴や保存済み資格情報は観測されず、R-003が有限上限へ到達する
+一方でWindows標準Clientも同じ回数失敗したことから、対象signatureを変更せず
+Clientの試行回数だけを初回を含む最大三回へ拡張する。
+
+- [x] 実行logとWindows event logを時刻対応させ、ZRdpと`mstsc.exe`の失敗／成功
+      sequenceを確認する。
+- [x] R-003のlogin未完了、非local切断、非credential取消、非終了中、`263/0`
+      完全一致という条件を維持する。
+- [x] COM callback外のWindow timerで2,000 ms後、5,000 ms後の二回だけ再試行する。
+- [x] 三回目の同一失敗、timer確保失敗、設定失敗、同期的`Connect()`失敗では
+      追加再試行せず、従来のerror表示へ戻す。
+- [x] 二段階delayと上限を単体testへ追加し、Debug／Release各30 CTestを成功させる。
+- [x] `ZRdpSvnBridge.exe`だけをRelease buildし、`ZRdpSvnAgent.exe`の作業前後
+      SHA-256が一致することを確認する。
+- [x] ADR 0009へ判断、代替案、security／protocol非影響を記録する。
+- [x] Clientだけを署名し、Windows trust、SHA-256、RFC 3161 timestamp、既存Agentと
+      同一署名者であることを確認する。
+- [ ] ユーザー環境で通常接続と自然再発時の有限自動復旧を確認する。
+- [ ] Agent、Proxy、SVN／Trac、複数session、表示modeに回帰がないことを確認する。
+
+password取得、保存資格情報の作成、`mstsc.exe`起動、NLA／CredSSP／証明書方針の
+緩和は行わない。Agent、Static Virtual Channel wire protocol、Proxy、allowlist、
+接続履歴形式、port割当は変更しない。
+
+### R-006: certificate警告ダイアログのActiveX互換表示
+
+新しい接続先へのZRdp接続はcredential入力後に二回目の認証warning eventを即時終了し、
+`263/0`となった。R-005は同じ失敗を反復してpasswordを三回要求した。一方、Windows
+標準Clientはcredential UI後にserver certificate警告を表示し、利用者の明示継続後に
+desktopへ到達したため、retry回数ではなくActiveX security dialog境界を修正する。
+
+- [x] ZRdpとWindows標準Clientの認証／certificate warning sequenceを比較する。
+- [x] 修正提案とADR 0010へsecurity boundary、失敗時動作、rollbackを記録する。
+- [x] `RedirectionWarningDialogVersion=1`を`VT_UI4`で接続前に設定する。
+- [x] `ShowRedirectionWarningDialog=TRUE`候補が既存接続を壊すことを確認し撤回する。
+- [x] `AuthenticationLevel=2`をreadbackし、警告なしまたはhard-failへの変化を拒否する。
+- [x] 認証dialog中のActiveX childへのfocus再設定を抑止する。
+- [x] Microsoft認証dialog表示後の`263/0`を自動retryから除外する。
+- [x] 対象のActiveX smoke、policy、diagnostic log testを成功させる。
+- [x] Debug／Release全CTestとClient限定Release成果物を確認する。
+- [x] 回帰撤回後Clientで従来接続先へ接続できることをユーザー実機で確認する。
+- [ ] certificate警告の「はい」／「いいえ」とAgent／Proxy／SVN／Tracを
+      ユーザー実機で確認する。
+
+certificate警告は自動承認せず、NLA、CredSSP、server authenticationを弱めない。
+certificate store、registry、GPO、credential manager、RDP cacheを変更しない。
+Agent、Virtual Channel、Protocol、Proxy、allowlist、接続履歴には変更しない。
+
+### R-007: ActiveX既定の認証ダイアログ親Window
+
+R-006回帰撤回版では従来接続先が回復したが、certificate確認が必要な接続先は
+`TsSslEventHandshakeContinueFailed (0x80004005)`、`263/0`のまま終了した。
+credential UIに続くcertificate UIのmodal ownershipを同じMicrosoft Controlへ
+一貫して委譲するため、session top-level Windowへの`UIParentWindowHandle`明示設定を
+外し、ActiveX Control Windowの既定親を使用する。
+
+- [x] 修正提案へ影響範囲、security boundary、失敗時動作、rollbackを記録する。
+- [x] 回帰撤回版ClientをSHA-256付きで`work/tmp`へ退避する。
+- [x] `UIParentWindowHandle` setterを削除し、ActiveX既定親の選択を固定logへ記録する。
+- [x] Debug／Release全CTestとClient限定Release成果物を確認する。
+- [x] 従来接続先へ回帰なく接続できることをユーザー実機で確認する。
+- [x] 問題接続先でcertificate警告を明示承認し、desktopへ到達することを確認する。
+- [x] certificate警告で「いいえ」を選ぶと`263/0`後に重複errorが表示されることを
+      ユーザー実機で確認する。
+
+NLA、CredSSP、`AuthenticationLevel=2`、certificate検証、警告の利用者判断、
+認証UI表示後のretry禁止を維持する。Agent、Virtual Channel、Protocol、Proxy、
+allowlist、接続履歴には変更しない。
+
+### R-008: certificate警告拒否後の重複error抑止
+
+R-007でMicrosoft標準certificate警告の「いいえ」を選ぶと、Controlが通知した
+`discReason=263`、`ExtendedDisconnectReason=0`をZRdpが通常障害として再表示した。
+利用者は標準警告ですでに接続拒否を明示しているため、認証warning二回以上、
+login未完了、非local、credential取消以外、`263/0`完全一致に限定して追加errorを
+抑止し、対象session Windowだけを閉じる。
+
+- [x] 修正提案へ判定条件、security boundary、誤分類可能性、rollbackを記録する。
+- [x] warning表示回数を接続試行単位で有限に追跡し、pure policyで完全一致を判定する。
+- [x] 完全一致時にretryと追加errorを行わず、対象session Windowだけを閉じる。
+- [x] 固定log field `security_warning_cancelled`と除外条件の自動testを追加する。
+- [x] Debug／隔離Release各30 CTest、標準成果物contract、Agent非変更を確認する。
+- [x] R-007候補で従来接続先へ回帰なく接続できることをユーザー実機確認する。
+- [x] R-008候補で「いいえ」後に追加errorなしでsession Windowだけが閉じることを
+      ユーザー実機確認する。
+
+ActiveXは警告buttonの選択値を公開しないため、warning表示段階と切断値の完全一致で
+限定分類する。certificate検証、自動承認、NLA、CredSSP、`AuthenticationLevel=2`、
+Agent、Virtual Channel、Protocol、Proxy、allowlist、接続履歴は変更しない。
+
 ### Documentation Gate
 
 2026-07-31、ユーザーはVersion `0.7.14.0`を社内で試行利用し、不具合を個別報告する
@@ -995,5 +1089,25 @@ cycleを検出せず、接続中ActiveXを直ちにATL OLE破棄する境界へ�
 95. [x] 署名後のClient／Agent、RDP、Bridge、Proxyのsmoke testを完了する。
 96. [ ] 最終文書受入、組織固有の署名規定確認、配布package確認を完了し、Release
     Gateを通過する。
+97. [x] 回帰修正R-005の二段階接続再試行をClient限定で実装する。
+98. [x] Debug／Release各30 CTestとAgent成果物非変更を確認する。
+99. [ ] 回帰修正R-005をユーザー実機で受け入れる。
+100. [x] R-005 ClientへAuthenticode署名し、静的検証を完了する。
+101. [x] R-006のcertificate警告差分をWindows標準Clientと比較して特定する。
+102. [x] ActiveX security dialog互換設定、認証level readback、focus保護を実装する。
+103. [x] 認証UI表示後をR-005自動retryから除外し、対象testを成功させる。
+104. [x] R-006のDebug／Release全CTestとClient限定成果物を確認する。
+105. [x] R-006初回候補で警告が即時dismissされ、retry除外だけが機能したことを確認する。
+106. [x] warning dialog表示propertyの回帰を確認して撤回し、各30 CTestを再実施する。
+107. [x] 撤回後Clientで既存接続先の回復をユーザー実機確認する。
+108. [x] certificate警告の次候補を設計し、ActiveX既定dialog親を実装する。
+109. [x] R-007のDebug／Release全CTestとClient限定成果物を確認する。
+110. [x] R-007で問題接続先のcertificate警告を明示承認し、LoginCompleteへ到達する。
+111. [x] R-007で従来接続先への回帰がないことと警告取消時の重複errorを確認する。
+112. [x] R-008で警告拒否後の重複error抑止を実装し、全ローカルGateを通過する。
+113. [x] R-008で警告拒否後に対象sessionだけが静かに閉じることを実機確認する。
+114. [x] R-008 ClientをAgentと同じ署名者で署名し、Windows trust、SHA-256、
+     RFC 3161 timestamp、Versionを静的検証する。
+115. [ ] R-008署名後Clientの起動、RDP、Bridge、Proxy smoke testを実機確認する。
 
 日程見積りは、ActiveX host方式を確定し、Phase 0とPhase 1で実環境固有の技術riskを測定した後に更新する。Gate待ち時間を開発工数へ混在させない。

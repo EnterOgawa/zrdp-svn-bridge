@@ -16,7 +16,11 @@
  */
 int wmain() {
     using zrdp::client::app::kMaximumPreLoginConnectionRetries;
-    using zrdp::client::app::kPreLoginConnectionRetryDelayMilliseconds;
+    using zrdp::client::app::
+        kSecurityWarningCancellationMinimumDisplayCount;
+    using zrdp::client::app::IsSecurityWarningCancellation;
+    using zrdp::client::app::
+        kPreLoginConnectionRetryDelaysMilliseconds;
     using zrdp::client::app::PreLoginConnectionRetryAction;
     using zrdp::client::app::SelectPreLoginConnectionRetry;
     using zrdp::client::app::SelectSessionCloseStartAction;
@@ -74,7 +78,8 @@ int wmain() {
         return 7;
     }
 
-    const auto retry = SelectPreLoginConnectionRetry(
+    const auto first_retry = SelectPreLoginConnectionRetry(
+        false,
         false,
         false,
         false,
@@ -82,12 +87,29 @@ int wmain() {
         263L,
         0L,
         0U);
-    // 観測済みのログイン前signatureだけは2秒後の一回再試行を選ぶ。
-    if (retry.action !=
+    // 観測済みのログイン前signatureは、最初に2秒後の再試行を選ぶ。
+    if (first_retry.action !=
             PreLoginConnectionRetryAction::Schedule ||
-        retry.delay_milliseconds !=
-            kPreLoginConnectionRetryDelayMilliseconds) {
+        first_retry.delay_milliseconds !=
+            kPreLoginConnectionRetryDelaysMilliseconds[0U]) {
         return 8;
+    }
+
+    const auto second_retry = SelectPreLoginConnectionRetry(
+        false,
+        false,
+        false,
+        false,
+        false,
+        263L,
+        0L,
+        1U);
+    // 同じ一時signatureが続いた場合だけ、次は5秒待って最終試行へ進む。
+    if (second_retry.action !=
+            PreLoginConnectionRetryAction::Schedule ||
+        second_retry.delay_milliseconds !=
+            kPreLoginConnectionRetryDelaysMilliseconds[1U]) {
+        return 9;
     }
 
     // 一度login完了したsessionを新規Connectで置き換えない。
@@ -95,18 +117,6 @@ int wmain() {
             true,
             false,
             false,
-            false,
-            263L,
-            0L,
-            0U).action !=
-        PreLoginConnectionRetryAction::None) {
-        return 9;
-    }
-
-    // ZRdp自身の切断要求では利用者意図に反して再接続しない。
-    if (SelectPreLoginConnectionRetry(
-            false,
-            true,
             false,
             false,
             263L,
@@ -116,11 +126,12 @@ int wmain() {
         return 10;
     }
 
-    // Microsoft認証UIの取消後に同じcredential入力を再要求しない。
+    // ZRdp自身の切断要求では利用者意図に反して再接続しない。
     if (SelectPreLoginConnectionRetry(
             false,
-            false,
             true,
+            false,
+            false,
             false,
             263L,
             0L,
@@ -129,8 +140,23 @@ int wmain() {
         return 11;
     }
 
+    // Microsoft認証UIの取消後に同じcredential入力を再要求しない。
+    if (SelectPreLoginConnectionRetry(
+            false,
+            false,
+            true,
+            false,
+            false,
+            263L,
+            0L,
+            0U).action !=
+        PreLoginConnectionRetryAction::None) {
+        return 12;
+    }
+
     // Window終了中に遅延Connectを新しく予約しない。
     if (SelectPreLoginConnectionRetry(
+            false,
             false,
             false,
             false,
@@ -139,11 +165,12 @@ int wmain() {
             0L,
             0U).action !=
         PreLoginConnectionRetryAction::None) {
-        return 12;
+        return 13;
     }
 
     // 通常reasonまたは拡張reasonのどちらかが異なる場合は推測で再試行しない。
     if (SelectPreLoginConnectionRetry(
+            false,
             false,
             false,
             false,
@@ -157,15 +184,31 @@ int wmain() {
             false,
             false,
             false,
+            false,
             263L,
             7L,
             0U).action !=
             PreLoginConnectionRetryAction::None) {
-        return 13;
+        return 14;
     }
 
-    // 一回予約済みの同一signatureは上限到達として明示し、再予約しない。
+    // Microsoft認証UIを一度でも表示した試行は、利用者判断を別Connectで反復しない。
     if (SelectPreLoginConnectionRetry(
+            false,
+            false,
+            false,
+            true,
+            false,
+            263L,
+            0L,
+            0U).action !=
+        PreLoginConnectionRetryAction::None) {
+        return 15;
+    }
+
+    // 二回予約済みの同一signatureは上限到達として明示し、再予約しない。
+    if (SelectPreLoginConnectionRetry(
+            false,
             false,
             false,
             false,
@@ -174,7 +217,68 @@ int wmain() {
             0L,
             kMaximumPreLoginConnectionRetries).action !=
         PreLoginConnectionRetryAction::Exhausted) {
-        return 14;
+        return 16;
+    }
+
+    // 二回目のMicrosoft警告を拒否した263/0だけを追加error抑止対象にする。
+    if (!IsSecurityWarningCancellation(
+            false,
+            false,
+            false,
+            kSecurityWarningCancellationMinimumDisplayCount,
+            263L,
+            0L)) {
+        return 17;
+    }
+
+    // warning一回、成立済み、local切断、credential取消は拒否操作と推測しない。
+    if (IsSecurityWarningCancellation(
+            false,
+            false,
+            false,
+            1U,
+            263L,
+            0L) ||
+        IsSecurityWarningCancellation(
+            true,
+            false,
+            false,
+            kSecurityWarningCancellationMinimumDisplayCount,
+            263L,
+            0L) ||
+        IsSecurityWarningCancellation(
+            false,
+            true,
+            false,
+            kSecurityWarningCancellationMinimumDisplayCount,
+            263L,
+            0L) ||
+        IsSecurityWarningCancellation(
+            false,
+            false,
+            true,
+            kSecurityWarningCancellationMinimumDisplayCount,
+            263L,
+            0L)) {
+        return 18;
+    }
+
+    // reasonまたは拡張reasonが異なる失敗は従来どおりerror表示へ残す。
+    if (IsSecurityWarningCancellation(
+            false,
+            false,
+            false,
+            kSecurityWarningCancellationMinimumDisplayCount,
+            264L,
+            0L) ||
+        IsSecurityWarningCancellation(
+            false,
+            false,
+            false,
+            kSecurityWarningCancellationMinimumDisplayCount,
+            263L,
+            1L)) {
+        return 19;
     }
 
     return 0;

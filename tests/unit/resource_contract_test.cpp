@@ -189,7 +189,7 @@ int wmain(
         },
         {
             IDS_STATUS_PRE_LOGIN_RETRY,
-            L"RDP: 一時的な認証接続失敗を検出したため、2秒後に一度だけ再試行します | SVN Bridge: 停止",
+            L"RDP: 一時的な認証接続失敗を検出したため、しばらく待って再試行します | SVN Bridge: 停止",
         },
     }};
 

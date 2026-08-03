@@ -100,7 +100,7 @@ BEGIN
     IDS_DISPLAY_MODE_SMART_SIZING     "Smart Sizing（縮小表示）"
     IDS_DISPLAY_MODE_DYNAMIC_RESOLUTION "動的解像度（Window追従）"
     IDS_RDP_IDENTITY_INVALID          "ドメインとユーザー名を確認してください。ドメイン欄を使用する場合、ユーザー名に「\\」を含めず、両方を入力してください。"
-    IDS_STATUS_PRE_LOGIN_RETRY        "RDP: 一時的な認証接続失敗を検出したため、2秒後に一度だけ再試行します | SVN Bridge: 停止"
+    IDS_STATUS_PRE_LOGIN_RETRY        "RDP: 一時的な認証接続失敗を検出したため、しばらく待って再試行します | SVN Bridge: 停止"
     IDS_BRIDGE_LABEL                  "SVN Bridge:"
     IDS_BRIDGE_ECHO_TEST              "Echoテスト"
     IDS_BRIDGE_STOPPED                "停止"

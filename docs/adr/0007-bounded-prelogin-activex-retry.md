@@ -1,6 +1,6 @@
 # ADR 0007: ログイン前ActiveX一時失敗の限定再試行
 
-- Status: Accepted
+- Status: Superseded by ADR 0009
 - Date: 2026-07-31
 
 ## Context

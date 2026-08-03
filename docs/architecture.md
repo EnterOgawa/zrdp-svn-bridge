@@ -258,4 +258,7 @@ session専用COM STAへ分離した。
 `discReason=263`、`ExtendedDisconnectReason=0`完全一致だけを同じsession STAの
 Window timerから2秒後に一度再試行する。再試行時も接続設定を検証し直し、
 Microsoft ActiveXと標準認証UIへ委譲する。
+回帰修正R-005では、Microsoft RDP Clientが同じSSL失敗を二回経て三回目に成功した
+実測に合わせ、一回目2秒、二回目5秒の有限表へ拡張する。Agent、Proxy、wire
+protocolを変更せず、credential取消と異なる切断reasonの除外も維持する。
 現版の検証境界と残存riskは`docs/known-limitations.md`に記録する。

@@ -464,7 +464,7 @@ void MainWindow::OnRdpEvent(rdp::RdpEvent event) {
             UpdateUiForState(rdp::RdpConnectionState::Connected);
             break;
         case rdp::RdpEventKind::LoginComplete:
-            // 一回再試行後の成功だけを固定数値eventとして識別する。
+            // 一回以上の有限再試行後に成功した場合だけ固定数値eventで識別する。
             if (pre_login_connection_retries_scheduled_ > 0U) {
                 common::WriteDiagnosticLog(
                     common::DiagnosticLevel::Information,
@@ -504,15 +504,26 @@ void MainWindow::OnRdpEvent(rdp::RdpEvent event) {
         case rdp::RdpEventKind::Disconnected: {
             CancelDynamicResolutionUpdate();
             StopBridgeSession();
+            const bool security_warning_cancelled =
+                IsSecurityWarningCancellation(
+                    login_completed_,
+                    event.locally_requested_disconnect,
+                    event.credential_prompt_cancelled,
+                    authentication_dialog_display_count_,
+                    event.code,
+                    event.extended_disconnect_reason);
             const PreLoginConnectionRetryDecision retry_decision =
                 SelectPreLoginConnectionRetry(
                     login_completed_,
                     event.locally_requested_disconnect,
                     event.credential_prompt_cancelled,
+                    authentication_dialog_was_displayed_,
                     closing_,
                     event.code,
                     event.extended_disconnect_reason,
                     pre_login_connection_retries_scheduled_);
+            // Microsoft dialog終了後の遅延focus処理を切断済みControlへ残さない。
+            authentication_dialog_active_ = false;
             const bool close_after_external_disconnect =
                 ShouldCloseWindowAfterExternalDisconnect(
                     login_completed_,
@@ -521,7 +532,8 @@ void MainWindow::OnRdpEvent(rdp::RdpEvent event) {
             login_completed_ = false;
             const bool user_initiated_disconnect =
                 event.locally_requested_disconnect ||
-                event.credential_prompt_cancelled;
+                event.credential_prompt_cancelled ||
+                security_warning_cancelled;
             common::WriteDiagnosticLog(
                 user_initiated_disconnect
                     ? common::DiagnosticLevel::Information
@@ -544,6 +556,10 @@ void MainWindow::OnRdpEvent(rdp::RdpEvent event) {
                             CredentialPromptCancelled,
                         event.credential_prompt_cancelled ? 1U : 0U),
                     common::DiagnosticValue(
+                        common::DiagnosticFieldName::
+                            SecurityWarningCancelled,
+                        security_warning_cancelled ? 1U : 0U),
+                    common::DiagnosticValue(
                         common::DiagnosticFieldName::Port,
                         launch_settings_.proxy_port),
                 });
@@ -555,7 +571,15 @@ void MainWindow::OnRdpEvent(rdp::RdpEvent event) {
                 break;
             }
 
-            // 完全一致した初回失敗はdialogを出さず、callback外の有限timerへ渡す。
+            // Microsoft警告で接続を拒否済みなら、重複errorを出さず未成立Windowを閉じる。
+            if (security_warning_cancelled) {
+                pending_disconnect_error_.clear();
+                closing_ = true;
+                PostMessageW(window_, kMessageCloseReady, 0U, 0L);
+                break;
+            }
+
+            // 完全一致した有限回の失敗はdialogを出さず、callback外のtimerへ渡す。
             if (retry_decision.action ==
                     PreLoginConnectionRetryAction::Schedule &&
                 SchedulePreLoginConnectionRetry(
@@ -564,7 +588,7 @@ void MainWindow::OnRdpEvent(rdp::RdpEvent event) {
                 break;
             }
 
-            // 一回失敗後は原因を隠さず、従来のerror表示へ戻して必ず停止する。
+            // 有限上限へ到達後は原因を隠さず、従来のerror表示へ戻して必ず停止する。
             if (retry_decision.action ==
                 PreLoginConnectionRetryAction::Exhausted) {
                 common::WriteDiagnosticLog(
@@ -683,6 +707,7 @@ void MainWindow::OnRdpEvent(rdp::RdpEvent event) {
             PostMessageW(window_, kMessageSetFullScreen, FALSE, 0L);
             break;
         case rdp::RdpEventKind::FatalError:
+            authentication_dialog_active_ = false;
             CancelPreLoginConnectionRetry();
             CancelDynamicResolutionUpdate();
             StopBridgeSession();
@@ -735,12 +760,21 @@ void MainWindow::OnRdpEvent(rdp::RdpEvent event) {
             UpdateUiForState(rdp::RdpConnectionState::Reconnecting);
             break;
         case rdp::RdpEventKind::AuthenticationWarningDisplayed:
+            // eventからdismissedまでActiveX childへfocusを奪い返さない。
+            authentication_dialog_active_ = true;
+            authentication_dialog_was_displayed_ = true;
+            // certificate UIの到達判定に必要な二段階だけを有限状態として保持する。
+            if (authentication_dialog_display_count_ <
+                kSecurityWarningCancellationMinimumDisplayCount) {
+                ++authentication_dialog_display_count_;
+            }
             common::WriteDiagnosticLog(
                 common::DiagnosticLevel::Warning,
                 common::DiagnosticEvent::EventAuthenticationWarningDisplayed);
             SetStatus(IDS_STATUS_AUTH_WARNING);
             break;
         case rdp::RdpEventKind::AuthenticationWarningDismissed:
+            authentication_dialog_active_ = false;
             common::WriteDiagnosticLog(
                 common::DiagnosticLevel::Information,
                 common::DiagnosticEvent::EventAuthenticationWarningDismissed);
@@ -995,6 +1029,11 @@ LRESULT MainWindow::HandleMessage(
             break;
         }
         case WM_SETFOCUS:
+            // Microsoft認証dialogのmodal focusをZRdp childへ移し直さない。
+            if (authentication_dialog_active_) {
+                return 0;
+            }
+
             // 接続中はキー入力をRDPへ、未接続時は接続先入力へ渡す。
             if (IsConnectionActive(rdp_host_.state())) {
                 rdp_host_.Focus();
@@ -1652,6 +1691,9 @@ void MainWindow::OnConnect() {
 void MainWindow::BeginConnectionAttempt() {
     pending_disconnect_error_.clear();
     login_completed_ = false;
+    authentication_dialog_active_ = false;
+    authentication_dialog_was_displayed_ = false;
+    authentication_dialog_display_count_ = 0U;
     sizing_desktop_width_ = 0L;
     sizing_desktop_height_ = 0L;
 

@@ -108,6 +108,18 @@ ClientのlistenerはIPv4 loopbackだけである。Agentはinbound portを作成
 - Microsoft標準credential UIを使用する。
 - CredSSPを有効化してreadbackし、NLAを弱めない。
 - server certificate警告や認証警告を自動承認しない。
+- Windows更新後もActiveX containerから利用者がcertificate警告を操作できるよう、
+  Microsoft公開のconnection security dialog互換設定を接続前に適用する。
+- credential UIと後続certificate UIは、session top-level Windowを
+  `UIParentWindowHandle`へ上書きせず、ActiveX Control Windowの既定親へ一貫して
+  委譲する。
+- `AuthenticationLevel=2`を設定後にreadbackし、警告なしまたはhard-failへ変化した
+  Controlでは接続を開始しない。
+- Microsoft認証dialogを表示した接続試行は、切断reasonが一時失敗と一致しても自動で
+  再試行しない。利用者の警告判断やpassword入力を反復しないためである。
+- 同一試行で認証warningを二回以上表示した後、login未完了、非local、credential取消
+  以外、`263/0`完全一致で切断した場合は、certificate警告の取消候補として追加errorを
+  表示せず、そのsession Windowだけを閉じる。
 - credentialをINI、log、command line、履歴へ保存しない。
 - ActiveXだけが接続できない場合に`mstsc.exe`へfallbackしない。
 

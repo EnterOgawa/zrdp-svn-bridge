@@ -146,11 +146,15 @@ repository、共通資料へ転載しない。
 
 1. 「新しい接続」を押す。
 2. Windows標準credential UIへpasswordを入力する。
-3. RDP画面が表示され、keyboard、mouse、clipboardを確認する。
-4. Session Windowのtitleで`RDP:接続済み`を確認する。
+3. 接続先certificateをWindowsが信頼できない場合は、Microsoftの警告内容と接続先を
+   確認し、今回の接続を継続するか利用者が選ぶ。ZRdpは警告を自動承認しない。
+4. RDP画面が表示され、keyboard、mouse、clipboardを確認する。
+5. Session Windowのtitleで`RDP:接続済み`を確認する。
 
 Credential UIをCancelまたは閉じた場合、ZRdpは追加の接続errorを表示せず接続を
-取り消す。認証失敗や接続障害ではWindowsが返したerrorを確認する。
+取り消す。certificate警告で「いいえ」を選んだ場合はpassword入力や同じ警告を自動で
+反復せず、そのSession Windowだけを閉じる。接続管理Windowと他の接続は維持する。
+認証失敗や接続障害ではWindowsが返したerrorを確認する。
 
 ## 6. Agentを起動する
 

@@ -4,7 +4,19 @@
  */
 #pragma once
 
+#include <cstddef>
+
 namespace zrdp::client::app {
+
+/// credential UIに続くcertificate UIまで表示済みとみなす最小warning回数。
+constexpr std::size_t
+    kSecurityWarningCancellationMinimumDisplayCount = 2U;
+
+/// certificate警告を拒否した実機でMicrosoft Controlが返す切断reason。
+constexpr long kSecurityWarningCancellationDisconnectReason = 263L;
+
+/// certificate警告拒否時に追加情報がないことを示す拡張reason。
+constexpr long kSecurityWarningCancellationExtendedReason = 0L;
 
 /**
  * @brief session Window終了要求を開始する時点の処理を表す。
@@ -60,6 +72,38 @@ ShouldCloseWindowAfterExternalDisconnect(
     return login_completed &&
         !locally_requested_disconnect &&
         !credential_prompt_cancelled;
+}
+
+/**
+ * @brief Microsoft certificate警告の拒否後に生じた切断か完全一致で判定する。
+ * @param[in] login_completed 現在試行でログイン完了済みならtrue。
+ * @param[in] locally_requested_disconnect ZRdp自身の切断要求ならtrue。
+ * @param[in] credential_prompt_cancelled credential UIの取消ならtrue。
+ * @param[in] authentication_warning_display_count 現在試行の認証warning表示回数。
+ * @param[in] disconnect_reason `OnDisconnected`が通知したreason。
+ * @param[in] extended_disconnect_reason ActiveXから取得した拡張reason。
+ * @return 二回目のMicrosoft警告後に観測した取消条件だけtrue。
+ *
+ * ActiveXは警告buttonの選択値を公開しないため、reasonだけでは分類しない。
+ * credential UIに続く二回目のwarning表示と未ログイン状態を必須にし、通常の
+ * SSL handshake失敗を広く無通知化しない。
+ */
+[[nodiscard]] constexpr bool IsSecurityWarningCancellation(
+    const bool login_completed,
+    const bool locally_requested_disconnect,
+    const bool credential_prompt_cancelled,
+    const std::size_t authentication_warning_display_count,
+    const long disconnect_reason,
+    const long extended_disconnect_reason) noexcept {
+    return !login_completed &&
+        !locally_requested_disconnect &&
+        !credential_prompt_cancelled &&
+        authentication_warning_display_count >=
+            kSecurityWarningCancellationMinimumDisplayCount &&
+        disconnect_reason ==
+            kSecurityWarningCancellationDisconnectReason &&
+        extended_disconnect_reason ==
+            kSecurityWarningCancellationExtendedReason;
 }
 
 }  // namespace zrdp::client::app

@@ -183,10 +183,10 @@ int wmain() {
         {
             zrdp::common::DiagnosticValue(
                 zrdp::common::DiagnosticFieldName::AttemptCount,
-                1U),
+                2U),
             zrdp::common::DiagnosticValue(
                 zrdp::common::DiagnosticFieldName::MaximumAttemptCount,
-                1U),
+                2U),
         });
     zrdp::common::WriteDiagnosticLog(
         zrdp::common::DiagnosticLevel::Information,
@@ -195,7 +195,7 @@ int wmain() {
         {
             zrdp::common::DiagnosticValue(
                 zrdp::common::DiagnosticFieldName::AttemptCount,
-                1U),
+                2U),
         });
     zrdp::common::WriteDiagnosticLog(
         zrdp::common::DiagnosticLevel::Information,
@@ -204,7 +204,7 @@ int wmain() {
         {
             zrdp::common::DiagnosticValue(
                 zrdp::common::DiagnosticFieldName::AttemptCount,
-                1U),
+                2U),
         });
     zrdp::common::WriteDiagnosticLog(
         zrdp::common::DiagnosticLevel::Error,
@@ -213,7 +213,7 @@ int wmain() {
         {
             zrdp::common::DiagnosticValue(
                 zrdp::common::DiagnosticFieldName::AttemptCount,
-                1U),
+                2U),
         });
     zrdp::common::WriteDiagnosticLog(
         zrdp::common::DiagnosticLevel::Warning,
@@ -228,11 +228,44 @@ int wmain() {
         });
     zrdp::common::WriteDiagnosticLog(
         zrdp::common::DiagnosticLevel::Information,
+        zrdp::common::DiagnosticEvent::
+            ActiveXDefaultDialogParentSelected);
+    zrdp::common::WriteDiagnosticLog(
+        zrdp::common::DiagnosticLevel::Information,
+        zrdp::common::DiagnosticEvent::
+            SecurityDialogConfigurationReturned,
+        {
+            zrdp::common::DiagnosticHResult(S_OK),
+            zrdp::common::DiagnosticValue(
+                zrdp::common::DiagnosticFieldName::DialogVersion,
+                1U),
+        });
+    zrdp::common::WriteDiagnosticLog(
+        zrdp::common::DiagnosticLevel::Information,
+        zrdp::common::DiagnosticEvent::
+            AuthenticationLevelConfigurationReturned,
+        {
+            zrdp::common::DiagnosticHResult(S_OK),
+            zrdp::common::DiagnosticValue(
+                zrdp::common::DiagnosticFieldName::AuthenticationLevel,
+                2U),
+        });
+    zrdp::common::WriteDiagnosticLog(
+        zrdp::common::DiagnosticLevel::Information,
         zrdp::common::DiagnosticEvent::EventDisconnected,
         {
             zrdp::common::DiagnosticValue(
                 zrdp::common::DiagnosticFieldName::
                     CredentialPromptCancelled,
+                1U),
+        });
+    zrdp::common::WriteDiagnosticLog(
+        zrdp::common::DiagnosticLevel::Information,
+        zrdp::common::DiagnosticEvent::EventDisconnected,
+        {
+            zrdp::common::DiagnosticValue(
+                zrdp::common::DiagnosticFieldName::
+                    SecurityWarningCancelled,
                 1U),
         });
     zrdp::common::ShutdownDiagnosticLog();
@@ -272,23 +305,38 @@ int wmain() {
             std::string::npos &&
         contents.find(
             "event=rdp.pre_login_retry_scheduled "
-            "attempt=1 max_attempts=1") !=
+            "attempt=2 max_attempts=2") !=
             std::string::npos &&
         contents.find(
-            "event=rdp.pre_login_retry_started attempt=1") !=
+            "event=rdp.pre_login_retry_started attempt=2") !=
             std::string::npos &&
         contents.find(
-            "event=rdp.pre_login_retry_completed attempt=1") !=
+            "event=rdp.pre_login_retry_completed attempt=2") !=
             std::string::npos &&
         contents.find(
-            "event=rdp.pre_login_retry_exhausted attempt=1") !=
+            "event=rdp.pre_login_retry_exhausted attempt=2") !=
             std::string::npos &&
         contents.find(
             "event=rdp.connection_settings_apply_started display_mode=2") !=
             std::string::npos &&
         contents.find(
+            "event=rdp.activex_default_dialog_parent_selected") !=
+            std::string::npos &&
+        contents.find(
+            "event=rdp.security_dialog_configuration_returned "
+            "hresult=0x00000000 dialog_version=1") !=
+            std::string::npos &&
+        contents.find(
+            "event=rdp.authentication_level_configuration_returned "
+            "hresult=0x00000000 authentication_level=2") !=
+            std::string::npos &&
+        contents.find(
             "event=rdp.event.disconnected "
             "credential_prompt_cancelled=1") !=
+            std::string::npos &&
+        contents.find(
+            "event=rdp.event.disconnected "
+            "security_warning_cancelled=1") !=
             std::string::npos &&
         contents.find("hresult=0x00000000") != std::string::npos &&
         contents.find("code=-7") != std::string::npos &&

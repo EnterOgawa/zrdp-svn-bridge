@@ -131,8 +131,12 @@ constexpr wchar_t kAgentLogFileName[] = L"ZRdpSvnAgent.log";
             return "rdp.activex_create_failed";
         case DiagnosticEvent::ActiveXControlSelected:
             return "rdp.activex_control_selected";
-        case DiagnosticEvent::ParentWindowConfigurationReturned:
-            return "rdp.parent_window_configuration_returned";
+        case DiagnosticEvent::ActiveXDefaultDialogParentSelected:
+            return "rdp.activex_default_dialog_parent_selected";
+        case DiagnosticEvent::SecurityDialogConfigurationReturned:
+            return "rdp.security_dialog_configuration_returned";
+        case DiagnosticEvent::AuthenticationLevelConfigurationReturned:
+            return "rdp.authentication_level_configuration_returned";
         case DiagnosticEvent::CredSspConfigurationReturned:
             return "rdp.credssp_configuration_returned";
         case DiagnosticEvent::VirtualChannelRegistrationReturned:
@@ -467,6 +471,20 @@ void AppendField(
                 " control_version=%llu",
                 static_cast<unsigned long long>(field.value));
             break;
+        case DiagnosticFieldName::DialogVersion:
+            written = sprintf_s(
+                text.data(),
+                text.size(),
+                " dialog_version=%llu",
+                static_cast<unsigned long long>(field.value));
+            break;
+        case DiagnosticFieldName::AuthenticationLevel:
+            written = sprintf_s(
+                text.data(),
+                text.size(),
+                " authentication_level=%llu",
+                static_cast<unsigned long long>(field.value));
+            break;
         case DiagnosticFieldName::ExitCode:
             written = sprintf_s(
                 text.data(),
@@ -528,6 +546,13 @@ void AppendField(
                 text.data(),
                 text.size(),
                 " credential_prompt_cancelled=%llu",
+                static_cast<unsigned long long>(field.value));
+            break;
+        case DiagnosticFieldName::SecurityWarningCancelled:
+            written = sprintf_s(
+                text.data(),
+                text.size(),
+                " security_warning_cancelled=%llu",
                 static_cast<unsigned long long>(field.value));
             break;
         case DiagnosticFieldName::ProxyState:

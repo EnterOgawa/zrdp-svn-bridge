@@ -1,6 +1,6 @@
 # ZRdp SVN Bridge セキュリティ方針
 
-更新日: 2026-07-31
+更新日: 2026-08-03
 
 ## 1. 接続履歴
 
@@ -30,9 +30,24 @@ log出力しない。GPOやWindowsのprivacy設定を変更または回避しな
 
 ログイン前の限定再試行でもpasswordを取得、保持、再送せず、Microsoft標準認証UIへ
 委譲する。login未完了の`discReason=263`、`ExtendedDisconnectReason=0`完全一致
-だけを2秒後に一度再試行し、credential取消、local切断、終了処理、成立済みsession、
-二度目の失敗では再試行しない。NLA、CredSSP、server certificate検証、認証警告を
-変更または自動承認せず、`mstsc.exe`へfallbackしない。
+かつMicrosoft認証dialogを一度も表示していない場合だけ、2秒後と5秒後に最大二回
+再試行する。認証UI表示、credential取消、local切断、終了処理、成立済みsession、
+三回目の失敗では再試行しない。
+
+接続前に`RedirectionWarningDialogVersion=1`を設定し、Windows更新前のMicrosoft
+connection security dialogを互換表示する。`AuthenticationLevel=2`をreadbackし、
+server certificate検証失敗時の継続可否は利用者だけが選択する。NLA、CredSSP、
+certificate検証、認証警告を変更または自動承認せず、certificate store、registry、
+GPO、`mstsc.exe`、RDP cache操作へfallbackしない。
+credential UIからcertificate UIへ続くmodal ownershipは、session top-level Windowを
+`UIParentWindowHandle`へ上書きせず、ActiveX Control Windowの既定処理へ委譲する。
+これは警告の表示先だけの互換候補であり、certificate検証結果や利用者判断を変更しない。
+
+certificate警告拒否後の重複error抑止は、同一試行のwarning二回以上、login未完了、
+非local、credential取消以外、`263/0`完全一致だけに限定する。ZRdpは警告buttonの
+選択値を取得せず、certificateを信頼、登録、記憶しない。完全一致時もWindowsが返した
+数値結果を固定logへ残し、対象session Windowだけを閉じる。条件が一つでも異なる場合は
+通常のerror経路を維持する。
 
 ## 2. Static Virtual ChannelとProtocol
 
