@@ -25,8 +25,9 @@ conflict、Lock、Unlockは、Version `0.6.0.0`でユーザーから問題なし
   実測値とADRなしにDynamic Virtual Channelへ変更しない。
 - Agentと従来Clientは2026-08-01、R-008 Clientは2026-08-03に署名され、Windows trust
   `Valid`、SHA-256、RFC 3161 timestamp、Version維持、既存Agentとの署名者一致を
-  確認した。R-008署名後Clientの起動、RDP、Bridge、Proxy smoke test、最終文書受入、
-  配布確認が未完のため、Release Gate全体は未通過である。
+  確認した。最終文書と配布packageの静的確認を完了し、現状を社内試行初版として
+  採用した。R-008署名後Clientの実RDP smoke testは個別未実施のため、初回社内利用時の
+  確認事項として残す。
 - Mylyn Trac `3.26.0`相当のWeb GET／XML-RPC POSTはMock Gateを通過し、
   実Tracの設定検証と同期もユーザー環境で成立した。ticket更新やattachmentは、
   必要になった安全な対象だけを個別確認する。

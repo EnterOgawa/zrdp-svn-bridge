@@ -1,13 +1,13 @@
 # ZRdp SVN Bridge 0.7.14 リリースノート
 
 - 対象Version: `0.7.14.0`
-- 配布区分: 社内試行候補
+- 配布区分: 社内試行初版
 - 更新日: 2026-08-03
 
 ## 概要
 
 ZRdp `0.7.14.0`は、Version `0.7.13.0`で確認された長時間RDP接続後の終了残留と、
-ログイン前の限定されたActiveX接続失敗を改善する社内試行候補である。RDPの
+ログイン前の限定されたActiveX接続失敗を改善する社内試行初版である。RDPの
 credential／certificate UI互換性だけをClient側で追加調整し、SVN／Trac Bridge、
 Proxy、Agent allowlist、wire protocolの機能境界は変更していない。
 
@@ -66,9 +66,9 @@ R-008 ClientはDebug／隔離Release各30 CTestを通過し、警告の「いい
 2026-07-31、手順1から4までをユーザー環境で完了し、署名前の実機Gateを通過した。
 2026-08-01、当時のClient／Agent署名と静的検証を完了し、署名後の起動、RDP接続、
 Bridge Ready、Proxy経由のread-only操作もユーザー環境で成立した。2026-08-03の
-R-008 Clientは警告取消経路の受入と再署名を完了した。残る配布前確認は、
-署名後Clientのsmoke test、組織固有の署名規定確認、最終文書受入、
-配布package確認である。
+R-008 Clientは警告取消経路の受入と再署名を完了した。最終文書と配布packageの
+静的確認は2026-08-03に完了した。署名後Clientの実RDP smoke testは個別未実施のため、
+初回社内利用時の確認事項として扱う。
 
 署名手順と確認項目は[社内配布・署名確認書](release-checklist.md)を参照する。
 
