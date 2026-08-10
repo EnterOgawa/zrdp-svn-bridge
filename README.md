@@ -9,7 +9,7 @@ Clientと、RDPユーザーsession内で動作するAgentを組み合わせ、HT
 明示承認されたHTTP方式Tracへの通信をRDP Static Virtual Channel経由で中継する
 Windows x64向けアプリケーションである。
 
-現在の社内試行候補はVersion `0.7.14.0`である。installerは使用せず、ClientとAgentを
+現在の社内試行候補はVersion `0.7.15.0`である。installerは使用せず、ClientとAgentを
 portable EXEとして配布する。本リポジトリと配布物はPrivate／社内限定で扱う。
 
 > [!IMPORTANT]
@@ -51,6 +51,7 @@ Session 0、inbound port、driver、VPN、仮想NICを必要としない。
 - HTTP/1.1、WebDAV／DeltaV、JavaHL SVN、Mylyn Tracの透過中継
 - Agent側の`IPv4 address + TCP port`完全一致allowlist
 - payloadとcredentialを記録しないbounded診断log
+- 一時的なRDP transport断後に同じuser session内でAgent channelを自動回復
 
 ## Security boundary
 
@@ -118,11 +119,11 @@ source repositoryや共通配布物へ含めない。
 
 ## 検証状態
 
-Version `0.7.14.0`はDebug／Release各30 CTestを通過している。実環境では通常RDP、
-clipboard、全画面、複数session、JavaHL SVNのread／write操作、Mylyn Trac同期、Agent
-再起動、RDP切断時cleanupを段階的に確認した。Client／Agent両EXEはAuthenticode署名後の
-Windows trust `Valid`、SHA-256 digest、RFC 3161 timestamp、Version維持、および
-RDP／Bridge／Proxy smoke testを確認済みである。
+初版Version `0.7.14.0`はDebug／Release各30 CTestと実環境確認を通過し、署名済みで
+ある。次回候補Version `0.7.15.0`は、一時RDP切断後のAgent channel自動回復を追加し、
+Debug／隔離Release／標準Release各30 CTestを通過した。Client／Agentは同一署名者で
+SHA-256／RFC 3161署名済みである。実RDPでのlink断／自動回復確認は未実施であり、
+初版Releaseと区別して扱う。
 
 継続利用中に問題が判明した場合は、発生時刻、操作分類、Session Window titleのProxy
 port／stream／転送量、およびClient／Agent双方の固定診断logだけを保存する。実IP、URL、

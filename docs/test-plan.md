@@ -1,6 +1,6 @@
 # ZRdp SVN Bridge テスト計画
 
-更新日: 2026-08-03
+更新日: 2026-08-10
 
 ## 1. 現在の対象
 
@@ -38,10 +38,14 @@ Version `0.7.10.0`では動的解像度の限定再試行と、実機で相互�
 同じSSL handshake失敗が発生し、`mstsc.exe`の三回目で成立した観測結果を受け、
 対象条件を広げずClientの有限再試行だけを2秒後、5秒後の二段階へ拡張した。
 Agent、Virtual Channel、Proxy、protocol、認証条件は変更していない。
+回帰修正R-009では、network link断後にMicrosoft RDP Controlが同じuser sessionへ
+自動再接続しても、旧SVCのWin32 error 233でAgentが終了する問題を対象とする。
+Version `0.7.15.0`では旧streamをfail-closedで終了したうえで、current RDP sessionが
+存続する間だけ同名`ESVNBRG`を再openし、新しいBridge sessionを確立する。
 
 - Client: `out/ZRdpSvnBridge.exe`
 - Agent: `out/ZRdpSvnAgent.exe`
-- 標準`out` version: 両方とも`0.7.14.0`
+- 次回候補version: 両方とも`0.7.15.0`。標準`out`へ反映し、署名済み
 - Platform: Windows x64
 - 配布: installerなしのportable EXE
 - Static Virtual Channel: `ESVNBRG`
@@ -52,7 +56,7 @@ Agent、Virtual Channel、Proxy、protocol、認証条件は変更していな�
 - HTTP基本中継: Mock HTTP／WebDAV Serverまで実装済み
 - HTTP／SVN互換性: chunked、認証継続、複数connection、対象method実装済み
 - HTTP／Trac互換性: Web GET、XML-RPC POST、Cookie、redirectをMock確認済み
-- Hardening: Agent health、slow peer timeout、restart／reconnect実装済み
+- Hardening: Agent health、slow peer timeout、restart／RDP channel自動回復実装済み
 
 Phase 5ではproduction local Socket、Client／Agent BridgeとMock Agent Socketを
 一本につなぎ、二server／port／repositoryのWebDAV sequenceを確認した。
@@ -207,7 +211,9 @@ AgentをRDP外の開発PCまたはconsole sessionで起動した場合は、acti
 - [x] health timeout後に同じRDP内のAgent再起動でReadyへ戻る
 - [x] RDP再接続とAgent再起動後に新しいEchoが成功する
 - [x] RDP切断時にClientがBridge stateを破棄する
-- [x] RDP切断後にAgentがchannel errorを検出して終了する
+- [ ] 一時RDP切断後もAgent processが残り、旧streamとSocketだけが終了する
+- [ ] RDP自動再接続後にAgent再起動なしでReadyへ戻る
+- [ ] RDP user sessionの最終終了時はAgentも停止する
 - [x] credential、payload、実接続情報がClient／Agent logにない
 
 Agentがconnection-level CLOSEを送れない異常終了では、active streamをresetしない
@@ -1010,7 +1016,33 @@ certificateの登録、警告の永続承認、server設定変更は行わない
 trust `Valid`、SHA-256 signature、RFC 3161 timestamp、Version維持を静的確認した。
 署名後Clientの起動、RDP、Bridge、Proxyは別Gateとして残す。
 
-## 29. 報告してほしい情報
+## 29. 回帰修正R-009 一時RDP切断後のAgent channel自動回復
+
+### ローカル
+
+- [x] startup時は`WTSActive`かつRDP protocol 2だけを許可する従来条件を維持する
+- [x] `WTSDisconnected`等を回復待機、`WTSReset`／`WTSDown`等を終了へ分類する
+- [x] WTS照会失敗中は別sessionを探索せずSVC openを待機する
+- [x] retry間隔を250 ms、500 ms、1秒、最大2秒へ制限する
+- [x] retry失敗logを1、2、4、8、...回目だけへ間引く
+- [x] channel断時に`AgentBridge::Reset`で旧Socket、stream、queueを破棄する
+- [x] Debug／隔離Release各30 CTestを成功させる
+- [x] Version `0.7.15.0`のx64 Client／Agentを`out`へ出力し、標準Release全30 CTestを
+      成功させる
+- [x] Client／Agentを同一署名者で署名し、Windows trust `Valid`、SHA-256、
+      RFC 3161 timestamp、Version維持、署名後binary契約を静的確認する
+
+### ユーザー実機
+
+- [ ] Agent接続済み状態で安全な一時network link断を発生させる
+- [ ] Agent consoleに自動再接続待機が表示され、processが終了しない
+- [ ] Microsoft RDP Controlの自動再接続後、Agent再起動なしでProxy利用可へ戻る
+- [ ] 切断時に実行中だったSVN／Trac操作は自動再送されず、新操作だけが成功する
+- [ ] 別session Windowと接続管理Windowに影響がない
+- [ ] Agent logにchannel error、WTS state変化、open試行回数、`bridge.ready`が残る
+- [ ] credential、payload、実endpointがlogへ記録されない
+
+## 30. 報告してほしい情報
 
 成功時はチェック項目と概算所要時間だけでよい。失敗時は次の
 固定情報を報告する。

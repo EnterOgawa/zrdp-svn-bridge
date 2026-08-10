@@ -37,6 +37,12 @@ struct SessionValidationResult {
 
     /// Windows API失敗時のGetLastError。policy拒否では0。
     DWORD win32_error{ERROR_SUCCESS};
+
+    /// WTSから取得済みのcurrent session state。未取得時はWTSInit。
+    WTS_CONNECTSTATE_CLASS connect_state{WTSInit};
+
+    /// WTSClientProtocolType値。未取得時は0。
+    std::uint16_t protocol_type{0U};
 };
 
 /**

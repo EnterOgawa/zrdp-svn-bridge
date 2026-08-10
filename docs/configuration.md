@@ -130,7 +130,7 @@ ZRdpからpolicyを変更しない。
 
 ## 7. Phase 3 Agent allowlist
 
-`ZRdpSvnAgent.exe` version `0.7.14.0`は、EXEと同じdirectoryの固定名
+`ZRdpSvnAgent.exe` version `0.7.15.0`は、EXEと同じdirectoryの固定名
 `agent.ini`を起動時に一度だけ読み込む。current directory、registry、OS Proxy、
 別fileへfallbackしない。
 

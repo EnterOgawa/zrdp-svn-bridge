@@ -68,6 +68,8 @@ SessionValidationResult ValidateSessionAttributes(
         return {
             SessionValidationCode::SessionZero,
             ERROR_SUCCESS,
+            connect_state,
+            protocol_type,
         };
     }
 
@@ -76,6 +78,8 @@ SessionValidationResult ValidateSessionAttributes(
         return {
             SessionValidationCode::SessionNotActive,
             ERROR_SUCCESS,
+            connect_state,
+            protocol_type,
         };
     }
 
@@ -84,12 +88,16 @@ SessionValidationResult ValidateSessionAttributes(
         return {
             SessionValidationCode::SessionNotRdp,
             ERROR_SUCCESS,
+            connect_state,
+            protocol_type,
         };
     }
 
     return {
         SessionValidationCode::Valid,
         ERROR_SUCCESS,
+        connect_state,
+        protocol_type,
     };
 }
 
@@ -103,6 +111,8 @@ SessionValidationResult ValidateCurrentSession() noexcept {
             SessionValidationCode::
                 ProcessSessionQueryFailed,
             GetLastError(),
+            WTSInit,
+            0U,
         };
     }
 
@@ -119,6 +129,8 @@ SessionValidationResult ValidateCurrentSession() noexcept {
             SessionValidationCode::
                 ConnectStateQueryFailed,
             GetLastError(),
+            WTSInit,
+            0U,
         };
     }
 
@@ -129,6 +141,8 @@ SessionValidationResult ValidateCurrentSession() noexcept {
             SessionValidationCode::
                 ConnectStateQueryFailed,
             ERROR_INVALID_DATA,
+            WTSInit,
+            0U,
         };
     }
 
@@ -149,6 +163,8 @@ SessionValidationResult ValidateCurrentSession() noexcept {
             SessionValidationCode::
                 ProtocolQueryFailed,
             GetLastError(),
+            connect_state,
+            0U,
         };
     }
 
@@ -159,6 +175,8 @@ SessionValidationResult ValidateCurrentSession() noexcept {
             SessionValidationCode::
                 ProtocolQueryFailed,
             ERROR_INVALID_DATA,
+            connect_state,
+            0U,
         };
     }
 

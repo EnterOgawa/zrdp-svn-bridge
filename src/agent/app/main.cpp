@@ -4,9 +4,11 @@
  *
  * @details 通常ユーザーのcurrent RDP sessionだけで動作し、service、inbound port、
  *          allowlist一致時だけoutbound Socketを作成する。WTSとSocket I/Oは
- *          同一owner threadで直列化し、Ctrl+CまたはRDP切断時に全resourceを解放する。
+ *          同一owner threadで直列化し、一時RDP切断では全streamを破棄して
+ *          SVCを再openする。Ctrl+CまたはRDP session終了時に全resourceを解放する。
  */
 
+#include "agent/app/channel_recovery_policy.h"
 #include "agent/app/session_validation.h"
 #include "agent/bridge/agent_bridge.h"
 #include "agent/bridge/agent_stream_relay.h"
@@ -24,6 +26,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <span>
 #include <string>
 #include <vector>
@@ -41,6 +44,43 @@ constexpr wchar_t kAgentConfigurationFileName[] = L"agent.ini";
 
 /// Windows long path上限を越えたmodule pathを設定探索へ使用しない。
 constexpr std::size_t kMaximumModulePathCharacters = 32768U;
+
+/**
+ * @brief SVC切断を検出したI/O方向の固定分類。
+ */
+enum class ChannelFailureKind : std::uint64_t {
+    Read = 1U,
+    Write = 2U,
+};
+
+/**
+ * @brief 一回のRDP自動再接続期間を通して保持するbounded retry状態。
+ */
+struct ChannelRecoveryContext {
+    /// channel断を検出してから新HELLOが成立するまでtrue。
+    bool active{false};
+
+    /// 現在の回復期間で実行したSVC open回数。
+    std::uint64_t attempt_count{0U};
+
+    /// 次のSVC openを許可する単調clock値。
+    ULONGLONG next_attempt_tick{0U};
+
+    /// 診断間引きのため直前WTS観測を保持している場合はtrue。
+    bool has_session_observation{false};
+
+    /// 直前に観測したsession検証分類。
+    zrdp::agent::app::SessionValidationCode
+        last_validation_code{
+            zrdp::agent::app::SessionValidationCode::
+                ProcessSessionQueryFailed};
+
+    /// 直前に観測したWTS connection state。
+    WTS_CONNECTSTATE_CLASS last_connect_state{WTSInit};
+
+    /// 直前のsession照会に付随したWin32 error。
+    DWORD last_validation_error{ERROR_SUCCESS};
+};
 
 /**
  * @brief console control eventをallocationなしの停止要求へ変換する。
@@ -92,6 +132,98 @@ void WriteConsoleStatus(const wchar_t* message) noexcept {
             length,
             &written,
             nullptr));
+}
+
+/**
+ * @brief channel failureから旧sessionを破棄して再open待機へ移る。
+ * @param[in] failure_kind read／writeの固定失敗分類。
+ * @param[in] win32_error WTS APIが返した秘密情報を含まないerror。
+ * @param[in,out] agent_bridge 旧decoder、queue、Socketを破棄するBridge。
+ * @param[in,out] channel 旧SVC handleを閉じるtransport owner。
+ * @param[in,out] recovery 回復期間をまたいで試行回数を保持する状態。
+ *
+ * @note 同じ回復期間中の連続失敗は最初の原因だけを記録し、logを増幅しない。
+ */
+void BeginChannelRecovery(
+    const ChannelFailureKind failure_kind,
+    const DWORD win32_error,
+    zrdp::agent::bridge::AgentBridge& agent_bridge,
+    zrdp::agent::channel::WtsVirtualChannel& channel,
+    ChannelRecoveryContext& recovery) noexcept {
+    if (!recovery.active) {
+        const zrdp::common::DiagnosticEvent event =
+            failure_kind == ChannelFailureKind::Read
+                ? zrdp::common::DiagnosticEvent::
+                      AgentChannelReadFailed
+                : zrdp::common::DiagnosticEvent::
+                      AgentChannelWriteFailed;
+        zrdp::common::WriteDiagnosticLog(
+            zrdp::common::DiagnosticLevel::Warning,
+            event,
+            {
+                zrdp::common::DiagnosticValue(
+                    zrdp::common::DiagnosticFieldName::Reason,
+                    win32_error),
+                zrdp::common::DiagnosticValue(
+                    zrdp::common::DiagnosticFieldName::
+                        ExtendedReason,
+                    static_cast<std::uint64_t>(failure_kind)),
+            });
+        WriteConsoleStatus(
+            L"ZRdp SVN Agent: RDP通信が一時切断されました。session復帰後に自動再接続します。\r\n");
+        recovery.active = true;
+        recovery.attempt_count = 0U;
+        recovery.has_session_observation = false;
+    }
+
+    // 旧channelのfragment、stream ID、Socketを新HELLOへ持ち越さない。
+    agent_bridge.Reset();
+    channel.Close();
+    recovery.next_attempt_tick =
+        GetTickCount64() +
+        zrdp::agent::app::
+            ChannelRecoveryDelayMilliseconds(
+                recovery.attempt_count);
+}
+
+/**
+ * @brief 回復待機中のWTS state変化だけを固定数値fieldで記録する。
+ * @param[in,out] recovery 直前観測値を保持する回復状態。
+ * @param[in] result current processだけを照会したsession検証結果。
+ */
+void LogChannelRecoverySessionObservation(
+    ChannelRecoveryContext& recovery,
+    const zrdp::agent::app::SessionValidationResult& result) noexcept {
+    if (recovery.has_session_observation &&
+        recovery.last_validation_code == result.code &&
+        recovery.last_connect_state == result.connect_state &&
+        recovery.last_validation_error == result.win32_error) {
+        return;
+    }
+
+    zrdp::common::WriteDiagnosticLog(
+        result.code ==
+                zrdp::agent::app::SessionValidationCode::Valid
+            ? zrdp::common::DiagnosticLevel::Information
+            : zrdp::common::DiagnosticLevel::Warning,
+        zrdp::common::DiagnosticEvent::
+            AgentSessionValidationReturned,
+        {
+            zrdp::common::DiagnosticCode(
+                static_cast<long>(result.code)),
+            zrdp::common::DiagnosticValue(
+                zrdp::common::DiagnosticFieldName::Reason,
+                result.win32_error),
+            zrdp::common::DiagnosticValue(
+                zrdp::common::DiagnosticFieldName::
+                    ExtendedReason,
+                static_cast<std::uint64_t>(
+                    result.connect_state)),
+        });
+    recovery.has_session_observation = true;
+    recovery.last_validation_code = result.code;
+    recovery.last_connect_state = result.connect_state;
+    recovery.last_validation_error = result.win32_error;
 }
 
 /**
@@ -387,29 +519,120 @@ int wmain() {
         read_buffer{};
     AgentBridgeState last_state =
         agent_bridge.snapshot().state;
+    ChannelRecoveryContext channel_recovery{};
     int exit_code = 0;
 
-    // 一つのI/O ownerだけがWTS readとserialized writer queueを順番に処理する。
+    // 一つのI/O ownerだけがWTS read、再open、writer queueを順番に処理する。
     while (!g_stop_requested.load(
         std::memory_order_acquire)) {
+        // channel断ではcurrent RDP sessionだけを確認し、active復帰後に同名SVCを開く。
+        if (!channel.is_open()) {
+            const auto current_session =
+                zrdp::agent::app::ValidateCurrentSession();
+            LogChannelRecoverySessionObservation(
+                channel_recovery,
+                current_session);
+            const auto recovery_action =
+                zrdp::agent::app::
+                    SelectChannelRecoveryAction(
+                        current_session);
+            if (recovery_action ==
+                zrdp::agent::app::
+                    ChannelRecoveryAction::Stop) {
+                WriteConsoleStatus(
+                    L"ZRdp SVN Agent: RDPセッションが終了したため停止します。\r\n");
+                break;
+            }
+
+            // 切断中またはWTS照会失敗中は別sessionや別経路を探索しない。
+            if (recovery_action ==
+                zrdp::agent::app::
+                    ChannelRecoveryAction::Wait) {
+                Sleep(
+                    zrdp::agent::app::
+                        kChannelRecoveryPollMilliseconds);
+                continue;
+            }
+
+            const ULONGLONG now = GetTickCount64();
+            // 旧transport解放と再接続完了を待つ有限backoff中もCtrl+Cへ戻る。
+            if (now < channel_recovery.next_attempt_tick) {
+                Sleep(
+                    zrdp::agent::app::
+                        kChannelRecoveryPollMilliseconds);
+                continue;
+            }
+
+            // 長期切断でも診断counterをwrapさせず最大値で飽和させる。
+            if (channel_recovery.attempt_count <
+                std::numeric_limits<std::uint64_t>::max()) {
+                ++channel_recovery.attempt_count;
+            }
+            const DWORD reopen_error = channel.Open();
+            if (reopen_error != ERROR_SUCCESS) {
+                // 長時間断では1、2、4、8回目だけを記録してlog増幅を防ぐ。
+                if (zrdp::agent::app::
+                        ShouldLogChannelRecoveryAttempt(
+                            channel_recovery.attempt_count)) {
+                    zrdp::common::WriteDiagnosticLog(
+                        zrdp::common::DiagnosticLevel::Warning,
+                        zrdp::common::DiagnosticEvent::
+                            AgentChannelOpenReturned,
+                        {
+                            zrdp::common::DiagnosticValue(
+                                zrdp::common::
+                                    DiagnosticFieldName::Reason,
+                                reopen_error),
+                            zrdp::common::DiagnosticValue(
+                                zrdp::common::
+                                    DiagnosticFieldName::
+                                        AttemptCount,
+                                channel_recovery.attempt_count),
+                        });
+                }
+
+                channel_recovery.next_attempt_tick =
+                    now + zrdp::agent::app::
+                        ChannelRecoveryDelayMilliseconds(
+                            channel_recovery.attempt_count);
+                continue;
+            }
+
+            zrdp::common::WriteDiagnosticLog(
+                zrdp::common::DiagnosticLevel::Information,
+                zrdp::common::DiagnosticEvent::
+                    AgentChannelOpenReturned,
+                {
+                    zrdp::common::DiagnosticValue(
+                        zrdp::common::DiagnosticFieldName::Reason,
+                        ERROR_SUCCESS),
+                    zrdp::common::DiagnosticValue(
+                        zrdp::common::
+                            DiagnosticFieldName::AttemptCount,
+                        channel_recovery.attempt_count),
+                });
+            // open成功だけでは復旧扱いにせず、新しいClient HELLOを待つ。
+            agent_bridge.Reset();
+            last_state = agent_bridge.snapshot().state;
+            WriteConsoleStatus(
+                L"ZRdp SVN Agent: ESVNBRGを再度開きました。ClientのHELLOを待機しています。\r\n");
+            continue;
+        }
+
         const zrdp::agent::channel::ChannelReadResult
             read_result = channel.Read(
                 read_buffer,
                 kChannelReadTimeoutMilliseconds);
-        // RDP切断やchannel failureでは残dataを再利用せずloopを終了する。
+        // RDP自動再接続で無効化されたhandleを終了理由にせず回復待機へ移す。
         if (read_result.status ==
             ChannelReadStatus::Error) {
-            zrdp::common::WriteDiagnosticLog(
-                zrdp::common::DiagnosticLevel::Error,
-                zrdp::common::DiagnosticEvent::
-                    AgentChannelReadFailed,
-                {
-                    zrdp::common::DiagnosticValue(
-                        zrdp::common::DiagnosticFieldName::Reason,
-                        read_result.win32_error),
-                });
-            exit_code = 4;
-            break;
+            BeginChannelRecovery(
+                ChannelFailureKind::Read,
+                read_result.win32_error,
+                agent_bridge,
+                channel,
+                channel_recovery);
+            continue;
         }
 
         // timeout以外で受信したfragmentだけをincremental decoderへ渡す。
@@ -442,6 +665,7 @@ int wmain() {
 
         const auto current_snapshot =
             agent_bridge.snapshot();
+        bool bridge_became_ready = false;
         // HELLO成立時だけ一度、payloadを含まないready状態を表示する。
         if (last_state != current_snapshot.state &&
             current_snapshot.state ==
@@ -449,14 +673,20 @@ int wmain() {
             zrdp::common::WriteDiagnosticLog(
                 zrdp::common::DiagnosticLevel::Information,
                 zrdp::common::DiagnosticEvent::BridgeReady);
-            WriteConsoleStatus(
-                stream_relay_enabled
-                    ? L"ZRdp SVN Agent: Clientと接続しました。Echo／SVN streamを待機しています。\r\n"
-                    : L"ZRdp SVN Agent: Clientと接続しました。Echo要求を待機しています。\r\n");
+            if (channel_recovery.active) {
+                // HELLO_ACKを完全送信してから回復完了を表示する。
+                bridge_became_ready = true;
+            } else {
+                WriteConsoleStatus(
+                    stream_relay_enabled
+                        ? L"ZRdp SVN Agent: Clientと接続しました。Echo／SVN streamを待機しています。\r\n"
+                        : L"ZRdp SVN Agent: Clientと接続しました。Echo要求を待機しています。\r\n");
+            }
         }
         last_state = current_snapshot.state;
 
         bool more_data = false;
+        bool channel_write_failed = false;
         // protocol handlerが生成した応答を一つのserialized writer経路で順に送る。
         do {
             std::vector<std::byte> chunk;
@@ -468,30 +698,37 @@ int wmain() {
 
             const zrdp::agent::channel::ChannelWriteResult
                 write_result = channel.Write(chunk);
-            // partial writeもframe欠落としてchannel sessionを終了する。
+            // partial writeも旧channelの破損として全streamを破棄し回復待機へ移す。
             if (!write_result.succeeded) {
-                zrdp::common::WriteDiagnosticLog(
-                    zrdp::common::DiagnosticLevel::Error,
-                    zrdp::common::DiagnosticEvent::
-                        AgentChannelWriteFailed,
-                    {
-                        zrdp::common::DiagnosticValue(
-                            zrdp::common::DiagnosticFieldName::Reason,
-                            write_result.win32_error),
-                    });
-                exit_code = 6;
+                BeginChannelRecovery(
+                    ChannelFailureKind::Write,
+                    write_result.win32_error,
+                    agent_bridge,
+                    channel,
+                    channel_recovery);
+                channel_write_failed = true;
                 break;
             }
         } while (more_data);
 
-        // write failure後はread loopへ戻らずchannelを閉じる。
-        if (exit_code != 0) {
-            break;
+        // write failure後は閉じたchannelを次loopのsession検証へ渡す。
+        if (channel_write_failed) {
+            continue;
+        }
+
+        // 新HELLOのACKを完全送信した時点でだけ一回の回復期間を完了する。
+        if (bridge_became_ready) {
+            WriteConsoleStatus(
+                stream_relay_enabled
+                    ? L"ZRdp SVN Agent: RDP復帰後にClientと再接続しました。SVN streamを利用できます。\r\n"
+                    : L"ZRdp SVN Agent: RDP復帰後にClientと再接続しました。Echo要求を待機しています。\r\n");
+            channel_recovery = ChannelRecoveryContext{};
         }
     }
 
-    // 正常終了時はClientをHELLO待機へ戻し、同じRDP内でAgentを再起動可能にする。
+    // 正常終了かつchannel生存時だけClientをHELLO待機へ戻すCLOSEを送る。
     if (exit_code == 0 &&
+        channel.is_open() &&
         agent_bridge.QueueSessionClose()) {
         bool more_data = false;
         // CLOSEを含む残queueをchannel close前にwire順で排出する。

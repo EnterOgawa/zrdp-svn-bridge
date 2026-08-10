@@ -2,7 +2,7 @@
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <assemblyIdentity
       name="EnterOgawa.ZRdpSvnBridge"
-      version="0.7.14.0"
+      version="0.7.15.0"
       processorArchitecture="amd64"
       type="win32" />
   <description>ZRdp SVN Bridge</description>

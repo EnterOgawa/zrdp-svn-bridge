@@ -1109,5 +1109,17 @@ Agent、Virtual Channel、Protocol、Proxy、allowlist、接続履歴は変更�
 114. [x] R-008 ClientをAgentと同じ署名者で署名し、Windows trust、SHA-256、
      RFC 3161 timestamp、Versionを静的検証する。
 115. [ ] R-008署名後Clientの起動、RDP、Bridge、Proxy smoke testを実機確認する。
+116. [x] Agent終了logとWindows event logを突合し、一時network link断による
+     RDP transport切断とSVC error 233の時系列を特定する。
+117. [x] 回帰修正R-009のcurrent RDP session限定channel回復設計を修正提案へ記録する。
+118. [x] 旧stream／Socketを破棄して同名`ESVNBRG`を有限backoffで再openするAgentを
+     実装し、Version `0.7.15.0`のDebug／隔離Release各30 CTestを成功させる。
+119. [x] 起動中Client終了後にVersion `0.7.15.0`のClient／Agentを標準`out`へ生成し、
+     Release全30 CTestを成功させる。
+120. [ ] 一時link断後にAgent processが残り、RDP自動再接続後に再起動なしで
+     Proxy利用可へ戻ることをユーザー実機で確認する。
+121. [x] ユーザーの明示指示によりVersion `0.7.15.0`のClient／Agentを同一署名者で
+     署名し、Windows trust、SHA-256、RFC 3161 timestamp、Versionを静的検証する。
+122. [ ] R-009実機受入後にVersion `0.7.15.0`の配布Gateを個別判断する。
 
 日程見積りは、ActiveX host方式を確定し、Phase 0とPhase 1で実環境固有の技術riskを測定した後に更新する。Gate待ち時間を開発工数へ混在させない。

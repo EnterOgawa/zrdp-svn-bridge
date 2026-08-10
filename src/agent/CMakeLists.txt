@@ -46,6 +46,7 @@ target_link_libraries(
 add_library(
     zrdp_agent_runtime
     STATIC
+        app/channel_recovery_policy.h
         app/session_validation.cpp
         app/session_validation.h
         channel/wts_virtual_channel.cpp

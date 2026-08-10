@@ -220,7 +220,10 @@ pumpする。同一WTS channel handleまたはSocketを複数threadから同時�
 100 msの有限read timeoutでCtrl+Cを確認する。正常終了時は空payloadの
 connection-level `CLOSE`をwriter queueから排出してchannelを閉じる。
 RDP切断、read／write異常、protocol異常ではqueueとchannelを破棄し、
-全upstream Socketも閉じ、別経路へfallbackしない。
+全upstream Socketも閉じ、別経路へfallbackしない。Version `0.7.15.0`では、
+一時RDP切断後もcurrent user sessionが存続する間はAgent processを維持する。
+`WTSActive`復帰後に同名SVCだけを有限backoffで再openし、新しい`HELLO`からBridgeを
+再確立する。旧streamのresumeやHTTP requestの自動再送は行わない。
 接続済みupstream Socketもsend／receive進捗を単調clockで管理し、30分間
 完全に無通信なら対象streamを`CLOSE(Timeout)`へ移してSocketを閉じる。
 

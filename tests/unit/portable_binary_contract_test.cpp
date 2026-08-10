@@ -15,10 +15,10 @@
 
 namespace {
 
-/// 接続中Window終了を通常切断経路へ統一した配布物のfixed file version。
+/// 一時RDP切断後にAgent SVCを自動回復する配布物のfixed file version。
 constexpr std::uint16_t kExpectedVersionMajor = 0U;
 constexpr std::uint16_t kExpectedVersionMinor = 7U;
-constexpr std::uint16_t kExpectedVersionPatch = 14U;
+constexpr std::uint16_t kExpectedVersionPatch = 15U;
 constexpr std::uint16_t kExpectedVersionBuild = 0U;
 
 /**

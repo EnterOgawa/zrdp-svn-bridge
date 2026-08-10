@@ -1,8 +1,8 @@
 # ZRdp SVN Bridge 既知の制約と残存risk
 
-更新日: 2026-08-03
+更新日: 2026-08-10
 
-## 1. Version 0.7.14の検証境界
+## 1. Version 0.7.14初版とVersion 0.7.15候補の検証境界
 
 Version `0.7.14.0`は、Version `0.6.0.0`で通過したPhase 6のローカル／実機回帰と
 Phase 7／8の実環境Gateを維持し、複数RDP session Window、title集約UI、
@@ -107,8 +107,16 @@ conflict、Lock、Unlockは、Version `0.6.0.0`でユーザーから問題なし
   引き継がないことを優先する。
 - 最初のHTTP headerは30秒、OPEN後のlocal／upstream完全無通信は30分で終了する。
   長時間無通信を意図するHTTP Keep-Aliveも切断対象となる。
-- RDPそのものを切断・再接続した場合、支給PCの新しいRDPユーザーセッション内で
-  Agentを起動し直す。
+- Version `0.7.15.0`候補は、current RDP user sessionが存続しMicrosoft Controlが
+  自動再接続した場合、Agentを起動し直さず同名SVCを再openする。最終logoff、
+  非RDP化、`WTSReset`／`WTSDown`では回復せず停止する。
+- Version `0.7.15.0`のClient／Agentは同一署名者でSHA-256／RFC 3161署名済みである。
+  実RDPでの一時link断と自動回復は未確認のため、署名済み試験候補として扱う。
+- 自動回復はnetwork link断、NIC driver、switch、cable等の原因を修復しない。
+  断の頻度が高い場合はnetwork側の調査を継続する。Agentは旧requestを再送しないため、
+  切断時のSVN／Trac操作は利用側で結果を確認してから再実行する。
+- RDP sessionが`WTSDisconnected`のまま存続する場合、AgentはCtrl+Cまたはlogoffまで
+  低頻度で待機する。別sessionの探索や別transportへのfallbackは行わない。
 
 ## 3. 設定とnetwork境界
 

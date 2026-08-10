@@ -1,6 +1,6 @@
 # ZRdp SVN Agent
 
-更新日: 2026-07-31
+更新日: 2026-08-10
 
 ## 1. 配布と起動条件
 
@@ -20,7 +20,7 @@ idle sessionでは起動条件を満たさず、安全に終了する。
    EXEと同じdirectoryへ配置する。形式は`docs/configuration.md`に従う。
 4. 接続中のRDP画面内で`ZRdpSvnAgent.exe`を起動する。
 5. 有効設定時はconsoleに`allowlist限定SVN streamを有効にしました。`と表示される。
-   このVersion `0.7.14.0`の表示は、allowlist限定HTTP stream全体を表す。
+   このVersion `0.7.15.0`の表示は、allowlist限定HTTP stream全体を表す。
    設定欠落／不正時はEcho-onlyで継続する旨が表示される。
 6. consoleに`Clientと接続しました。`と表示されるまで待つ。
 7. 必要に応じてClientの`Echoテスト`を実行する。Echo中は既存Proxy streamを
@@ -29,8 +29,9 @@ idle sessionでは起動条件を満たさず、安全に終了する。
    Proxy状態が`利用可`になる。
 9. Agentを通常停止する場合はconsoleでCtrl+Cを押す。
 
-Agentを先に常駐させる運用やservice化は行わない。RDP切断後に再接続した場合は、
-新しいRDPセッション内でAgentを起動し直す。
+Agentを先に常駐させる運用やservice化は行わない。起動後に一時的なnetwork link断が
+発生し、Microsoft RDP Controlが同じuser sessionへ自動再接続する場合、Agentは
+終了せず`ESVNBRG`を再openする。RDP sessionがlogoff等で終了した場合は停止する。
 
 Ctrl+Cでは、Agentがconnection-level `CLOSE`をClientへ送ってからchannelを閉じる。
 Clientは同じRDP接続を維持したままAgent待機へ戻るため、そのままAgentを再起動
@@ -60,8 +61,11 @@ WTSVirtualChannelOpenEx(
 );
 ```
 
-flags `0`はStatic Virtual Channelを表す。channelを開けない場合にSocket、DNS、
-OS Proxy、別channelへfallbackしない。
+flags `0`はStatic Virtual Channelを表す。初回channelを開けない場合にSocket、DNS、
+OS Proxy、別channelへfallbackしない。成立後のchannel read／writeが失敗した場合は、
+旧channel、protocol state、全upstream Socketを破棄する。current processのsessionが
+`WTSDisconnected`等の一時状態なら待機し、`WTSActive`へ戻った後だけ同名channelを
+250 msから最大2秒のbackoffで再openする。別sessionは列挙しない。
 
 ## 4. I/O model
 
@@ -79,7 +83,8 @@ non-blocking Socketのconnect／send／receiveも有限回ずつ進める。
 - Socket書込み待ちは最大256 KiB、Socket読込み待ちは最大16 KiB
 - 一PumpのSocket operationは最大8回
 - malformed frame、順序違反、queue上限超過でfail-closed
-- Ctrl+C、RDP切断、channel errorでchannelと全SocketをRAII解放
+- Ctrl+C、RDP切断、channel errorで旧channelと全SocketをRAII解放
+- 一時RDP切断ではAgent processを維持し、新channelの`HELLO`から再開
 - Ctrl+C正常終了時は空payloadのconnection-level `CLOSE`を最後に送信
 
 100 ms polling方式が実RDP環境で欠落や過度な遅延を起こさないことは、Phase 1の
@@ -93,12 +98,11 @@ Consoleにはcompile時に固定した状態文だけを表示し、session ID�
 
 | Exit code | 意味 |
 |---:|---|
-| 0 | Ctrl+C等による正常停止 |
+| 0 | Ctrl+Cまたはcurrent RDP session終了による正常停止 |
 | 2 | current active RDP sessionではない |
 | 3 | `ESVNBRG`を開けない |
-| 4 | channel read失敗またはRDP切断 |
 | 5 | protocol異常 |
-| 6 | channel write失敗 |
+| 6 | Ctrl+C正常終了通知のchannel write失敗 |
 
 ## 6. Phase 3のnetwork境界
 
@@ -137,7 +141,7 @@ Phase 5を完了判定していない。後続のPhase 7／8ではユーザー�
 限定してSVN read／write操作の受入を完了した。実Tracの設定検証と同期も
 Phase 9改善I-001でユーザー受入済みである。
 
-Version `0.7.14.0`で複数RDP sessionを使用する場合は、各sessionのRDP画面内で
+Version `0.7.15.0`で複数RDP sessionを使用する場合は、各sessionのRDP画面内で
 Agentを一つずつ起動する。一つのAgent processやWTS channel handleを別RDP
 sessionと共有しない。wire protocolはVersion `0.6.0.0`と互換である。
 
