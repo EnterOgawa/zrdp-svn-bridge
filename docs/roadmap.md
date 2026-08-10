@@ -1116,10 +1116,11 @@ Agent、Virtual Channel、Protocol、Proxy、allowlist、接続履歴は変更�
      実装し、Version `0.7.15.0`のDebug／隔離Release各30 CTestを成功させる。
 119. [x] 起動中Client終了後にVersion `0.7.15.0`のClient／Agentを標準`out`へ生成し、
      Release全30 CTestを成功させる。
-120. [ ] 一時link断後にAgent processが残り、RDP自動再接続後に再起動なしで
+120. [x] 一時link断後にAgent processが残り、RDP自動再接続後に再起動なしで
      Proxy利用可へ戻ることをユーザー実機で確認する。
 121. [x] ユーザーの明示指示によりVersion `0.7.15.0`のClient／Agentを同一署名者で
      署名し、Windows trust、SHA-256、RFC 3161 timestamp、Versionを静的検証する。
-122. [ ] R-009実機受入後にVersion `0.7.15.0`の配布Gateを個別判断する。
+122. [x] R-009主要回復経路の実機受入後、ユーザーの明示指示を受けてVersion
+     `0.7.15.0`のPrivate GitHub Release作成へ進む。
 
 日程見積りは、ActiveX host方式を確定し、Phase 0とPhase 1で実環境固有の技術riskを測定した後に更新する。Gate待ち時間を開発工数へ混在させない。

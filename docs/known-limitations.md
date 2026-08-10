@@ -111,7 +111,9 @@ conflict、Lock、Unlockは、Version `0.6.0.0`でユーザーから問題なし
   自動再接続した場合、Agentを起動し直さず同名SVCを再openする。最終logoff、
   非RDP化、`WTSReset`／`WTSDown`では回復せず停止する。
 - Version `0.7.15.0`のClient／Agentは同一署名者でSHA-256／RFC 3161署名済みである。
-  実RDPでの一時link断と自動回復は未確認のため、署名済み試験候補として扱う。
+  2026-08-10、ユーザー実機で一時link断後のAgent process維持とRDP自動再接続後の
+  Bridge／Proxy回復を確認した。切断中だったSVN／Trac操作の結果確認、複数sessionへの
+  非影響、固定log内容は継続利用中の追加観察項目として残す。
 - 自動回復はnetwork link断、NIC driver、switch、cable等の原因を修復しない。
   断の頻度が高い場合はnetwork側の調査を継続する。Agentは旧requestを再送しないため、
   切断時のSVN／Trac操作は利用側で結果を確認してから再実行する。

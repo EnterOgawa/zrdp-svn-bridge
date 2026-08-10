@@ -114,6 +114,7 @@ source repositoryや共通配布物へ含めない。
 - [設定仕様](docs/configuration.md)
 - [テスト計画](docs/test-plan.md)
 - [既知の制約](docs/known-limitations.md)
+- [Version 0.7.15リリースノート](docs/release-notes-0.7.15.md)
 - [Version 0.7.14リリースノート](docs/release-notes-0.7.14.md)
 - [社内配布・署名確認書](docs/release-checklist.md)
 
@@ -122,8 +123,9 @@ source repositoryや共通配布物へ含めない。
 初版Version `0.7.14.0`はDebug／Release各30 CTestと実環境確認を通過し、署名済みで
 ある。次回候補Version `0.7.15.0`は、一時RDP切断後のAgent channel自動回復を追加し、
 Debug／隔離Release／標準Release各30 CTestを通過した。Client／Agentは同一署名者で
-SHA-256／RFC 3161署名済みである。実RDPでのlink断／自動回復確認は未実施であり、
-初版Releaseと区別して扱う。
+SHA-256／RFC 3161署名済みである。2026-08-10、ユーザー実機で一時link断後のAgent
+process維持とRDP自動再接続後のBridge回復を確認し、Version `0.7.15.0` Releaseへ
+反映した。
 
 継続利用中に問題が判明した場合は、発生時刻、操作分類、Session Window titleのProxy
 port／stream／転送量、およびClient／Agent双方の固定診断logだけを保存する。実IP、URL、

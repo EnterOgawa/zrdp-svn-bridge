@@ -1034,13 +1034,17 @@ trust `Valid`、SHA-256 signature、RFC 3161 timestamp、Version維持を静的�
 
 ### ユーザー実機
 
-- [ ] Agent接続済み状態で安全な一時network link断を発生させる
-- [ ] Agent consoleに自動再接続待機が表示され、processが終了しない
-- [ ] Microsoft RDP Controlの自動再接続後、Agent再起動なしでProxy利用可へ戻る
+- [x] Agent接続済み状態で安全な一時network link断を発生させる
+- [x] Agent consoleに自動再接続待機が表示され、processが終了しない
+- [x] Microsoft RDP Controlの自動再接続後、Agent再起動なしでProxy利用可へ戻る
 - [ ] 切断時に実行中だったSVN／Trac操作は自動再送されず、新操作だけが成功する
 - [ ] 別session Windowと接続管理Windowに影響がない
 - [ ] Agent logにchannel error、WTS state変化、open試行回数、`bridge.ready`が残る
 - [ ] credential、payload、実endpointがlogへ記録されない
+
+2026-08-10、ユーザー実機で一時link断後にAgent processが終了せず、RDP自動再接続後に
+Agent再起動なしでBridge／Proxy利用可へ戻る主要回復経路を確認した。切断中の操作結果、
+複数session分離、固定log内容は、継続利用中の追加観察項目として残す。
 
 ## 30. 報告してほしい情報
 
