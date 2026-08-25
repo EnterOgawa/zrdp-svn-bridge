@@ -1,6 +1,6 @@
 # ZRdp SVN Agent
 
-更新日: 2026-08-10
+更新日: 2026-08-25
 
 ## 1. 配布と起動条件
 
@@ -20,7 +20,7 @@ idle sessionでは起動条件を満たさず、安全に終了する。
    EXEと同じdirectoryへ配置する。形式は`docs/configuration.md`に従う。
 4. 接続中のRDP画面内で`ZRdpSvnAgent.exe`を起動する。
 5. 有効設定時はconsoleに`allowlist限定SVN streamを有効にしました。`と表示される。
-   このVersion `0.7.15.0`の表示は、allowlist限定HTTP stream全体を表す。
+   このVersion `0.7.20.0`の表示は、allowlist限定HTTP stream全体を表す。
    設定欠落／不正時はEcho-onlyで継続する旨が表示される。
 6. consoleに`Clientと接続しました。`と表示されるまで待つ。
 7. 必要に応じてClientの`Echoテスト`を実行する。Echo中は既存Proxy streamを
@@ -141,7 +141,7 @@ Phase 5を完了判定していない。後続のPhase 7／8ではユーザー�
 限定してSVN read／write操作の受入を完了した。実Tracの設定検証と同期も
 Phase 9改善I-001でユーザー受入済みである。
 
-Version `0.7.15.0`で複数RDP sessionを使用する場合は、各sessionのRDP画面内で
+Version `0.7.20.0`で複数RDP sessionを使用する場合は、各sessionのRDP画面内で
 Agentを一つずつ起動する。一つのAgent processやWTS channel handleを別RDP
 sessionと共有しない。wire protocolはVersion `0.6.0.0`と互換である。
 

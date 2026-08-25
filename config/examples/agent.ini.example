@@ -1,6 +1,7 @@
 ; ZRdpSvnAgent Phase 3 allowlist template
 ; Copy this file next to ZRdpSvnAgent.exe as agent.ini, then replace every
-; documentation-only address with an explicitly approved HTTP SVN endpoint.
+; documentation-only address with an explicitly approved HTTP SVN or Trac
+; endpoint.
 ; Do not commit the resulting agent.ini.
 
 [allowlist]

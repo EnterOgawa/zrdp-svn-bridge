@@ -114,6 +114,7 @@ source repositoryや共通配布物へ含めない。
 - [設定仕様](docs/configuration.md)
 - [テスト計画](docs/test-plan.md)
 - [既知の制約](docs/known-limitations.md)
+- [Version 0.7.20リリースノート](docs/release-notes-0.7.20.md)
 - [Version 0.7.15リリースノート](docs/release-notes-0.7.15.md)
 - [Version 0.7.14リリースノート](docs/release-notes-0.7.14.md)
 - [社内配布・署名確認書](docs/release-checklist.md)

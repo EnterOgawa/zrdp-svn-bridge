@@ -1,9 +1,9 @@
 # ZRdp SVN Bridge 利用手順書
 
 - 文書ID: `ZRDP-USER-001`
-- 対象Version: `0.7.14.0`
+- 対象Version: `0.7.20.0`
 - 対象: 社内試行利用者
-- 更新日: 2026-08-03
+- 更新日: 2026-08-25
 
 ## 1. はじめに
 
@@ -42,7 +42,7 @@ endpointと操作は、所属組織から許可された範囲に限定する。
 | 開発PC | `ZRdpSvnBridge.exe` |
 | 支給PC | `ZRdpSvnAgent.exe` |
 
-社内配布版では両EXEのVersionが`0.7.14.0`で一致し、Authenticode署名が有効である
+社内配布版では両EXEのVersionが`0.7.20.0`で一致し、Authenticode署名が有効である
 ことを確認する。Windows ExplorerでEXEのプロパティを開き、「デジタル署名」tabから
 署名状態を確認できる。
 
@@ -303,7 +303,7 @@ remote desktop寸法を変更しない。
 - 接続管理Windowと別sessionは継続する。
 - すべてのsessionを終了後、接続管理Windowを閉じてClientを終了する。
 
-社内配布版Version `0.7.14.0`では、すべてのWindowを閉じた後にタスクマネージャーで
+社内配布版Version `0.7.20.0`では、すべてのWindowを閉じた後にタスクマネージャーで
 `ZRdpSvnBridge.exe`が残っていないことを確認する。残留した場合は配布・利用を中止し、
 発生時刻とClient logを報告する。
 
