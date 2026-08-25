@@ -15,10 +15,10 @@
 
 namespace {
 
-/// 一時RDP切断後にAgent SVCを自動回復する配布物のfixed file version。
+/// Microsoft connection barをcontainerより前面に維持するfixed file version。
 constexpr std::uint16_t kExpectedVersionMajor = 0U;
 constexpr std::uint16_t kExpectedVersionMinor = 7U;
-constexpr std::uint16_t kExpectedVersionPatch = 15U;
+constexpr std::uint16_t kExpectedVersionPatch = 20U;
 constexpr std::uint16_t kExpectedVersionBuild = 0U;
 
 /**

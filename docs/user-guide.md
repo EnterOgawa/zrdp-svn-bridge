@@ -286,8 +286,10 @@ Redirect先がhostname、HTTPS、別の未許可endpointの場合はZRdpのsecur
 
 ### 11.3 全画面
 
-「全画面」buttonまたは`Ctrl+Alt+Break`を使用する。Windowへ戻る場合も同じbutton、
-`Ctrl+Alt+Break`、またはMicrosoft connection barを使用する。
+「全画面」buttonまたは`Ctrl+Alt+Break`を使用する。Windowへ戻る場合は
+Microsoft connection barまたは`Ctrl+Alt+Break`を使用する。local desktopへ一時的に
+戻る場合はconnection barの最小化buttonを使用する。taskbarから復元すると全画面を
+維持する。全画面中にZRdp独自buttonや表示mode欄は表示しない。
 
 動的解像度では全画面monitorへremote desktopが追従する。等倍表示とSmart Sizingでは
 remote desktop寸法を変更しない。

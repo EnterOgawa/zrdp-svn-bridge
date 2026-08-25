@@ -64,6 +64,7 @@ target_link_libraries(
 add_library(
     zrdp_rdp_window_sizing
     STATIC
+        app/rdp_container_full_screen.h
         app/rdp_window_sizing.cpp
         app/rdp_window_sizing.h
 )

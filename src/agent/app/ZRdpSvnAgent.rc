@@ -16,8 +16,8 @@
 // -----------------------------------------------------------------------------
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 0,7,15,0
-PRODUCTVERSION 0,7,15,0
+FILEVERSION 0,7,20,0
+PRODUCTVERSION 0,7,20,0
  FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
 #ifdef _DEBUG
  FILEFLAGS VS_FF_DEBUG
@@ -34,11 +34,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "EnterOgawa\0"
             VALUE "FileDescription", "ZRdp SVN Agent\0"
-            VALUE "FileVersion", "0.7.15.0\0"
+            VALUE "FileVersion", "0.7.20.0\0"
             VALUE "InternalName", "ZRdpSvnAgent\0"
             VALUE "OriginalFilename", "ZRdpSvnAgent.exe\0"
             VALUE "ProductName", "ZRdp SVN Bridge\0"
-            VALUE "ProductVersion", "0.7.15.0\0"
+            VALUE "ProductVersion", "0.7.20.0\0"
         END
     END
     BLOCK "VarFileInfo"

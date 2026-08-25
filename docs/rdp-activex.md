@@ -126,8 +126,8 @@ session Windowはtitle bar、表示mode一行、RDP表示で構成する。通�
 接続名があれば`接続名 (接続先)`、名前がなければ接続先を表示し、
 RDP／Agent／Proxy状態、session専用Proxy port、stream数、方向別転送量を表示する。
 表示mode一行の全画面buttonと、Windows標準RDP互換の`Ctrl+Alt+Break`要求は
-同じActiveX全画面APIとevent経路を使用する。eventで実際の状態を受けた後に
-button表示を「全画面」または「ウィンドウ」へ更新する。
+同じActiveX全画面API、container遷移、event経路を使用する。eventで実際の状態を
+受けた後にbutton表示を「全画面」または「ウィンドウ」へ更新する。
 
 ## 4. 全画面での接続先識別
 
@@ -146,9 +146,50 @@ passwordは含めない。hostname入力時はDNS解決して実IPを探索せ�
 変更せず、表示末尾だけを`...`として省略する。同じ有限長BSTRを
 `FullScreenTitle`と`ConnectionBarText`へ設定する。
 
+接続前に`DisplayConnectionBar=VARIANT_TRUE`、
+`PinConnectionBar=VARIANT_FALSE`を設定し、connection barを有効かつraised状態にする。
+`IMsRdpClientAdvancedSettings3`では`ConnectionBarShowMinimizeButton`と
+`ConnectionBarShowRestoreButton`を有効化する。各propertyはreadbackし、必須操作が
+欠けるControlでは接続を開始しない。
+
 どちらかを設定できない場合、または`ConnectionBarText`のreadbackが設定した
 有限長BSTRと完全一致しない場合は接続前設定を失敗させる。接続先を診断logや
 resourceへ出力しない。
+
+全画面connection barで最小化が押された場合、ActiveXは
+`OnRequestContainerMinimize`（DISPID 14）を通知する。ZRdpはCOM callback中に
+Window状態を直接変更せず、Session Windowへ標準`SC_MINIMIZE`を非同期送信する。
+これによりActiveX全画面だけを退避して背後の白いSession Windowを残さず、
+Windows標準RDPと同様にSession Window全体をtaskbarへ最小化する。
+
+最小化中はActiveXの再配置と動的解像度timerを停止する。taskbarから復元した場合は
+通常の`WM_SIZE`配置経路を通し、動的解像度modeだけを有効な表示領域へ再追従させる。
+最小化・復元はRDP、Virtual Channel、Proxy、HTTP streamを切断しない。
+
+このeventを確実に受けるため、接続前に
+`IMsTscAdvancedSettings::ContainerHandledFullScreen=1`を設定してreadbackする。
+設定非対応またはreadback不一致では接続を開始せず、全画面操作の一部だけが欠けた
+sessionを暗黙に許可しない。`Ctrl+Alt+Break`の`OnRequestGoFullScreen`／
+`OnRequestLeaveFullScreen`も同じcontainer event経路を使用する。
+
+このmodeではControl自身がtop-level Windowを全画面化しない。ZRdpはcallback外の
+UI messageで、現在monitor全体へ`WS_POPUP`のborderless Session Windowを配置し、
+title bar、frame、表示mode欄を隠してRDP ActiveXをclient領域全体へ広げる。
+Window復帰時はsessionごとに保存した元styleと`WINDOWPLACEMENT`を復元する。
+ActiveXまたはUSER32の片側だけが失敗した場合は直前状態へrollbackし、RDP、Bridge、
+Proxyは維持する。
+
+全画面中はZRdp独自buttonと表示mode radioをRDP childへ重ねず、画面操作をMicrosoft
+connection barへ委譲する。keyboardからは`Ctrl+Alt+Break`を同じActiveX／container
+同期経路で処理する。
+
+Microsoft connection barはActiveXとは別のtop-level Windowとして描画され得るため、
+全画面開始時はZRdp containerを先にborderless monitor配置し、Z-orderを変更せず、
+その後にActiveXの`FullScreen`を有効化する。Window復帰時は逆にActiveX全画面を先に
+解除してからcontainerを復元する。これによりcontainerがconnection barを後から覆う
+順序を作らない。
+
+readbackはCOM実装差により真値が`1`または`-1`となり得るため、非0を有効として扱う。
 
 ## 5. Clipboard
 
@@ -193,6 +234,7 @@ device名、音量、録音内容は保存またはlog出力しない。
 - `OnDisconnected`
 - `OnEnterFullScreen`
 - `OnLeaveFullScreen`
+- `OnRequestContainerMinimize`
 - `OnFatalError`
 - `OnWarning`
 - `OnAutoReconnecting2`

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.31)
 
 project(
     ZRdpSvnBridge
-    VERSION 0.7.15
+    VERSION 0.7.20
     DESCRIPTION "RDP client with a constrained SVN bridge over an RDP virtual channel"
     LANGUAGES CXX RC
 )

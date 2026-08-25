@@ -319,9 +319,25 @@ Host: 192.0.2.10
   転送を禁止する場合は、policy変更や別経路へのfallbackを行わない。
 - 接続名または接続先履歴を選択した場合は、接続情報と同じprofileに保存された
   マイク転送およびリモート音声再生先も一組として復元する。
-- 全画面中はMicrosoft controlへ表示管理を委譲して動的解像度timerを停止し、window mode復帰時と自動再接続完了時に再適用する。
-- session Windowには全画面buttonを表示せず、Windows標準RDP互換の
-  `Ctrl+Alt+Break`要求をActiveX eventで処理する。
+- 接続前に`ContainerHandledFullScreen`を有効化し、Microsoft controlの全画面状態と
+  ZRdp container Windowを一体として切り替える。全画面開始時は現在monitor全体へ
+  borderless Session Windowを配置し、title bar、frame、表示mode欄を隠してRDP表示を
+  client領域全体へ広げる。Window復帰時は元styleと通常／最大化配置をsession単位で
+  復元する。
+- session Windowには表示modeと並べて全画面buttonを表示し、Windows標準RDP互換の
+  `Ctrl+Alt+Break`要求と同じActiveX／container event経路で処理する。全画面中の
+  Window復帰はMicrosoft connection barまたは`Ctrl+Alt+Break`を使用する。
+- 接続前に`DisplayConnectionBar`を有効化し、`PinConnectionBar`をraised状態へ設定する。
+  connection barの最小化buttonとWindow復帰buttonを明示的に有効化してreadbackする。
+- 全画面開始時はZRdp containerを先にborderless monitor配置し、その後にActiveXの
+  `FullScreen`を有効化する。container配置ではtop-level Z-orderを変更せず、後から
+  表示されるMicrosoft connection barを覆わない。Window復帰時はActiveX全画面を
+  先に解除し、その後にcontainerのstyleと配置を復元する。
+- 全画面中はZRdp独自のbuttonや表示mode欄をRDP領域へoverlayしない。Microsoft
+  connection barを画面操作の正本とし、keyboard操作として`Ctrl+Alt+Break`を維持する。
+- 全画面connection barの最小化要求ではSession Window全体を標準最小化し、taskbar
+  からの復元後も全画面を維持する。最小化中は動的解像度timerを停止し、Window mode
+  復帰時と自動再接続完了時に再適用する。
 - 全画面connection barと全画面window titleには、`ZRdp SVN Bridge - <接続先>`の形式で、現在入力された接続先PC名またはIPアドレスを表示する。
 - 全画面識別表示は`FullScreenTitle`の`MAX_PATH - 1`文字制約内で構築する。通常のIPアドレスとhostnameは完全表示し、制約を超える長い入力は接続先設定を変更せず、表示末尾だけを`...`として省略する。
 - 全画面識別表示の接続先はruntime UIだけに使用し、診断log、resource、追加設定fileへ出力しない。hostname入力時にDNS解決してIPを探索せず、入力値をそのまま表示する。

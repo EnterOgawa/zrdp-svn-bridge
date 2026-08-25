@@ -268,6 +268,10 @@ int wmain() {
                     SecurityWarningCancelled,
                 1U),
         });
+    zrdp::common::WriteDiagnosticLog(
+        zrdp::common::DiagnosticLevel::Information,
+        zrdp::common::DiagnosticEvent::
+            EventRequestContainerMinimize);
     zrdp::common::ShutdownDiagnosticLog();
 
     // rotation後に新現行ログと第1世代の両方が存在することを確認する。
@@ -337,6 +341,9 @@ int wmain() {
         contents.find(
             "event=rdp.event.disconnected "
             "security_warning_cancelled=1") !=
+            std::string::npos &&
+        contents.find(
+            "event=rdp.event.request_container_minimize") !=
             std::string::npos &&
         contents.find("hresult=0x00000000") != std::string::npos &&
         contents.find("code=-7") != std::string::npos &&

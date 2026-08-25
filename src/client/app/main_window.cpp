@@ -11,6 +11,7 @@
 #include "client/app/dynamic_resolution_retry.h"
 #include "client/app/dynamic_resolution_target.h"
 #include "client/app/pre_login_connection_retry.h"
+#include "client/app/rdp_container_full_screen.h"
 #include "client/app/rdp_window_sizing.h"
 #include "client/app/rdp_user_identity.h"
 #include "client/app/resource.h"
@@ -698,13 +699,36 @@ void MainWindow::OnRdpEvent(rdp::RdpEvent event) {
             common::WriteDiagnosticLog(
                 common::DiagnosticLevel::Information,
                 common::DiagnosticEvent::EventRequestGoFullScreen);
-            PostMessageW(window_, kMessageSetFullScreen, TRUE, 0L);
+            static_cast<void>(
+                PostMessageW(
+                    window_,
+                    kMessageSetFullScreen,
+                    TRUE,
+                    0L));
             break;
         case rdp::RdpEventKind::RequestLeaveFullScreen:
             common::WriteDiagnosticLog(
                 common::DiagnosticLevel::Information,
                 common::DiagnosticEvent::EventRequestLeaveFullScreen);
-            PostMessageW(window_, kMessageSetFullScreen, FALSE, 0L);
+            static_cast<void>(
+                PostMessageW(
+                    window_,
+                    kMessageSetFullScreen,
+                    FALSE,
+                    0L));
+            break;
+        case rdp::RdpEventKind::RequestContainerMinimize:
+            common::WriteDiagnosticLog(
+                common::DiagnosticLevel::Information,
+                common::DiagnosticEvent::EventRequestContainerMinimize);
+            // COM callbackから直接Window状態を変えず、標準の最小化処理へ非同期委譲する。
+            CancelDynamicResolutionUpdate();
+            static_cast<void>(
+                PostMessageW(
+                    window_,
+                    WM_SYSCOMMAND,
+                    SC_MINIMIZE,
+                    0L));
             break;
         case rdp::RdpEventKind::FatalError:
             authentication_dialog_active_ = false;
@@ -964,12 +988,16 @@ LRESULT MainWindow::HandleMessage(
             break;
         }
         case WM_SIZE: {
-            // 最小化中は0に近い表示領域をActiveXへ適用しない。
-            if (wparam != SIZE_MINIMIZED) {
-                const int width = LOWORD(lparam);
-                const int height = HIWORD(lparam);
-                LayoutControls(width, height);
+            // 最小化中はActiveX再配置とremote desktop寸法更新を停止する。
+            if (wparam == SIZE_MINIMIZED) {
+                CancelDynamicResolutionUpdate();
+                return 0;
             }
+
+            const int width = LOWORD(lparam);
+            const int height = HIWORD(lparam);
+            // 復元時も同じ配置経路を通し、動的解像度は有効な表示領域へ再追従させる。
+            LayoutControls(width, height);
             return 0;
         }
         case WM_DPICHANGED: {
@@ -1217,14 +1245,7 @@ LRESULT MainWindow::HandleMessage(
             return 0;
         case kMessageSetFullScreen: {
             const bool full_screen = wparam != FALSE;
-            const HRESULT result = rdp_host_.SetFullScreen(full_screen);
-            // ActiveXの状態変更に失敗した場合はUIだけを先行更新しない。
-            if (FAILED(result)) {
-                ShowError(IDS_CONNECT_FAILED, result);
-            } else {
-                // button以外の全画面要求も、現在状態に対応する同じ寸法更新へ収束させる。
-                ScheduleDynamicResolutionUpdate();
-            }
+            ExecuteFullScreenRequest(full_screen);
             return 0;
         }
         case kMessageShowDisconnectError: {
@@ -1479,17 +1500,8 @@ bool MainWindow::CreateControls() {
     SetDisplayModeSelection(display_mode_);
 
     ApplyControlFont();
-    const std::array<HWND, 5> visible_controls{
-        display_mode_label_,
-        native_mode_radio_,
-        smart_sizing_mode_radio_,
-        dynamic_resolution_mode_radio_,
-        full_screen_button_,
-    };
-    // session中に必要な表示modeと全画面切替だけを一行の操作領域へ公開する。
-    for (const HWND control : visible_controls) {
-        ShowWindow(control, SW_SHOW);
-    }
+    // Window modeでは表示modeと全画面切替だけを一行の操作領域へ公開する。
+    SetDisplayControlsVisible(true);
 
     UpdateUiForState(rdp::RdpConnectionState::Disconnected);
     UpdateBridgeUi();
@@ -1509,46 +1521,49 @@ void MainWindow::LayoutControls(
     const int smart_sizing_mode_width = Scale(220);
     const int dynamic_resolution_mode_width = Scale(240);
     const int full_screen_button_width = Scale(100);
-    int x = margin;
-    MoveWindow(
-        display_mode_label_,
-        x,
-        margin,
-        display_mode_label_width,
-        control_height,
-        TRUE);
-    x += display_mode_label_width + gap;
-    MoveWindow(
-        native_mode_radio_,
-        x,
-        margin,
-        native_mode_width,
-        control_height,
-        TRUE);
-    x += native_mode_width + gap;
-    MoveWindow(
-        smart_sizing_mode_radio_,
-        x,
-        margin,
-        smart_sizing_mode_width,
-        control_height,
-        TRUE);
-    x += smart_sizing_mode_width + gap;
-    MoveWindow(
-        dynamic_resolution_mode_radio_,
-        x,
-        margin,
-        dynamic_resolution_mode_width,
-        control_height,
-        TRUE);
-    x += dynamic_resolution_mode_width + gap;
-    MoveWindow(
-        full_screen_button_,
-        x,
-        margin,
-        full_screen_button_width,
-        control_height,
-        TRUE);
+    // 全画面中は独自controlを重ねず、Microsoft connection barへ操作を委譲する。
+    if (!container_full_screen_) {
+        int x = margin;
+        MoveWindow(
+            display_mode_label_,
+            x,
+            margin,
+            display_mode_label_width,
+            control_height,
+            TRUE);
+        x += display_mode_label_width + gap;
+        MoveWindow(
+            native_mode_radio_,
+            x,
+            margin,
+            native_mode_width,
+            control_height,
+            TRUE);
+        x += native_mode_width + gap;
+        MoveWindow(
+            smart_sizing_mode_radio_,
+            x,
+            margin,
+            smart_sizing_mode_width,
+            control_height,
+            TRUE);
+        x += smart_sizing_mode_width + gap;
+        MoveWindow(
+            dynamic_resolution_mode_radio_,
+            x,
+            margin,
+            dynamic_resolution_mode_width,
+            control_height,
+            TRUE);
+        x += dynamic_resolution_mode_width + gap;
+        MoveWindow(
+            full_screen_button_,
+            x,
+            margin,
+            full_screen_button_width,
+            control_height,
+            TRUE);
+    }
 
     const RECT rdp_bounds = RdpBounds(client_width, client_height);
     // 表示操作一行以外をRDPへ割り当て、接続情報と状態はtitle barへ集約する。
@@ -1561,6 +1576,7 @@ void MainWindow::LayoutControls(
             ScheduleDynamicResolutionUpdate();
         }
     }
+
 }
 
 bool MainWindow::ConstrainManualSizing(
@@ -1963,25 +1979,279 @@ void MainWindow::OnDisconnect() {
 }
 
 void MainWindow::OnFullScreen() {
-    const bool requested_full_screen = !rdp_host_.full_screen();
+    const bool requested_full_screen =
+        !container_full_screen_;
+    // buttonとActiveX eventを同じcallback外messageへ収束させる。
+    if (!PostMessageW(
+            window_,
+            kMessageSetFullScreen,
+            requested_full_screen ? TRUE : FALSE,
+            0L)) {
+        const HRESULT result =
+            HRESULT_FROM_WIN32(GetLastError());
+        common::WriteDiagnosticLog(
+            common::DiagnosticLevel::Error,
+            common::DiagnosticEvent::FullScreenCallReturned,
+            {common::DiagnosticHResult(result)});
+        ShowError(IDS_CONNECT_FAILED, result);
+    }
+}
+
+HRESULT MainWindow::ApplyFullScreenMode(
+    const bool full_screen) noexcept {
+    const bool previous_active_x_full_screen =
+        rdp_host_.full_screen();
+    const bool previous_container_full_screen =
+        container_full_screen_;
+    HRESULT result = S_OK;
+    // 全画面開始ではcontainerを先に配置し、後から生成されるconnection barを前面に保つ。
+    if (full_screen) {
+        const HRESULT container_result =
+            SetContainerFullScreen(true);
+        if (FAILED(container_result)) {
+            return container_result;
+        }
+
+        result = rdp_host_.SetFullScreen(true);
+        // ActiveX失敗時は今回変更したcontainerだけを元Window配置へ戻す。
+        if (FAILED(result)) {
+            if (!previous_container_full_screen) {
+                static_cast<void>(SetContainerFullScreen(false));
+            }
+
+            return result;
+        }
+    } else {
+        // Window復帰ではconnection barを先に閉じ、その後container frameを復元する。
+        result = rdp_host_.SetFullScreen(false);
+        if (FAILED(result)) {
+            return result;
+        }
+
+        result = SetContainerFullScreen(false);
+        // container復元失敗時はControlだけWindow modeになる不一致を直前状態へ戻す。
+        if (FAILED(result)) {
+            static_cast<void>(
+                rdp_host_.SetFullScreen(
+                    previous_active_x_full_screen));
+            return result;
+        }
+    }
+
+    UpdateFullScreenButton(full_screen);
+    // 完成したWindow状態だけを動的解像度の更新対象にする。
+    ScheduleDynamicResolutionUpdate();
+    return S_OK;
+}
+
+HRESULT MainWindow::SetContainerFullScreen(
+    const bool full_screen) noexcept {
+    // 破棄済みWindowや同一状態への重複要求で配置snapshotを上書きしない。
+    if (window_ == nullptr || !IsWindow(window_)) {
+        return HRESULT_FROM_WIN32(ERROR_INVALID_WINDOW_HANDLE);
+    }
+
+    if (container_full_screen_ == full_screen) {
+        return S_FALSE;
+    }
+
+    if (full_screen) {
+        WINDOWPLACEMENT placement{};
+        placement.length =
+            static_cast<UINT>(sizeof(placement));
+        // Window復帰に必要な通常／最大化配置を取得できなければ全画面へ進まない。
+        if (!GetWindowPlacement(window_, &placement)) {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
+
+        SetLastError(ERROR_SUCCESS);
+        const LONG_PTR window_style =
+            GetWindowLongPtrW(window_, GWL_STYLE);
+        const DWORD style_error = GetLastError();
+        // 0は有効値にもなり得るため、LastErrorと組み合わせて取得失敗を判定する。
+        if (window_style == 0 && style_error != ERROR_SUCCESS) {
+            return HRESULT_FROM_WIN32(style_error);
+        }
+
+        const HMONITOR monitor =
+            MonitorFromWindow(
+                window_,
+                MONITOR_DEFAULTTONEAREST);
+        if (monitor == nullptr) {
+            return E_FAIL;
+        }
+
+        MONITORINFO monitor_info{};
+        monitor_info.cbSize = sizeof(monitor_info);
+        // taskbarを除くwork areaではなく、RDP全画面としてmonitor全体を使用する。
+        if (!GetMonitorInfoW(monitor, &monitor_info)) {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
+
+        const RECT& monitor_bounds = monitor_info.rcMonitor;
+        if (monitor_bounds.right <= monitor_bounds.left ||
+            monitor_bounds.bottom <= monitor_bounds.top) {
+            return E_UNEXPECTED;
+        }
+
+        const LONG_PTR full_screen_style =
+            MakeContainerFullScreenStyle(window_style);
+        SetLastError(ERROR_SUCCESS);
+        const LONG_PTR previous_style =
+            SetWindowLongPtrW(
+                window_,
+                GWL_STYLE,
+                full_screen_style);
+        const DWORD set_style_error = GetLastError();
+        // style変更を受理できない場合は通常Windowの配置をそのまま維持する。
+        if (previous_style == 0 &&
+            set_style_error != ERROR_SUCCESS) {
+            return HRESULT_FROM_WIN32(set_style_error);
+        }
+
+        windowed_style_ = window_style;
+        windowed_placement_ = placement;
+        container_full_screen_ = true;
+        SetDisplayControlsVisible(false);
+        // frame変更とmonitor全体への配置を一回のUSER32更新として反映する。
+        if (!SetWindowPos(
+                window_,
+                nullptr,
+                monitor_bounds.left,
+                monitor_bounds.top,
+                monitor_bounds.right - monitor_bounds.left,
+                monitor_bounds.bottom - monitor_bounds.top,
+                ContainerFullScreenPositionFlags())) {
+            const DWORD position_error = GetLastError();
+            container_full_screen_ = false;
+            SetDisplayControlsVisible(true);
+            static_cast<void>(
+                SetWindowLongPtrW(
+                    window_,
+                    GWL_STYLE,
+                    windowed_style_));
+            static_cast<void>(
+                SetWindowPlacement(
+                    window_,
+                    &windowed_placement_));
+            static_cast<void>(
+                SetWindowPos(
+                    window_,
+                    nullptr,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_FRAMECHANGED | SWP_NOMOVE |
+                        SWP_NOSIZE | SWP_NOZORDER |
+                        SWP_NOACTIVATE));
+            windowed_style_ = 0;
+            windowed_placement_ = {};
+            return HRESULT_FROM_WIN32(position_error);
+        }
+
+        return S_OK;
+    }
+
+    // 保存済みsnapshotがない状態から任意のWindow配置を推測しない。
+    if (windowed_placement_.length !=
+        static_cast<UINT>(sizeof(windowed_placement_))) {
+        return E_UNEXPECTED;
+    }
+
+    SetLastError(ERROR_SUCCESS);
+    const LONG_PTR full_screen_style =
+        GetWindowLongPtrW(window_, GWL_STYLE);
+    const DWORD get_style_error = GetLastError();
+    if (full_screen_style == 0 &&
+        get_style_error != ERROR_SUCCESS) {
+        return HRESULT_FROM_WIN32(get_style_error);
+    }
+
+    SetLastError(ERROR_SUCCESS);
+    const LONG_PTR previous_style =
+        SetWindowLongPtrW(
+            window_,
+            GWL_STYLE,
+            windowed_style_);
+    const DWORD restore_style_error = GetLastError();
+    // 元frameを復元できない場合はborderless全画面を維持する。
+    if (previous_style == 0 &&
+        restore_style_error != ERROR_SUCCESS) {
+        return HRESULT_FROM_WIN32(restore_style_error);
+    }
+
+    container_full_screen_ = false;
+    SetDisplayControlsVisible(true);
+    const BOOL placement_restored =
+        SetWindowPlacement(
+            window_,
+            &windowed_placement_);
+    const BOOL frame_refreshed = placement_restored
+        ? SetWindowPos(
+              window_,
+              nullptr,
+              0,
+              0,
+              0,
+              0,
+              SWP_FRAMECHANGED | SWP_NOMOVE |
+                  SWP_NOSIZE | SWP_NOZORDER |
+                  SWP_NOACTIVATE)
+        : FALSE;
+    // 復元途中の失敗では保存済み全画面styleへ戻し、見かけの状態を一致させる。
+    if (!placement_restored || !frame_refreshed) {
+        const DWORD restore_error = GetLastError();
+        container_full_screen_ = true;
+        SetDisplayControlsVisible(false);
+        static_cast<void>(
+            SetWindowLongPtrW(
+                window_,
+                GWL_STYLE,
+                full_screen_style));
+        const HMONITOR monitor =
+            MonitorFromWindow(
+                window_,
+                MONITOR_DEFAULTTONEAREST);
+        MONITORINFO monitor_info{};
+        monitor_info.cbSize = sizeof(monitor_info);
+        if (monitor != nullptr &&
+            GetMonitorInfoW(monitor, &monitor_info)) {
+            static_cast<void>(
+                SetWindowPos(
+                    window_,
+                    nullptr,
+                    monitor_info.rcMonitor.left,
+                    monitor_info.rcMonitor.top,
+                    monitor_info.rcMonitor.right -
+                        monitor_info.rcMonitor.left,
+                    monitor_info.rcMonitor.bottom -
+                        monitor_info.rcMonitor.top,
+                    ContainerFullScreenPositionFlags()));
+        }
+
+        return HRESULT_FROM_WIN32(restore_error);
+    }
+
+    windowed_style_ = 0;
+    windowed_placement_ = {};
+    return S_OK;
+}
+
+void MainWindow::ExecuteFullScreenRequest(
+    const bool full_screen) {
     const HRESULT result =
-        rdp_host_.SetFullScreen(requested_full_screen);
+        ApplyFullScreenMode(full_screen);
     common::WriteDiagnosticLog(
         FAILED(result)
             ? common::DiagnosticLevel::Error
             : common::DiagnosticLevel::Information,
         common::DiagnosticEvent::FullScreenCallReturned,
         {common::DiagnosticHResult(result)});
-    // ActiveXが拒否した場合はボタン表示を切り替えない。
+    // 失敗時は成立中のRDP／Bridge／Proxyを維持し、表示遷移だけを拒否する。
     if (FAILED(result)) {
         ShowError(IDS_CONNECT_FAILED, result);
-        return;
     }
-
-    // event通知が遅れるControlでも、受理済みの現在状態に対応する更新を予約する。
-    ScheduleDynamicResolutionUpdate();
-
-    UpdateFullScreenButton(requested_full_screen);
 }
 
 void MainWindow::OnBridgeEchoTest() {
@@ -2919,6 +3189,25 @@ void MainWindow::UpdateFullScreenButton(
     SetWindowTextW(full_screen_button_, text.c_str());
 }
 
+void MainWindow::SetDisplayControlsVisible(
+    const bool visible) const noexcept {
+    const std::array<HWND, 5> display_mode_controls{
+        display_mode_label_,
+        native_mode_radio_,
+        smart_sizing_mode_radio_,
+        dynamic_resolution_mode_radio_,
+        full_screen_button_,
+    };
+    // 全画面では独自操作欄を隠し、Microsoft connection barへ表示管理を委譲する。
+    for (const HWND control : display_mode_controls) {
+        if (control != nullptr) {
+            ShowWindow(
+                control,
+                visible ? SW_SHOW : SW_HIDE);
+        }
+    }
+}
+
 void MainWindow::SetStatus(const UINT string_id) const {
     const std::wstring status = LoadStringResource(string_id);
     SetWindowTextW(status_text_, status.c_str());
@@ -3236,11 +3525,15 @@ RECT MainWindow::RdpBounds(
     const int client_height) const noexcept {
     const int toolbar_height =
         Scale(kDisplayModeToolbarHeight);
+    const int content_top =
+        SelectRdpContentTop(
+            container_full_screen_,
+            toolbar_height);
     return RECT{
         0,
-        toolbar_height,
+        content_top,
         std::max(0, client_width),
-        std::max(toolbar_height, client_height),
+        std::max(content_top, client_height),
     };
 }
 

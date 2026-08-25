@@ -225,6 +225,8 @@ constexpr wchar_t kAgentLogFileName[] = L"ZRdpSvnAgent.log";
             return "rdp.event.request_go_full_screen";
         case DiagnosticEvent::EventRequestLeaveFullScreen:
             return "rdp.event.request_leave_full_screen";
+        case DiagnosticEvent::EventRequestContainerMinimize:
+            return "rdp.event.request_container_minimize";
         case DiagnosticEvent::EventFatalError:
             return "rdp.event.fatal_error";
         case DiagnosticEvent::EventWarning:

@@ -9,7 +9,7 @@ Clientと、RDPユーザーsession内で動作するAgentを組み合わせ、HT
 明示承認されたHTTP方式Tracへの通信をRDP Static Virtual Channel経由で中継する
 Windows x64向けアプリケーションである。
 
-現在の社内試行候補はVersion `0.7.15.0`である。installerは使用せず、ClientとAgentを
+現在の社内試行候補はVersion `0.7.20.0`である。installerは使用せず、ClientとAgentを
 portable EXEとして配布する。本リポジトリと配布物はPrivate／社内限定で扱う。
 
 > [!IMPORTANT]
@@ -125,7 +125,22 @@ source repositoryや共通配布物へ含めない。
 Debug／隔離Release／標準Release各30 CTestを通過した。Client／Agentは同一署名者で
 SHA-256／RFC 3161署名済みである。2026-08-10、ユーザー実機で一時link断後のAgent
 process維持とRDP自動再接続後のBridge回復を確認し、Version `0.7.15.0` Releaseへ
-反映した。
+反映した。Version `0.7.16.0`は、全画面connection barの最小化要求を
+Session Window全体のWindows標準最小化へ接続する。Debug／Release各30 CTestを通過し、
+Client／Agentは同一署名者によるSHA-256／RFC 3161署名済みである。全画面最小化と
+復元後の実RDP確認で、container側の全画面Window遷移が不足していることが判明した。
+次回候補Version `0.7.17.0`は、ZRdpのframeと表示mode欄を全画面中だけ隠し、現在monitor
+全体へSession Windowを配置して、復帰時に元の通常／最大化配置を復元する。実RDPでは
+Microsoft connection barが表示されず、復帰操作が画面上から失われる回帰を確認した。
+Version `0.7.18.0`候補はconnection barを明示設定し、全画面右上へ「最小化」と
+「ウィンドウ」の有限fallback操作を表示する。実RDPでは設定のreadbackに成功したが、
+containerを後から最前面化したためconnection barは表示されなかった。Version
+`0.7.19.0`候補はcontainerを先に全画面配置してからActiveXを全画面化し、containerの
+Z-orderを変更しない。実RDPでMicrosoft connection barの前面表示を確認したため、
+Version `0.7.20.0`候補はZRdp独自の全画面`最小化`／`ウィンドウ`buttonを削除し、
+全画面操作をMicrosoft connection barと`Ctrl+Alt+Break`へ統一する。Debug／Release
+各30 CTestを通過し、Client／Agentは同一署名者によるSHA-256／RFC 3161署名済みである。
+署名後Version `0.7.20.0`は、ユーザー実機で全画面操作を含む動作確認を通過した。
 
 継続利用中に問題が判明した場合は、発生時刻、操作分類、Session Window titleのProxy
 port／stream／転送量、およびClient／Agent双方の固定診断logだけを保存する。実IP、URL、

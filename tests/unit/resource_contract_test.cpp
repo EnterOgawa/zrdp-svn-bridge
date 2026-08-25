@@ -149,7 +149,7 @@ int wmain(
         },
         {
             IDS_CONNECTION_MANAGER_TITLE,
-            L"ZRdp 接続マネージャー (0.7.15)",
+            L"ZRdp 接続マネージャー (0.7.20)",
         },
         {
             IDS_CONNECT_NEW_SESSION,
@@ -161,7 +161,7 @@ int wmain(
         },
         {
             IDS_SESSION_TITLE_FORMAT,
-            L"ZRdp SVN Bridge 0.7.15 - %s | RDP:%s | Agent:%s | Proxy:%s 127.0.0.1:%u | stream=%u | C→A=%llu | A→C=%llu",
+            L"ZRdp SVN Bridge 0.7.20 - %s | RDP:%s | Agent:%s | Proxy:%s 127.0.0.1:%u | stream=%u | C→A=%llu | A→C=%llu",
         },
         {
             IDS_LOCAL_RESOURCES_LABEL,

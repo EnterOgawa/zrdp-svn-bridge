@@ -1122,5 +1122,51 @@ Agent、Virtual Channel、Protocol、Proxy、allowlist、接続履歴は変更�
      署名し、Windows trust、SHA-256、RFC 3161 timestamp、Versionを静的検証する。
 122. [x] R-009主要回復経路の実機受入後、ユーザーの明示指示を受けてVersion
      `0.7.15.0`のPrivate GitHub Release作成へ進む。
+123. [x] R-010として全画面connection bar最小化後に白いSession Windowが残る原因を、
+     未処理の`OnRequestContainerMinimize`（DISPID 14）と特定する。
+124. [x] ActiveXの最小化要求をSession Windowの標準`SC_MINIMIZE`へ非同期委譲し、
+     最小化中のActiveX再配置と動的解像度更新を停止する。
+125. [x] Version `0.7.16.0`のDebug／Release全30 CTestと未署名成果物を確認する。
+126. [ ] ユーザー実機で全画面最小化、taskbarからの復元、RDP／Bridge／Proxy維持、
+     動的解像度再追従を確認する。
+127. [x] ユーザーの明示指示によりVersion `0.7.16.0`のClient／Agentを同一署名者で
+     署名し、Windows trust、SHA-256、RFC 3161 timestamp、Version、署名後binary契約を
+     静的検証する。
+128. [x] Version `0.7.16.0`実機で全画面button後もZRdpのframeと表示mode欄が残る
+     回帰を確認し、`ContainerHandledFullScreen`のcontainer側Window遷移不足と特定する。
+129. [x] R-011としてmonitor全体のborderless配置、設定行非表示、元Window配置の復元、
+     ActiveXとのrollback同期を実装する。
+130. [x] Version `0.7.17.0`の隔離Debug／Release各30 CTestと未署名成果物を確認する。
+131. [ ] ユーザー実機で全画面button／`Ctrl+Alt+Break`往復、connection bar、最小化／
+     復元、三表示mode、RDP／Bridge／Proxy維持、別session非影響を確認する。
+132. [x] 実行中Client終了後に署名済みVersion `0.7.16.0`を保全し、標準`out`を
+     Version `0.7.17.0`試験候補へ更新する。
+133. [x] Version `0.7.17.0`実RDPでborderless全画面は成立したが、connection barが
+     表示されずmouse操作の復帰経路が失われる回帰を確認する。
+134. [x] R-012としてMicrosoft connection barの明示設定と、全画面右上のZRdp
+     `最小化`／`ウィンドウ`fallbackを実装する。
+135. [x] Version `0.7.18.0`のDebug／Release各30 CTest、Version、未署名状態、
+     SHA-256を確認する。
+136. [ ] ユーザー実機でconnection barまたはfallbackからのWindow復帰、最小化／復元、
+     `Ctrl+Alt+Break`、三表示mode、RDP／Bridge／Proxy維持、別session非影響を確認する。
+137. [x] Version `0.7.18.0`実RDPでfallback復帰は成立する一方、Microsoft connection barが
+     表示されないことを確認し、containerの後段`HWND_TOP`配置によるZ-order競合と特定する。
+138. [x] R-013としてcontainerを先に全画面配置してZ-orderを維持し、その後にActiveXを
+     全画面化する順序へ変更する。
+139. [x] Version `0.7.19.0`の隔離／標準Debug／Release各30 CTest、Version、未署名状態、
+     SHA-256を確認する。
+140. [x] ユーザー実機でborderless全画面より前面にMicrosoft connection barが表示され、
+     最小化／Window復帰と`Ctrl+Alt+Break`が機能することを確認する。
+141. [x] Version `0.7.19.0`実RDPでborderless全画面より前面にMicrosoft connection barが
+     表示されることを確認する。
+142. [x] R-014としてZRdp独自の全画面`最小化`／`ウィンドウ`overlayを削除し、全画面操作を
+     Microsoft connection barと`Ctrl+Alt+Break`へ統一する。
+143. [x] Version `0.7.20.0`のDebug／Release各30 CTest、Version、未署名状態、SHA-256を
+     確認する。
+144. [x] ユーザー実機で独自overlayが表示されず、connection barの最小化／Window復帰、
+     taskbar復元、`Ctrl+Alt+Break`、三表示mode、RDP／Bridge／Proxy維持を確認する。
+145. [x] ユーザーの明示指示によりVersion `0.7.20.0`のClient／Agentを同一署名者で
+     SHA-256／RFC 3161署名し、Windows trust、Version、署名後binary契約を確認する。
+146. [x] ユーザー実機で署名後Version `0.7.20.0`の動作確認を完了し、R-014を受け入れる。
 
 日程見積りは、ActiveX host方式を確定し、Phase 0とPhase 1で実環境固有の技術riskを測定した後に更新する。Gate待ち時間を開発工数へ混在させない。

@@ -194,6 +194,28 @@ private:
     void OnFullScreen();
 
     /**
+     * @brief ActiveXと所有top-level Windowを一つの全画面状態へ遷移させる。
+     * @param[in] full_screen 全画面へ移行する場合はtrue。
+     * @return 両方の状態を適用できた場合はS_OK、失敗時は原因HRESULT。
+     *
+     * @note COM STA UI threadでだけ呼び出し、片側の失敗時は直前状態へrollbackする。
+     */
+    [[nodiscard]] HRESULT ApplyFullScreenMode(bool full_screen) noexcept;
+
+    /**
+     * @brief 所有top-level Windowだけをborderless全画面または保存済み配置へ切り替える。
+     * @param[in] full_screen 全画面Windowへ移行する場合はtrue。
+     * @return 適用成功時はS_OK、既に同じ状態ならS_FALSE、失敗時は原因HRESULT。
+     */
+    [[nodiscard]] HRESULT SetContainerFullScreen(bool full_screen) noexcept;
+
+    /**
+     * @brief UI／ActiveX eventから非同期化された全画面要求を実行して診断する。
+     * @param[in] full_screen 全画面へ移行する場合はtrue。
+     */
+    void ExecuteFullScreenRequest(bool full_screen);
+
+    /**
      * @brief handshake済みAgentとの段階的binary Echo検証を開始する。
      */
     void OnBridgeEchoTest();
@@ -306,6 +328,12 @@ private:
      * @param[in] full_screen ActiveXが全画面中の場合はtrue。
      */
     void UpdateFullScreenButton(bool full_screen);
+
+    /**
+     * @brief Window mode専用の表示mode一行と全画面buttonを一括表示または非表示にする。
+     * @param[in] visible 表示する場合はtrue。
+     */
+    void SetDisplayControlsVisible(bool visible) const noexcept;
 
     /**
      * @brief resource文字列を状態欄へ設定する。
@@ -500,6 +528,15 @@ private:
 
     /// 一回の手動move／size loop開始時に固定するtop-level Window高さ。
     int manual_sizing_reference_height_{0};
+
+    /// 全画面移行前のframeと通常／最大化配置を保持するtop-level Window style。
+    LONG_PTR windowed_style_{0};
+
+    /// 全画面からWindow modeへ戻すためのUSER32配置snapshot。
+    WINDOWPLACEMENT windowed_placement_{};
+
+    /// top-level Windowのframeと表示mode欄を全画面用へ切り替え済みであることを示す。
+    bool container_full_screen_{false};
 
     /// session titleへ表示する直近のRDP lifecycle。
     rdp::RdpConnectionState title_rdp_state_{

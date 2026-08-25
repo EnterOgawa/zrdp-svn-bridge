@@ -96,6 +96,31 @@ conflict、Lock、Unlockは、Version `0.6.0.0`でユーザーから問題なし
   通常Window時のまま残る問題が判明した。Version `0.7.12.0`は全画面monitorへの
   追従とWindow復帰時の再追従を実装し、Debug／Release全30 CTestを通過したが、
   実RDPでの追従確認は未通過である。
+- Version `0.7.15.0`では全画面connection barの最小化要求を処理しておらず、ActiveX
+  全画面だけが退避して白いSession Windowが残る事象を確認した。Version `0.7.16.0`
+  候補は`OnRequestContainerMinimize`をSession Window全体の標準最小化へ接続する。
+  Client／Agentは同一署名者によるSHA-256／RFC 3161署名済みで、Windows trust、Version、
+  署名後binary契約を静的確認した。実機確認では`ContainerHandledFullScreen`有効時に
+  ZRdp top-level Windowが全画面化されず、frameと表示mode欄が残る問題が判明した。
+- Version `0.7.17.0`候補は全画面時に現在monitor全体へborderless Session Windowを
+  配置し、Window復帰時に元styleと通常／最大化配置を復元する。Debug／Release
+  各30 CTestを通過した。実RDPではborderless全画面は成立したが、Microsoft connection
+  barが表示されず、mouse操作による最小化とWindow復帰が失われる回帰を確認した。
+- Version `0.7.18.0`候補はconnection barを有効かつraised状態へ明示設定し、最小化／
+  復帰buttonも有効化する。Control側のbarが描画されない場合に備え、全画面右上へ
+  ZRdpの`最小化`／`ウィンドウ`fallback buttonをoverlayする。Debug／Release各30
+  CTestを通過した。実RDPではfallbackと`Ctrl+Alt+Break`による復帰は成立したが、
+  Microsoft connection barは表示されなかった。
+- Version `0.7.19.0`候補はcontainerを先に全画面配置し、Z-orderを維持した後でActiveXを
+  全画面化する。connection barがcontainerより後に前面表示される順序へ変更した。
+  Debug／Release各30 CTestを隔離／標準経路で通過し、実RDPでMicrosoft connection barの
+  前面表示を確認した。
+- Version `0.7.20.0`候補は、表示確認済みのMicrosoft connection barを全画面操作の正本とし、
+  Version `0.7.18.0`で追加したZRdp独自の`最小化`／`ウィンドウ`overlayを削除する。
+  keyboardの代替操作として`Ctrl+Alt+Break`は維持する。Client／Agentは同一署名者による
+  SHA-256／RFC 3161署名済みで、Windows trust `Valid`と署名後binary契約を確認した。
+  署名後Version `0.7.20.0`は、ユーザー実機でconnection bar、Window復帰、最小化／復元、
+  従来機能への非回帰を含む動作確認を通過した。
 
 ## 2. timeoutと再開
 

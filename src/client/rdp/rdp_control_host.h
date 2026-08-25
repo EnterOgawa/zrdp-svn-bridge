@@ -70,6 +70,7 @@ enum class RdpEventKind {
     ChannelDataReceived,
     RequestGoFullScreen,
     RequestLeaveFullScreen,
+    RequestContainerMinimize,
     FatalError,
     Warning,
     ConfirmClose,

@@ -159,11 +159,36 @@ ActiveX全画面にはこの制約を適用しない。
 ### 5.5 全画面
 
 Session Windowの「全画面」buttonまたはWindows標準互換の`Ctrl+Alt+Break`で
-Microsoft ActiveX全画面へ移行する。全画面状態はActiveX eventを正本とし、button
-表示を「全画面」／「ウィンドウ」へ更新する。
+Microsoft ActiveXと所有Session Windowを一体として全画面へ移行する。全画面状態は
+ActiveX eventとsession専有container stateを同期し、button表示を「全画面」／
+「ウィンドウ」へ更新する。
+
+`ContainerHandledFullScreen`有効時はMicrosoft Controlがtop-level Windowのframeと
+配置を変更しないため、Clientが現在monitor全体へborderless Windowを配置する。
+全画面中はZRdpのtitle bar、frame、表示mode欄を隠し、RDP表示だけでclient領域全体を
+使用する。Window復帰時は全画面前のstyleと通常／最大化配置をsession単位で復元する。
+
+接続前にMicrosoft connection barを明示的に有効化し、raised状態、最小化button、
+Window復帰buttonを設定してreadbackする。全画面中はZRdp独自buttonと表示mode設定を
+RDP領域へoverlayせず、画面操作をMicrosoft connection barへ委譲する。keyboardからの
+Window復帰経路として`Ctrl+Alt+Break`を維持する。
+
+全画面開始時はcontainerを先にborderless monitor配置し、その後にActiveX全画面を
+有効化する。container配置は現在のtop-level Z-orderを維持し、後から表示される
+Microsoft connection barを覆わない。Window復帰時はActiveX全画面を先に解除し、
+その後にcontainerのstyleと`WINDOWPLACEMENT`を復元する。
 
 動的解像度では全画面monitor全体へremote desktopを追従させ、Window復帰後はRDP
 表示領域へ再追従させる。全画面connection barには製品名と接続先を表示する。
+
+全画面connection barの最小化操作で`OnRequestContainerMinimize`を受信した場合は、
+Session Window全体をWindows標準の最小化状態へ移す。最小化中はActiveX再配置と
+動的解像度更新を停止し、復元時に現在の有効なRDP表示領域へ再配置する。RDP session、
+Virtual Channel、Proxy、HTTP streamは最小化だけを理由に停止しない。
+
+Clientは接続前に`ContainerHandledFullScreen`と必須connection bar設定を有効化して
+readbackする。未対応または不一致の場合は全画面container eventと標準復帰操作を
+保証できないため、RDP接続を開始しない。
 
 ### 5.6 Clipboardと音声
 

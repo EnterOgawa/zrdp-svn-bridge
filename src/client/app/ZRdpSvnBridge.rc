@@ -29,8 +29,8 @@ IDR_MAIN_MANIFEST RT_MANIFEST "ZRdpSvnBridge.manifest"
 // -----------------------------------------------------------------------------
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 0,7,15,0
-PRODUCTVERSION 0,7,15,0
+FILEVERSION 0,7,20,0
+PRODUCTVERSION 0,7,20,0
  FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
 #ifdef _DEBUG
  FILEFLAGS VS_FF_DEBUG
@@ -47,11 +47,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "EnterOgawa\0"
             VALUE "FileDescription", "ZRdp SVN Bridge\0"
-            VALUE "FileVersion", "0.7.15.0\0"
+            VALUE "FileVersion", "0.7.20.0\0"
             VALUE "InternalName", "ZRdpSvnBridge\0"
             VALUE "OriginalFilename", "ZRdpSvnBridge.exe\0"
             VALUE "ProductName", "ZRdp SVN Bridge\0"
-            VALUE "ProductVersion", "0.7.15.0\0"
+            VALUE "ProductVersion", "0.7.20.0\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -62,7 +62,7 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_APP_TITLE                     "ZRdp SVN Bridge - Phase 9 (0.7.15)"
+    IDS_APP_TITLE                     "ZRdp SVN Bridge - Phase 9 (0.7.20)"
     IDS_CONNECTION_NAME_LABEL         "接続名:"
     IDS_SERVER_LABEL                  "接続先:"
     IDS_DOMAIN_LABEL                  "ドメイン:"
@@ -115,7 +115,7 @@ BEGIN
     IDS_PROXY_READY_FORMAT            "Proxy: 127.0.0.1:%u 利用可 / stream=%u / C→A=%llu byte / A→C=%llu byte"
     IDS_PROXY_FAILED_FORMAT           "Proxy停止: error=%u, WSA=%u, 設定=%u（RDP画面は継続できます）"
     IDS_PROXY_STOPPED                 "Proxy: 停止"
-    IDS_CONNECTION_MANAGER_TITLE      "ZRdp 接続マネージャー (0.7.15)"
+    IDS_CONNECTION_MANAGER_TITLE      "ZRdp 接続マネージャー (0.7.20)"
     IDS_CONNECT_NEW_SESSION           "新しい接続"
     IDS_MANAGER_STATUS_FORMAT         "接続中セッション: %u / 次のProxy: 127.0.0.1:%u"
     IDS_MANAGER_NO_PORT_FORMAT        "接続中セッション: %u / 利用可能なProxyポートがありません"
@@ -124,8 +124,8 @@ BEGIN
     IDS_SESSION_PORT_UNAVAILABLE      "割り当て可能なProxyポートがありません。client.iniのbase portを確認してください。"
     IDS_SESSION_CREATE_FAILED         "新しいRDPセッションウィンドウを作成できませんでした。"
     IDS_SESSION_RESOURCE_EXHAUSTED    "新しいRDPセッションに必要なリソースを確保できませんでした。"
-    IDS_SESSION_TITLE_FORMAT          "ZRdp SVN Bridge 0.7.15 - %s | RDP:%s | Agent:%s | Proxy:%s 127.0.0.1:%u | stream=%u | C→A=%llu | A→C=%llu"
-    IDS_SESSION_TITLE_CONFIG_ERROR_FORMAT "ZRdp SVN Bridge 0.7.15 - %s | RDP:%s | Agent:%s | Proxy設定エラー:%u"
+    IDS_SESSION_TITLE_FORMAT          "ZRdp SVN Bridge 0.7.20 - %s | RDP:%s | Agent:%s | Proxy:%s 127.0.0.1:%u | stream=%u | C→A=%llu | A→C=%llu"
+    IDS_SESSION_TITLE_CONFIG_ERROR_FORMAT "ZRdp SVN Bridge 0.7.20 - %s | RDP:%s | Agent:%s | Proxy設定エラー:%u"
     IDS_TITLE_RDP_NOT_CONNECTED       "未接続"
     IDS_TITLE_RDP_CONNECTING          "接続中"
     IDS_TITLE_RDP_CONNECTED           "接続済み"

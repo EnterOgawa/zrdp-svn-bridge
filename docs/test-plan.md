@@ -1074,3 +1074,120 @@ Client／Agent経路からloopback Mock Serverまでのlocal Gateを通過した
 Phase 6は同日にAgent health、slow peer、restart／reconnect、security boundaryを
 local完了し、実機のAgent強制終了／再起動でも回帰成功した。Phase 7／8は同日の
 ユーザー実操作と受入結果によりGateを通過した。
+
+## 31. 回帰修正R-010 全画面connection barからのSession Window最小化
+
+### ローカル
+
+- [x] Microsoft `IMsTscAxEvents::OnRequestContainerMinimize`のDISPID 14と意味を確認する
+- [x] 接続前に`ContainerHandledFullScreen=1`を設定し、readback一致を必須とする
+- [x] ActiveX eventを所有`RdpEvent`へ変換し、Session Windowまで通知する
+- [x] COM callback中には最小化せず、標準`SC_MINIMIZE`を非同期送信する
+- [x] `SIZE_MINIMIZED`でActiveX再配置と動的解像度timerを停止する
+- [x] 復元後は既存`WM_SIZE`経路で再配置と動的解像度再追従を予約する
+- [x] 固定診断eventだけを追加し、接続先や画面内容をlogへ追加しない
+- [x] Version `0.7.16.0`のDebug／Release全30 CTestを成功させる
+- [x] x64 Client／AgentのVersion、未署名状態、SHA-256を確認する
+- [x] Client／Agentを同一署名者で署名し、Windows trust `Valid`、SHA-256、
+      RFC 3161 timestamp、Version維持、署名後binary契約を静的確認する
+
+### ユーザー実機
+
+- [ ] 全画面connection barの最小化でSession Window全体がtaskbarへ最小化される
+- [ ] 最大化されていた白いSession Windowが画面上に残らない
+- [ ] taskbarから復元すると全画面RDP表示へ戻る
+- [ ] 動的解像度modeで復元後のremote desktop寸法が有効なmonitorへ追従する
+- [ ] 最小化・復元だけではRDP、Agent、Proxy、既存HTTP streamが切断されない
+- [ ] 別session Windowと接続管理Windowに影響がない
+
+## 32. 回帰修正R-011 Container-handled全画面のWindow遷移
+
+### ローカル
+
+- [x] `ContainerHandledFullScreen`ではcontainerが全画面Window遷移を所有する公式契約を
+      確認する
+- [x] Window modeのstyleと`WINDOWPLACEMENT`をsessionごとに保存する
+- [x] 全画面styleからcaption、system menu、size frame、最小化／最大化buttonを除去し、
+      popup、visible、child clipping属性を単体testで確認する
+- [x] 全画面中は表示mode欄を隠し、RDP ActiveXをclient領域全体へ配置する
+- [x] Window復帰時は元styleと通常／最大化配置を復元する
+- [x] ActiveX／USER32片側失敗時に直前状態へrollbackし、RDP接続を維持する
+- [x] UI buttonと`OnRequestGoFullScreen`／`OnRequestLeaveFullScreen`を同じ非同期message
+      経路へ収束させる
+- [x] Debug全30 CTestを成功させる
+- [x] 隔離Debug／Release全30 CTest、Version、未署名状態、SHA-256を確認する
+- [x] 実行中Client終了後に署名済み`0.7.16.0`を保全し、標準`out`を`0.7.17.0`へ更新する
+
+### ユーザー実機
+
+- [ ] 「全画面」buttonでtitle bar、frame、表示mode欄が消え、RDPだけがmonitor全体に表示される
+- [ ] `Ctrl+Alt+Break`でも同じ全画面へ入り、再操作でWindow modeへ戻る
+- [ ] 全画面connection barへ接続先識別表示とWindow復帰操作が表示される
+- [ ] Window復帰時に全画面前の通常配置または最大化状態へ戻る
+- [ ] connection barの最小化でWindow全体がtaskbarへ移り、復元後も全画面表示を維持する
+- [ ] 三表示modeと動的解像度の全画面／復帰追従が機能する
+- [ ] RDP、Agent、Proxy、既存HTTP stream、別session、接続管理Windowに影響がない
+
+## 33. 回帰修正R-012 全画面復帰経路の保証
+
+### ローカル
+
+- [x] Version `0.7.17.0`実RDPでborderless全画面成立後にconnection barが表示されず、
+      mouse操作の復帰経路が失われることを確認する
+- [x] `DisplayConnectionBar`とraised状態を接続前に設定してreadbackする
+- [x] connection barの最小化buttonとWindow復帰buttonを設定してreadbackする
+- [x] 全画面右上へZRdpの`最小化`／`ウィンドウ`fallbackをoverlayする
+- [x] fallback矩形がRDP領域を縮小せず、右上へ重ならず配置されることを単体testで確認する
+- [x] 最小化を既存`SC_MINIMIZE`、Window復帰を既存container同期経路へ接続する
+- [x] Version `0.7.18.0`のDebug／Release各30 CTestを成功させる
+- [x] 標準`out`のVersion、未署名状態、SHA-256を確認する
+
+### ユーザー実機
+
+- [ ] Microsoft connection barまたはZRdp fallback buttonが全画面で操作できる
+- [ ] `ウィンドウ`で全画面前の通常／最大化配置へ復帰する
+- [ ] `最小化`でlocal desktopへ戻り、taskbar復元後も全画面を維持する
+- [ ] `Ctrl+Alt+Break`、三表示mode、動的解像度が従来どおり機能する
+- [ ] RDP、Agent、Proxy、HTTP stream、別sessionに影響がない
+
+## 34. 回帰修正R-013 Microsoft connection barのZ-order復旧
+
+### ローカル
+
+- [x] Version `0.7.16.0`ではconnection barが表示された一方、containerがWindow modeの
+      ままだった事実と、Version `0.7.18.0`の設定readback成功を照合する
+- [x] 全画面開始順序をcontainer配置、ActiveX全画面化の順へ変更する
+- [x] Window復帰順序をActiveX解除、container復元の順へ変更する
+- [x] containerのmonitor配置から`HWND_TOP`を除き、`SWP_NOZORDER`を単体testで確認する
+- [x] 片側失敗時の逆順rollbackを維持する
+- [x] Version `0.7.19.0`の隔離Debug／Release各30 CTestを成功させる
+- [x] Version `0.7.19.0`の標準Debug／Release各30 CTestを成功させる
+- [x] 標準`out`のVersion、未署名状態、SHA-256を確認する
+
+### ユーザー実機
+
+- [x] borderless全画面の上にMicrosoft connection barが表示される
+- [x] connection barの最小化／復帰buttonが機能する
+- [x] `Ctrl+Alt+Break`でもWindow復帰できる
+- [x] 動的解像度、RDP、Agent、Proxy、HTTP stream、別sessionに影響がない
+
+## 35. 改善R-014 全画面操作のMicrosoft connection bar統一
+
+### ローカル
+
+- [x] 全画面用ZRdp `最小化`control、command、resource、handleを削除する
+- [x] 通常Window用`全画面`buttonを全画面中は表示mode欄とともに非表示にする
+- [x] fallback buttonの矩形計算helper、z-order更新、単体testを削除する
+- [x] Microsoft connection bar設定、container／ActiveX遷移順序、`Ctrl+Alt+Break`を維持する
+- [x] Version `0.7.20.0`のDebug／Release各30 CTestを成功させる
+- [x] 標準`out`のVersion、未署名状態、SHA-256を確認する
+- [x] ユーザーの明示指示によりClient／Agentを同一署名者でSHA-256／RFC 3161署名する
+- [x] Windows trust `Valid`、timestamp、Version、署名後binary契約2/2を確認する
+
+### ユーザー実機
+
+- [x] 全画面中にZRdp独自の`最小化`／`ウィンドウ`buttonが表示されない
+- [x] Microsoft connection barの最小化／Window復帰buttonが機能する
+- [x] taskbarから復元後も全画面を維持する
+- [x] `Ctrl+Alt+Break`、三表示mode、動的解像度が従来どおり機能する
+- [x] RDP、Agent、Proxy、HTTP stream、別sessionに影響がない

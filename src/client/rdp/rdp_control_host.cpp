@@ -90,6 +90,7 @@ constexpr DISPID kDispIdOnRequestGoFullScreen = 8;
 constexpr DISPID kDispIdOnRequestLeaveFullScreen = 9;
 constexpr DISPID kDispIdOnFatalError = 10;
 constexpr DISPID kDispIdOnWarning = 11;
+constexpr DISPID kDispIdOnRequestContainerMinimize = 14;
 constexpr DISPID kDispIdOnConfirmClose = 15;
 constexpr DISPID kDispIdOnAutoReconnecting = 17;
 constexpr DISPID kDispIdOnAuthenticationWarningDisplayed = 18;
@@ -664,6 +665,10 @@ private:
                 return DispatchSimpleEvent(parameters, RdpEventKind::RequestGoFullScreen);
             case kDispIdOnRequestLeaveFullScreen:
                 return DispatchSimpleEvent(parameters, RdpEventKind::RequestLeaveFullScreen);
+            case kDispIdOnRequestContainerMinimize:
+                return DispatchSimpleEvent(
+                    parameters,
+                    RdpEventKind::RequestContainerMinimize);
             case kDispIdOnFatalError:
                 return DispatchCodeEvent(parameters, RdpEventKind::FatalError);
             case kDispIdOnWarning:
@@ -1196,6 +1201,88 @@ public:
         result = client_->get_AdvancedSettings2(&advanced_settings);
         if (FAILED(result) || advanced_settings == nullptr) {
             return FAILED(result) ? result : E_NOINTERFACE;
+        }
+
+        // 全画面shortcutとconnection bar操作をcontainer eventへ統一する。
+        constexpr long container_handled_full_screen_enabled = 1L;
+        result = advanced_settings->put_ContainerHandledFullScreen(
+            container_handled_full_screen_enabled);
+        // S_FALSEはevent通知非対応を意味するため、白いcontainerを残す接続を開始しない。
+        if (result != S_OK) {
+            return FAILED(result)
+                ? result
+                : HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+        }
+
+        long container_handled_full_screen = 0L;
+        result = advanced_settings->get_ContainerHandledFullScreen(
+            &container_handled_full_screen);
+        if (FAILED(result)) {
+            return result;
+        }
+
+        // COM実装は真値を1または-1で返し得るため、非0を有効として検証する。
+        if (container_handled_full_screen == 0L) {
+            return E_UNEXPECTED;
+        }
+
+        // container全画面でもMicrosoft connection barを明示的に利用する。
+        result = advanced_settings->put_DisplayConnectionBar(VARIANT_TRUE);
+        if (FAILED(result)) {
+            return result;
+        }
+
+        VARIANT_BOOL display_connection_bar = VARIANT_FALSE;
+        result = advanced_settings->get_DisplayConnectionBar(
+            &display_connection_bar);
+        if (FAILED(result) || display_connection_bar == VARIANT_FALSE) {
+            return FAILED(result) ? result : E_FAIL;
+        }
+
+        // falseはbarをraised状態にし、復帰操作を画面上で利用可能にする。
+        result = advanced_settings->put_PinConnectionBar(VARIANT_FALSE);
+        if (FAILED(result)) {
+            return result;
+        }
+
+        VARIANT_BOOL connection_bar_lowered = VARIANT_TRUE;
+        result = advanced_settings->get_PinConnectionBar(
+            &connection_bar_lowered);
+        if (FAILED(result) || connection_bar_lowered != VARIANT_FALSE) {
+            return FAILED(result) ? result : E_FAIL;
+        }
+
+        ATL::CComQIPtr<IMsRdpClientAdvancedSettings3>
+            connection_bar_settings(advanced_settings);
+        if (connection_bar_settings == nullptr) {
+            return E_NOINTERFACE;
+        }
+
+        // Windows標準同様にlocal desktopとWindow modeへの両復帰操作を公開する。
+        result = connection_bar_settings->
+            put_ConnectionBarShowMinimizeButton(VARIANT_TRUE);
+        if (FAILED(result)) {
+            return result;
+        }
+
+        result = connection_bar_settings->
+            put_ConnectionBarShowRestoreButton(VARIANT_TRUE);
+        if (FAILED(result)) {
+            return result;
+        }
+
+        VARIANT_BOOL show_minimize_button = VARIANT_FALSE;
+        result = connection_bar_settings->
+            get_ConnectionBarShowMinimizeButton(&show_minimize_button);
+        if (FAILED(result) || show_minimize_button == VARIANT_FALSE) {
+            return FAILED(result) ? result : E_FAIL;
+        }
+
+        VARIANT_BOOL show_restore_button = VARIANT_FALSE;
+        result = connection_bar_settings->
+            get_ConnectionBarShowRestoreButton(&show_restore_button);
+        if (FAILED(result) || show_restore_button == VARIANT_FALSE) {
+            return FAILED(result) ? result : E_FAIL;
         }
 
         result = advanced_settings->put_SmartSizing(
@@ -1911,6 +1998,7 @@ public:
             case RdpEventKind::ChannelDataReceived:
             case RdpEventKind::RequestGoFullScreen:
             case RdpEventKind::RequestLeaveFullScreen:
+            case RdpEventKind::RequestContainerMinimize:
             case RdpEventKind::Warning:
             case RdpEventKind::ConfirmClose:
             case RdpEventKind::AuthenticationWarningDisplayed:

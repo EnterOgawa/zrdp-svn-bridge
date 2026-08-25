@@ -96,6 +96,7 @@ enum class DiagnosticEvent {
     EventChannelDataReceived,
     EventRequestGoFullScreen,
     EventRequestLeaveFullScreen,
+    EventRequestContainerMinimize,
     EventFatalError,
     EventWarning,
     EventConfirmClose,

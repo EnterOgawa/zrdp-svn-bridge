@@ -4,6 +4,7 @@
  */
 
 #include "client/app/rdp_window_sizing.h"
+#include "client/app/rdp_container_full_screen.h"
 
 #include <Windows.h>
 
@@ -50,7 +51,10 @@ CreateConstraints() noexcept {
  * @return 全検証成功時は0、失敗時は失敗段階を表す非0 code。
  */
 int wmain() {
+    using zrdp::client::app::ContainerFullScreenPositionFlags;
     using zrdp::client::app::ConstrainRdpWindowSizingRect;
+    using zrdp::client::app::MakeContainerFullScreenStyle;
+    using zrdp::client::app::SelectRdpContentTop;
 
     const auto constraints = CreateConstraints();
 
@@ -213,6 +217,47 @@ int wmain() {
         overflow.right != overflow_original.right ||
         overflow.bottom != overflow_original.bottom) {
         return 13;
+    }
+
+    volatile LONG_PTR window_style_source =
+        static_cast<LONG_PTR>(
+            WS_OVERLAPPEDWINDOW |
+            WS_VISIBLE |
+            WS_CLIPCHILDREN |
+            WS_CLIPSIBLINGS);
+    const LONG_PTR window_style = window_style_source;
+    const LONG_PTR full_screen_style =
+        MakeContainerFullScreenStyle(window_style);
+    // 全画面styleはframe操作を除去し、表示とchild clipの属性を維持する。
+    if ((full_screen_style &
+            static_cast<LONG_PTR>(
+                WS_OVERLAPPEDWINDOW)) != 0 ||
+        (full_screen_style &
+            static_cast<LONG_PTR>(WS_POPUP)) == 0 ||
+        (full_screen_style &
+            static_cast<LONG_PTR>(WS_VISIBLE)) == 0 ||
+        (full_screen_style &
+            static_cast<LONG_PTR>(WS_CLIPCHILDREN)) == 0 ||
+        (full_screen_style &
+            static_cast<LONG_PTR>(WS_CLIPSIBLINGS)) == 0) {
+        return 14;
+    }
+
+    // 全画面だけは設定行をRDP領域から除外し、Window modeでは高さを維持する。
+    if (SelectRdpContentTop(true, 31) != 0 ||
+        SelectRdpContentTop(false, 31) != 31 ||
+        SelectRdpContentTop(false, -1) != 0) {
+        return 15;
+    }
+
+    volatile UINT full_screen_position_flags_source =
+        ContainerFullScreenPositionFlags();
+    const UINT full_screen_position_flags =
+        full_screen_position_flags_source;
+    // containerのframeだけを更新し、Microsoft connection barより前へ移動しない。
+    if ((full_screen_position_flags & SWP_FRAMECHANGED) == 0U ||
+        (full_screen_position_flags & SWP_NOZORDER) == 0U) {
+        return 16;
     }
 
     return 0;
