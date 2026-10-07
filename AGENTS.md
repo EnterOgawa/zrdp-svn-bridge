@@ -855,6 +855,8 @@ work/tmp/
 8. binary、log、dump、capture、real environment config を source folder へ混在させない。
 9. ユーザーの明示指示なく build system、dependency manager、license、repository visibility を変更しない。
 10. 実取引先情報を source、test、docs、issue、PR、commit message に記載しない。
+11. `work` 以下はローカル作業用としてGit管理対象外とする。確定した設計判断、仕様、
+    受入結果は実環境情報を除いたうえで `docs` または `docs/adr` へ集約する。
 
 ## 28. 修正提案の提示ルール
 - 変更対象ファイル、class、function、可能であれば行番号を明示する。

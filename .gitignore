@@ -54,6 +54,6 @@ connection-history.bin*
 *.zip
 *.7z
 
-# Temporary work and Subversion metadata
-work/tmp/
+# Local analysis, proposals, temporary work, and Subversion metadata
+work/
 .svn/

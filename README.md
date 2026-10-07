@@ -9,7 +9,7 @@ Clientと、RDPユーザーsession内で動作するAgentを組み合わせ、HT
 明示承認されたHTTP方式Tracへの通信をRDP Static Virtual Channel経由で中継する
 Windows x64向けアプリケーションである。
 
-現在の社内試行候補はVersion `0.7.20.0`である。installerは使用せず、ClientとAgentを
+現在の社内配布版はVersion `0.7.20.0`である。installerは使用せず、ClientとAgentを
 portable EXEとして配布する。本リポジトリと配布物はPrivate／社内限定で扱う。
 
 > [!IMPORTANT]
@@ -87,6 +87,25 @@ ctest --preset release
 portable EXEは`out/`へ出力される。`out/`、`build/`、PDB、log、dump、実環境設定は
 Git管理対象外である。
 
+## フォルダの用途
+
+| フォルダ | 内容 |
+|---|---|
+| `src/`、`tests/` | アプリケーションのソースと回帰テスト |
+| `cmake/`、`assets/` | ビルド補助設定と製品アイコン |
+| `config/examples/` | 配布可能な設定テンプレート |
+| `docs/` | 利用手順、設計、ADR、リリース記録 |
+| `build/vs2022-x64/` | 標準presetのビルド・テスト生成物（Git管理外） |
+| `out/` | 実行・配布に使用するEXEと診断ログ（Git管理外） |
+| `work/analysis/`、`work/proposals/` | ローカルの解析結果と修正提案（Git管理外） |
+| `work/tmp/` | 作業中だけ使用する一時ファイル（Git管理外） |
+
+利用者への配布にはReleaseのZIPを使用する。ワークスペース全体や`build/`、`work/`
+を配布物へ含めない。一時検証の生成物は作業終了後に整理し、署名済みEXE、
+実行時設定、診断に必要なログは別途保持する。
+確定した設計判断と受入結果は`docs/`と`docs/adr/`へ集約する。終了済みの作業記録は
+Git履歴から参照でき、今後のローカル作業記録はcommitしない。
+
 ## 利用の流れ
 
 1. 開発PCで`ZRdpSvnBridge.exe`を起動し、接続情報と表示modeを選んでRDP接続する。
@@ -101,10 +120,8 @@ source repositoryや共通配布物へ含めない。
 
 ## 文書
 
-- [利用方法（Word、Version 0.7.14.0）](docs/ZRdp_SVN_Bridge_利用方法_0.7.14.docx)
-- [設計書（Word、Version 0.7.14.0）](docs/ZRdp_SVN_Bridge_設計書_0.7.14.docx)
-- [設計書のMarkdown原稿](docs/specification.md)
-- [利用方法のMarkdown原稿](docs/user-guide.md)
+- [初版の設計書（Markdown）](docs/specification.md)
+- [利用手順](docs/user-guide.md)
 - [Architecture](docs/architecture.md)
 - [Application Protocol](docs/protocol.md)
 - [RDP ActiveX設計](docs/rdp-activex.md)
@@ -114,34 +131,29 @@ source repositoryや共通配布物へ含めない。
 - [設定仕様](docs/configuration.md)
 - [テスト計画](docs/test-plan.md)
 - [既知の制約](docs/known-limitations.md)
+- [Agentチャネル回復の設計判断](docs/adr/0011-agent-channel-recovery.md)
+- [全画面・接続バー制御の設計判断](docs/adr/0012-container-full-screen-and-connection-bar.md)
 - [Version 0.7.20リリースノート](docs/release-notes-0.7.20.md)
+
+<details>
+<summary>過去のリリース記録</summary>
+
 - [Version 0.7.15リリースノート](docs/release-notes-0.7.15.md)
 - [Version 0.7.14リリースノート](docs/release-notes-0.7.14.md)
-- [社内配布・署名確認書](docs/release-checklist.md)
+- [Version 0.7.14社内配布・署名確認記録](docs/release-checklist.md)
+
+旧版Word文書と終了済みの`work`記録は、整理前のcommit `cfdaa8c`から参照・復元できる。
+現行版の操作は利用手順とVersion `0.7.20.0`のリリースノートを参照する。
+
+</details>
 
 ## 検証状態
 
-初版Version `0.7.14.0`はDebug／Release各30 CTestと実環境確認を通過し、署名済みで
-ある。次回候補Version `0.7.15.0`は、一時RDP切断後のAgent channel自動回復を追加し、
-Debug／隔離Release／標準Release各30 CTestを通過した。Client／Agentは同一署名者で
-SHA-256／RFC 3161署名済みである。2026-08-10、ユーザー実機で一時link断後のAgent
-process維持とRDP自動再接続後のBridge回復を確認し、Version `0.7.15.0` Releaseへ
-反映した。Version `0.7.16.0`は、全画面connection barの最小化要求を
-Session Window全体のWindows標準最小化へ接続する。Debug／Release各30 CTestを通過し、
-Client／Agentは同一署名者によるSHA-256／RFC 3161署名済みである。全画面最小化と
-復元後の実RDP確認で、container側の全画面Window遷移が不足していることが判明した。
-次回候補Version `0.7.17.0`は、ZRdpのframeと表示mode欄を全画面中だけ隠し、現在monitor
-全体へSession Windowを配置して、復帰時に元の通常／最大化配置を復元する。実RDPでは
-Microsoft connection barが表示されず、復帰操作が画面上から失われる回帰を確認した。
-Version `0.7.18.0`候補はconnection barを明示設定し、全画面右上へ「最小化」と
-「ウィンドウ」の有限fallback操作を表示する。実RDPでは設定のreadbackに成功したが、
-containerを後から最前面化したためconnection barは表示されなかった。Version
-`0.7.19.0`候補はcontainerを先に全画面配置してからActiveXを全画面化し、containerの
-Z-orderを変更しない。実RDPでMicrosoft connection barの前面表示を確認したため、
-Version `0.7.20.0`候補はZRdp独自の全画面`最小化`／`ウィンドウ`buttonを削除し、
-全画面操作をMicrosoft connection barと`Ctrl+Alt+Break`へ統一する。Debug／Release
-各30 CTestを通過し、Client／Agentは同一署名者によるSHA-256／RFC 3161署名済みである。
-署名後Version `0.7.20.0`は、ユーザー実機で全画面操作を含む動作確認を通過した。
+Version `0.7.20.0`はDebug／Release各30 CTestと署名後の実機確認を通過した。
+Client／Agentは同一署名者によるSHA-256署名とRFC 3161 timestampを持つ。
+全画面表示、Microsoft connection barによる最小化／Window復帰、Agent回復、
+SVN／Trac中継を受入済みである。修正内容と配布物のhashは
+[Version 0.7.20リリースノート](docs/release-notes-0.7.20.md)を参照する。
 
 継続利用中に問題が判明した場合は、発生時刻、操作分類、Session Window titleのProxy
 port／stream／転送量、およびClient／Agent双方の固定診断logだけを保存する。実IP、URL、

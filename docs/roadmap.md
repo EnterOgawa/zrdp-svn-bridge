@@ -1,6 +1,11 @@
 # ZRdp SVN Bridge 開発ロードマップ
 
-更新日: 2026-08-03
+更新日: 2026-10-07
+
+本書は開発Gateと受入履歴を含む。終了済みの`work/analysis`、`work/proposals`は
+現行Git treeから除外し、確定した設計判断は`docs/adr`へ集約した。過去の作業記録は
+整理前のcommit `cfdaa8c`から`git show cfdaa8c:<元のpath>`で参照できる。
+本書の過去の`work/tmp`記述は作業当時の保存先であり、現在の復元用保管先を示さない。
 
 ## 1. ロードマップの目的
 
@@ -39,10 +44,10 @@ RDP ActiveX で画面接続できることは必要な前提条件だが、プ�
 | 項目 | 状態 | 備考 |
 |---|---|---|
 | 要件とセキュリティ境界 | 完了 | `AGENTS.md` に定義済み |
-| 開発環境確認 | 完了 | `work/analysis/20260730_development_environment.md` |
+| 開発環境確認 | 完了 | `README.md`の開発環境と`CMakePresets.json` |
 | 標準フォルダ構成 | 完了 | `src`、`tests`、`docs`、`config`、`work` |
 | `.gitignore` | 完了 | build、binary、log、capture、実環境設定等を除外 |
-| Git repository 初期化 | 未着手 | ユーザー指示前に remote operation は行わない |
+| Git repository 初期化 | 完了 | Private repositoryでmainとReleaseを管理 |
 | CMake build scaffold | 完了 | x64 Debug／ReleaseとCTestを確認済み |
 | ActiveX host／CRT判断 | 完了 | ADR 0001／0002 |
 | Phase 0 RDP Gate | 通過 | 2026-07-30 ユーザー受入済み。Phase 6実機回帰も完了 |
@@ -54,9 +59,9 @@ RDP ActiveX で画面接続できることは必要な前提条件だが、プ�
 | Phase 6 Hardening | Gate通過 | health timeout、Agent強制終了／再起動、RDP継続を実機確認 |
 | Phase 7 実環境Read-only | Gate通過 | 2026-07-31 ユーザー受入済み |
 | Phase 8 実環境Write | Gate通過 | 2026-07-31 Commit等を含む全操作をユーザー受入済み |
-| Phase 9 改善 | R-008 Gate通過 | certificate警告拒否後に重複errorなしで対象sessionだけが閉じることを実機確認 |
-| Documentation Gate | 文書受入待ち | Version 0.7.14の仕様書、利用手順書、リリース文書へ同期済み |
-| Release Gate | R-008署名後smoke待ち | ClientをAgentと同じ署名者で再署名し、Windows trustとRFC 3161 timestampを確認 |
+| Phase 9 改善 | Version 0.7.20受入済み | Agent回復、全画面、接続バー、最小化／復帰を実機確認 |
+| Documentation Gate | 文書作成済み | 利用手順、機能別設計、ADR、各版リリース記録を維持 |
+| Release Gate | 通過 | 2026-08-25に署名済みVersion 0.7.20.0のPrivate Releaseを作成 |
 
 ## 4. 全体ロードマップ
 
@@ -800,7 +805,9 @@ SVN／Trac、接続履歴形式、新規portは変更しない。
 
 通常のRDP、Mylyn、SVN／Trac利用を続けながら、実装済み改善の実機受入と
 まれな接続事象を自然条件で確認する。観察条件と残件は
-`work/analysis/20260731_version_0_7_13_operational_soak.md`へ集約する。
+当時の`work/analysis/20260731_version_0_7_13_operational_soak.md`へ集約した。
+この記録はcommit `cfdaa8c`から参照でき、現在の残存riskは`docs/known-limitations.md`
+と各版リリースノートを参照する。
 
 - [x] Debug／Releaseをwarningなしでbuildし、各30 CTestを再確認する。
 - [x] 標準`out`のVersion、SHA-256、未署名状態が既存成果物から変化していないことを
