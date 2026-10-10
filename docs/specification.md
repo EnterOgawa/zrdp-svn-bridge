@@ -1,4 +1,7 @@
-# ZRdp SVN Bridge 最終仕様書
+# ZRdp SVN Bridge 過去仕様書（Version 0.7.14.0）
+
+> 歴史文書。以下は2026-08-03時点の社内初版の仕様であり、現行のAgent自動管理・
+> 任意署名・セット更新の操作を規定しない。[現行仕様](current-specification.md) を参照する。
 
 - 文書ID: `ZRDP-SPEC-001`
 - 対象Version: `0.7.14.0`

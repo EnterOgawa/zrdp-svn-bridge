@@ -1,5 +1,10 @@
 # ZRdp SVN Bridge 開発ロードマップ
 
+> 開発フェーズと過去の受入記録を保持する歴史文書。
+> checkboxは記載された時点・Versionの判定であり、最新版の再受入完了を意味しない。
+> 現行仕様は [current-specification](current-specification.md)、公開準備の進捗は
+> [publication-checklist](publication-checklist.md) を参照する。
+
 更新日: 2026-10-07
 
 本書は開発Gateと受入履歴を含む。終了済みの`work/analysis`、`work/proposals`は

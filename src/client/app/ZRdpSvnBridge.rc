@@ -7,7 +7,7 @@
  *
  * @file ZRdpSvnBridge.rc
  * @brief Clientのmanifest、version、icon、日本語UI文字列を定義する。
- * @version 01.00.05
+ * @version 01.00.06
  * @date 2026/08/01
  * @author Shunji Ogawa
  *
@@ -23,6 +23,7 @@
  * Ver.01.00.03   Shunji Ogawa  2026/10/10  managerメニューを撤廃し自動更新確認へ統一。
  * Ver.01.00.04   Shunji Ogawa  2026/10/10  自動起動の未設定案内をtitle resourceへ追加。
  * Ver.01.00.05   Shunji Ogawa  2026/10/10  Client／Agentセット更新のmetadataと案内を追加。
+ * Ver.01.00.06   Shunji Ogawa  2026/10/11  公開準備版0.7.21.0の識別へ更新。
  * </pre>
  */
 //------------------------------------------------------------------------------
@@ -48,8 +49,8 @@ IDR_MAIN_MANIFEST RT_MANIFEST "ZRdpSvnBridge.manifest"
 // -----------------------------------------------------------------------------
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 0,7,20,0
-PRODUCTVERSION 0,7,20,0
+FILEVERSION 0,7,21,0
+PRODUCTVERSION 0,7,21,0
  FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
 #ifdef _DEBUG
  FILEFLAGS VS_FF_DEBUG
@@ -66,11 +67,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "EnterOgawa\0"
             VALUE "FileDescription", "ZRdp SVN Bridge\0"
-            VALUE "FileVersion", "0.7.20.0\0"
+            VALUE "FileVersion", "0.7.21.0\0"
             VALUE "InternalName", "ZRdpSvnBridge\0"
             VALUE "OriginalFilename", "ZRdpSvnBridge.exe\0"
             VALUE "ProductName", "ZRdp SVN Bridge\0"
-            VALUE "ProductVersion", "0.7.20.0\0"
+            VALUE "ProductVersion", "0.7.21.0\0"
             VALUE "UpdaterProtocol", "1\0"
             VALUE "PairedUpdateProtocol", "1\0"
             VALUE "BridgeProtocol", "1\0"
@@ -97,7 +98,7 @@ BEGIN
     IDS_UPDATE_CONNECT_BLOCKED        "Clientの更新適用中は新しいRDP接続を開始できません。更新後の再起動をお待ちください。"
     IDS_UPDATE_RECOVERED              "更新を完了できなかったため、旧版ClientとAgentに復元しました。この起動では同じ更新を自動提示しません。接続は通常どおり利用できます。"
     IDS_UPDATE_HELPER_FAILED          "Client更新の完了または復旧を確認できませんでした。旧版Client・Agentのbackupと更新用stageを手動で確認してください。稼働中のプログラムは強制停止していません。"
-    IDS_APP_TITLE                     "ZRdp SVN Bridge - Phase 9 (0.7.20)"
+    IDS_APP_TITLE                     "ZRdp SVN Bridge - Phase 9 (0.7.21)"
     IDS_CONNECTION_NAME_LABEL         "接続名:"
     IDS_SERVER_LABEL                  "接続先:"
     IDS_DOMAIN_LABEL                  "ドメイン:"
@@ -150,7 +151,7 @@ BEGIN
     IDS_PROXY_READY_FORMAT            "Proxy: 127.0.0.1:%u 利用可 / stream=%u / C→A=%llu byte / A→C=%llu byte"
     IDS_PROXY_FAILED_FORMAT           "Proxy停止: error=%u, WSA=%u, 設定=%u（RDP画面は継続できます）"
     IDS_PROXY_STOPPED                 "Proxy: 停止"
-    IDS_CONNECTION_MANAGER_TITLE      "ZRdp 接続マネージャー (0.7.20)"
+    IDS_CONNECTION_MANAGER_TITLE      "ZRdp 接続マネージャー (0.7.21)"
     IDS_CONNECT_NEW_SESSION           "新しい接続"
     IDS_MANAGER_STATUS_FORMAT         "接続中セッション: %u / 次のProxy: 127.0.0.1:%u"
     IDS_MANAGER_NO_PORT_FORMAT        "接続中セッション: %u / 利用可能なProxyポートがありません"
@@ -159,8 +160,8 @@ BEGIN
     IDS_SESSION_PORT_UNAVAILABLE      "割り当て可能なProxyポートがありません。client.iniのbase portを確認してください。"
     IDS_SESSION_CREATE_FAILED         "新しいRDPセッションウィンドウを作成できませんでした。"
     IDS_SESSION_RESOURCE_EXHAUSTED    "新しいRDPセッションに必要なリソースを確保できませんでした。"
-    IDS_SESSION_TITLE_FORMAT          "ZRdp SVN Bridge 0.7.20 - %s | RDP:%s | Agent:%s | Proxy:%s 127.0.0.1:%u | stream=%u | C→A=%llu | A→C=%llu"
-    IDS_SESSION_TITLE_CONFIG_ERROR_FORMAT "ZRdp SVN Bridge 0.7.20 - %s | RDP:%s | Agent:%s | Proxy設定エラー:%u"
+    IDS_SESSION_TITLE_FORMAT          "ZRdp SVN Bridge 0.7.21 - %s | RDP:%s | Agent:%s | Proxy:%s 127.0.0.1:%u | stream=%u | C→A=%llu | A→C=%llu"
+    IDS_SESSION_TITLE_CONFIG_ERROR_FORMAT "ZRdp SVN Bridge 0.7.21 - %s | RDP:%s | Agent:%s | Proxy設定エラー:%u"
     IDS_TITLE_RDP_NOT_CONNECTED       "未接続"
     IDS_TITLE_RDP_CONNECTING          "接続中"
     IDS_TITLE_RDP_CONNECTED           "接続済み"

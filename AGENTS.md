@@ -1,5 +1,10 @@
 # AGENTS.md
 
+このfileは本repositoryを保守するagent・maintainerの作業規則である。
+Private維持、remote操作、実環境操作、Release Gate等の規則は保守作業への制限であり、
+Apache-2.0に基づく利用者の使用・改変・再配布の権利を制限する追加license条件ではない。
+現行仕様は `docs/current-specification.md`、過去の判断は各ADRのStatusとsuperseded関係を参照する。
+
 ## 1. プロジェクト概要
 - 本プロジェクトは、Windows 標準の Remote Desktop ActiveX Control を組み込んだ専用 RDP クライアントを開発し、現在すでに成立している RDP セッション内の Virtual Channel を利用して、開発 PC から取引先の HTTP 方式 SVN リポジトリ、およびユーザーが明示承認した HTTP 方式 Trac へアクセスできるようにするものである。
 - 本プロジェクトおよびアプリケーションの正式名称は **`ZRdp SVN Bridge`** とする。
@@ -272,7 +277,7 @@ Host: 192.0.2.10
   「新しい接続」は、RDP ActiveX、`ESVNBRG`、Bridge、Proxy worker を独立所有する
   session Window を別 top-level Window として生成する。
 - 一つの Client process で同時に所有できる RDP session は 16 件を上限とする。
-  全 ActiveX は同じ COM STA UI thread に所属させるが、event sink、Virtual
+  ADR 0005に従い、各sessionのActiveXは当該session専用のCOM STA UI threadに所属し、event sink、Virtual
   Channel、Bridge state、HTTP stream、Proxy port を session 間で共有しない。
 - 一つの session Window を切断または終了しても、接続管理 Windowと他の
   session Windowを維持する。全 Window が終了した場合だけ Client processを
@@ -411,8 +416,9 @@ Host: 192.0.2.10
 - 最初から多言語化せず、日本語 UI を基本とする。表示文字列は resource 化し、将来差し替え可能にする。
 
 ## 14. Client の並行処理
-- 複数 session の ActiveX／COM 操作は一つの STA UI thread に限定し、
-  process共通のmessage loopで全top-level Windowをdispatchする。
+- 接続管理Windowはmanager STA、各sessionのActiveX／COM操作はsession専用STAへ限定する。
+  session Windowのmessageは生成元session専用message loopでdispatchし、
+  完了・履歴・状態通知だけをbounded queueとthread messageでmanagerへ渡す。
 - `ClientApplication`は接続管理 Window、最大16件のsession Window、有限の
   Proxy port slotを所有する。各session Windowは自身の`RdpControlHost`、
   `ClientBridge`、`ClientProxyWorker`をRAIIで所有する。
@@ -430,7 +436,8 @@ Host: 192.0.2.10
 - stream ごとの upstream Socket は allowlist 確認後にだけ作成する。
 - Agent 終了、RDP disconnect、protocol error、Client timeout の際は全 Socket を閉じる。
 - Socket close、half-close、peer reset、timeout を protocol の `HALF_CLOSE`／`CLOSE` へ正しく対応させる。
-- Agent は単体でバックグラウンド常駐サービス化せず、RDP ユーザーセッション内でユーザーが起動するポータブル EXE を基本とする。
+- AgentはWindowsサービス／ログオン自動起動へ登録せず、認証済みRDPユーザーsession内で
+  Clientが登録済み接続別設定に基づいて起動するportable tray EXEを基本とする。
 
 ## 16. セキュリティ要件
 - Client Proxy が loopback 以外から接続できないことをテストで保証する。
@@ -531,7 +538,8 @@ Host: 192.0.2.10
 - リポジトリ名の候補は **`zrdp-svn-bridge`** とするが、実作成前にユーザーの指示を優先する。
 - GitHub リポジトリは、**作成時点から必ず Private** とする。
 - Public リポジトリとして作成後に Private へ変更する運用は禁止する。
-- リポジトリの visibility を Public または Internal へ変更しない。
+- 公開前Gateの確認とユーザーの別の明示指示があるまで、visibilityをPublic／Internalへ変更しない。
+  OSS公開準備の依頼や公開予定をvisibility変更の許可と解釈しない。
 - GitHub Project を利用する場合も Private とする。
 - GitHub Pages を有効化しない。
 - 公開 GitHub Release、公開 Package、公開 Container Image、公開 Fork を作成しない。
@@ -623,7 +631,7 @@ work/tmp/
 - Agent absent／version mismatch
 - loopback-only bind
 - session Proxy port の順次割当、重複防止、解放、再利用、上限、overflow
-- 同一 COM STA 上での複数 RDP ActiveX 同時生成と、一方の破棄後の他方の存続
+- 複数RDP ActiveXの生成・破棄と、session専用STA分離による他session／managerの存続
 - Mylyn Trac absolute-form GET／XML-RPC POST
 - Trac redirect／Cookie／gzip responseのopaque透過
 
@@ -970,6 +978,6 @@ work/tmp/
 - Static Virtual Channel の制約は application protocol の framing、fragmentation、flow control で吸収する。
 - Static Virtual Channel の性能が不足するかは推測で決めず、Checkout／Commit 相当の実測で判断する。
 - DVC、FreeRDP、独自 RDP protocol 実装は初期スコープに含めない。
-- 複数RDP接続は複数process起動ではなく、一つのClient processと一つのCOM STA
-  message loop内に独立session Windowを生成する。Proxy portは`client.ini`の
+- 複数RDP接続は複数process起動ではなく、一つのClient processのmanager STAから
+  sessionごとに専用COM STA・message loop・Windowを生成する。Proxy portは`client.ini`の
   base portから有限slotで割り当て、最初の通常利用sessionを`18080`へ固定する。

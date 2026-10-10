@@ -122,7 +122,7 @@ helperが終了したことを確認し、旧版backupの署名・製品名・ve
 3. 完成した同一版・同一署名者の署名済み二EXEから、空の出力directoryへmanifestを作成する。
 
    ```powershell
-   ./scripts/New-ClientUpdateManifest.ps1 -ClientExecutable ./out/ZRdpSvnBridge.exe -AgentExecutable ./out/ZRdpSvnAgent.exe -Tag v0.7.21 -OutputDirectory ./work/tmp/update-release
+   ./scripts/New-ClientUpdateManifest.ps1 -ClientExecutable ./out/ZRdpSvnBridge.exe -AgentExecutable ./out/ZRdpSvnAgent.exe -Tag v0.7.21.0 -OutputDirectory ./work/tmp/update-release
    ```
 
    この例のtagは説明用であり、Releaseの作成を意味しない。scriptは二EXEの同版・同一署名者、有効な署名と
@@ -132,6 +132,10 @@ helperが終了したことを確認し、旧版backupの署名・製品名・ve
    `ZRdpSvnBridge.exe`、`ZRdpSvnAgent.exe`、`zrdp-client-update.ini`を添付する。
 5. manifestのtagとassetを一致させ、GitHubのlatest Releaseとして公開する。
    manifest作成後にEXEを再署名・変更した場合は、manifestも作り直す。
+
+利用者向けZIPにはLICENSE／NOTICE／依存物inventoryも含める。
+固定二EXEの同梱・hash・署名前検査は [local配布準備](portable-package.md) を参照する。
+旧三Releaseは公開対象から外す方針で保全し、削除・差替えは別の明示承認を必要とする。
 
 manifest format 2は次の十keyを持つASCII INIである。値を手入力せず、完成EXEから生成する。
 

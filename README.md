@@ -12,7 +12,7 @@ Windows標準のRDP画面操作と、HTTP方式のSVN／Tracへのアクセス�
 > 許可済みのRDP接続とHTTP接続だけを使用します。Zscaler、Firewall、GPO、RDP認証、OSのProxy設定を変更・回避しません。
 > ZRdpの名称はZscalerとの提携・認定・公式製品であることを意味しません。
 
-現在は公開準備中の開発版です。ソースの製品Versionは `0.7.20.0` ですが、過去の同Versionの社内配布物とは内容が異なります。
+現在は公開準備中の開発版 `0.7.21.0` です。過去の署名済み社内版 `0.7.20.0` と区別します。
 この変更に対する新しいReleaseはまだ作成していません。リポジトリはPrivateのままです。
 
 ## できること
@@ -174,7 +174,7 @@ Agentの状態と終了操作は、接続先のタスクトレイアイコンか
 
 現時点の更新先はPrivateリポジトリのため、匿名の自動確認ではReleaseを取得できません。
 認証トークンの保存・送信は実装していません。新しい公開Releaseも未作成です。
-起動・自動管理の実機受入、署名、Version更新と配布物の確認を経て、後日リリースします。
+起動・自動管理の実機受入、署名と配布物の確認を経て、後日リリースします。
 
 外部への更新確認を行わない場合は、Client EXEの横に次の `client.ini` を置きます。
 設定がない場合は更新確認が有効です。
@@ -219,25 +219,27 @@ Windows x64、Visual Studio 2022のC++開発ツールとATL、Windows SDK、CMak
 C++20とMSVCを使用し、RDP ActiveXの型情報はインストール済みWindowsから取得します。
 WindowsのRDP DLLをコピー・同梱しません。
 
-任意の配置のVisual Studioを使う場合は、リポジトリのルートで次を実行します。
+標準presetはインストール済みVisual Studio 2022を自動選択します。リポジトリのルートで次を実行します。
 
 ```powershell
-New-Item -ItemType Directory -Path work/tmp -Force | Out-Null
-cmake -S . -B build/local -G "Visual Studio 17 2022" -A x64
-cmake --build build/local --config Debug
-ctest --test-dir build/local -C Debug --output-on-failure
-cmake --build build/local --config Release
-ctest --test-dir build/local -C Release --output-on-failure
+cmake --preset vs2022-x64
+cmake --build --preset debug
+ctest --preset debug
+cmake --build --preset release
+ctest --preset release
 ```
 
-`work/tmp` は隔離したtest fixtureの基点です。Git管理外なので、新規cloneでは上記で作成します。
+`work/tmp` はGit管理外の隔離test fixture基点であり、test有効のconfigureが作成します。
 Releaseの二つのEXEは既定でリポジトリ直下の `out/` に出力します。
 既存のEXEがある場合は事前に退避し、実行中のClient／Agentを終了してください。
 ビルドだけでは署名しません。外部ランタイムを必須としない構成です。
-同梱の `vs2022-x64` presetは開発者の固定tool配置を使うため、他環境では上記の汎用コマンドを使用してください。
+複数のVS配置から選ぶ場合は、Git管理外の `CMakeUserPresets.json` 等でgenerator instanceを指定できます。
+固定presetを使わない場合も `cmake -S . -B build/local -G "Visual Studio 17 2022" -A x64` でconfigureできます。
 
 最新のローカル検証ではDebug／Release各47 CTestを通過しています。
 コメント監査では継承による補完を無効にしたDoxygen、ローカルcallbackの追加監査、整形検査を併用しています。
+GitHub ActionsもWindows x64のbuild・Mock test・公開tree／同梱検査に使用します。
+ソース読取り権限だけで実RDP・実設定・署名鍵を使用せず、EXEやReleaseをuploadしません。
 本変更の自動Agent管理と署名付きセット更新の実RDP受入は、まだ完了していません。
 検証範囲・コメント検査のコマンドは [コーディング規約](docs/coding-standard.md) と [テスト計画](docs/test-plan.md) を参照してください。
 
@@ -257,13 +259,17 @@ Releaseの二つのEXEは既定でリポジトリ直下の `out/` に出力し�
 ## 文書とライセンス
 
 - [利用手順](docs/user-guide.md) ／ [Agent設定と自動管理](docs/agent-settings.md)
+- [現行仕様](docs/current-specification.md) ／ [公開・配布チェックリスト](docs/publication-checklist.md)
 - [セット更新](docs/client-updates.md) ／ [設定仕様](docs/configuration.md)
 - [アーキテクチャ](docs/architecture.md) ／ [RDP ActiveX](docs/rdp-activex.md) ／ [HTTP Proxy](docs/http-proxy.md)
 - [セキュリティ](docs/security.md) ／ [テスト計画](docs/test-plan.md) ／ [コーディング規約](docs/coding-standard.md)
 - [画像の作成条件](docs/images/README.md)
 - [OSS公開前監査と未完了項目](docs/oss-readiness.md)
+- [貢献方法](CONTRIBUTING.md) ／ [脆弱性報告](SECURITY.md) ／ [依存物とライセンス](docs/dependencies.md)
+- [配布物のlocal準備と検査](docs/portable-package.md)
 
 自作ソースのライセンスは [Apache License 2.0](LICENSE) です。
+自作文書・画像も同じ許諾範囲です。[NOTICE](NOTICE) と依存物inventoryを配布物へ含めます。
 Microsoft Windows、RDP ActiveX、開発ツールは同梱せず、それぞれの利用条件に従います。
 OSS公開前に権利・依存物・履歴・文書・受入結果を確認します。現段階ではPublic化、Release、tag、配布assetの追加を行いません。
 

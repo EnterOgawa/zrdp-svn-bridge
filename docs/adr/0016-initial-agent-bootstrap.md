@@ -1,5 +1,7 @@
 # 初回Agentの自動配置と起動
 
+> Status: Historical / amended. 専用drive・固定setupの境界は現行にも使用する。署名必須・起動確認・上書き制限の記述は [ADR 0019](0019-agent-tray-and-direct-launch.md)／[0021](0021-optional-agent-signing.md)／[0022](0022-connection-agent-lifecycle.md) により変更済み。
+
 日付: 2026-10-09
 
 固定入力方式は2026-10-10の[SendInput方式](0017-sendinput-agent-controls.md)で更新する。

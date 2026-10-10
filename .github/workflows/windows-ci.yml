@@ -1,0 +1,63 @@
+# Copyright (c) 2026 EnterSystem CO.,LTD.
+# SPDX-License-Identifier: Apache-2.0
+name: Windows x64 / Mock regression
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: 4
+    steps:
+      - name: ソース取得（公式Actionを固定commitで使用）
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Repositoryと監査scriptの検証
+        shell: pwsh
+        run: |
+          python scripts/check_repository.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/test_check_repository.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/test_format_source.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/test_audit_source_comments.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/audit_source_comments.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Windows x64 configure
+        shell: pwsh
+        run: cmake --preset vs2022-x64
+      - name: Debug buildとMock test
+        shell: pwsh
+        run: |
+          cmake --build --preset debug
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --preset debug
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Release buildとMock test
+        shell: pwsh
+        run: |
+          cmake --build --preset release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --preset release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: 配布準備の検査（未署名development fixtureのみ）
+        shell: pwsh
+        run: ./scripts/Test-PortablePackage.ps1 -ExecutableDirectory ./out
+
+# 実RDP・実取引先・実設定・署名鍵を使用しない。artifact／Releaseをuploadしない。

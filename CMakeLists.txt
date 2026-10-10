@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.31)
 
 project(
     ZRdpSvnBridge
-    VERSION 0.7.20
+    VERSION 0.7.21
     DESCRIPTION "RDP client with a constrained SVN bridge over an RDP virtual channel"
     LANGUAGES CXX RC
 )
@@ -37,5 +37,7 @@ include(cmake/ZRdpCompilerOptions.cmake)
 add_subdirectory(src)
 
 if(BUILD_TESTING)
+    # 新規cloneでも安全に検査できる隔離fixture基点だけを作る。
+    file(MAKE_DIRECTORY "${PROJECT_SOURCE_DIR}/work/tmp")
     add_subdirectory(tests)
 endif()

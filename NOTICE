@@ -1,0 +1,13 @@
+ZRdp SVN Bridge
+Copyright (c) 2026 EnterSystem CO.,LTD.
+
+The project's own source code, documentation, and original image assets are
+provided under the Apache License, Version 2.0. See LICENSE.
+
+Microsoft Windows, Remote Desktop ActiveX Control, Windows SDK, and the
+Visual Studio toolchain are external platform/build components. Their
+licenses and trademarks are not replaced by this project's license.
+Windows RDP system DLLs and development tools are not bundled.
+
+ZRdp does not imply affiliation with, certification by, or endorsement by
+Zscaler. See docs/dependencies.md for the component inventory.

@@ -5,7 +5,7 @@
  *
  * @file resource_contract_test.cpp
  * @brief 配布EXEがbranding iconと主要UI文字列を持つresource契約を検証する。
- * @version 01.00.17
+ * @version 01.00.18
  * @date 2026/08/01
  * @author Shunji Ogawa
  *
@@ -33,6 +33,7 @@
  * Ver.01.00.15   Shunji Ogawa  2026/10/10  認証後の非modal要設定resourceを検証。
  * Ver.01.00.16   Shunji Ogawa  2026/10/10  登録済み接続別復元と切替時の保存保全を検証。
  * Ver.01.00.17   Shunji Ogawa  2026/10/10  更新通知と復旧案内がClient／Agentセットを明示するか検証。
+ * Ver.01.00.18   Shunji Ogawa  2026/10/11  公開準備版のtitleと製品版を同期。
  * </pre>
  */
 //------------------------------------------------------------------------------
@@ -203,7 +204,7 @@ int wmain( const int argument_count, wchar_t *arguments[])
 		},
 		{
 			IDS_CONNECTION_MANAGER_TITLE,
-			L"ZRdp 接続マネージャー (0.7.20)",
+			L"ZRdp 接続マネージャー (0.7.21)",
 		},
 		{
 			IDS_CONNECT_NEW_SESSION,
@@ -215,7 +216,7 @@ int wmain( const int argument_count, wchar_t *arguments[])
 		},
 		{
 			IDS_SESSION_TITLE_FORMAT,
-			L"ZRdp SVN Bridge 0.7.20 - %s | RDP:%s | Agent:%s | Proxy:%s 127.0.0.1:%u | stream=%u | C→A=%llu | A→C=%llu",
+			L"ZRdp SVN Bridge 0.7.21 - %s | RDP:%s | Agent:%s | Proxy:%s 127.0.0.1:%u | stream=%u | C→A=%llu | A→C=%llu",
 		},
 		{
 			IDS_LOCAL_RESOURCES_LABEL,

@@ -1,5 +1,7 @@
 # ADR 0013 Clientの同意付き自動更新
 
+> Status: Historical / amended. Client単体更新の歴史的判断。現行の二EXEセット更新は [ADR 0023](0023-paired-client-agent-updates.md) が更新範囲・manifestを置き換える。
+
 - Status: Accepted
 - Date: 2026-10-07
 

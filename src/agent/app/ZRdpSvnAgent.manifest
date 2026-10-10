@@ -2,7 +2,7 @@
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <assemblyIdentity
       name="EnterOgawa.ZRdpSvnAgent"
-      version="0.7.20.0"
+      version="0.7.21.0"
       processorArchitecture="amd64"
       type="win32" />
   <description>ZRdp SVN Agent</description>

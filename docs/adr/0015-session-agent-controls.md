@@ -1,5 +1,7 @@
 # セッション画面のAgent配置と確認付き起動
 
+> Status: Historical / amended. 旧session buttonとExplorer選択確認の歴史的判断。現行にこのbuttonはなく、[ADR 0022](0022-connection-agent-lifecycle.md) のmanager設定・自動管理へ置き換えた。
+
 日付: 2026-10-09
 
 固定Enterの入力方式は2026-10-10の[SendInput方式](0017-sendinput-agent-controls.md)で更新する。

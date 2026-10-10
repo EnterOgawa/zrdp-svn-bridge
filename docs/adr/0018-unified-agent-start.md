@@ -1,5 +1,7 @@
 # Agent起動の統合と未署名配置テスト
 
+> Status: Historical / amended. 旧button統合・未署名専用テストの歴史的判断。上書きは [ADR 0019](0019-agent-tray-and-direct-launch.md)、任意署名は [0021](0021-optional-agent-signing.md)、自動管理は [0022](0022-connection-agent-lifecycle.md) に置き換えられた。
+
 日付: 2026-10-10
 
 ユーザーの明示指示によりセッション操作を「Agent起動」一つへ統合し、

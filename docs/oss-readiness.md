@@ -1,14 +1,17 @@
 # OSS公開前監査（2026-10-11）
 
-対象ソース: `1c29d61fd89a44f814d2745522916401274c4e33`。
-本書とREADMEの残存リスク追記は、その後の文書のみの変更である。
+初回監査の対象ソース: `1c29d61fd89a44f814d2745522916401274c4e33`。
+同日の不足対応は公開準備版 `0.7.21.0`。初回監査の測定値は歴史記録として残し、
+現在の完了／未完了を下記と [公開・配布Gate](publication-checklist.md) に区分する。
 
 ## 結論
 
 **現時点ではPublic化の準備完了とは判定しない。**
-ソースのライセンス表示、README、ビルド・回帰検証は整っているが、権利確認、
-既存Releaseの扱い、脆弱性報告窓口、旧記述の整理、最新実装の実機受入が残っている。
-今回の監査でRelease、tag、asset、visibility、GitHub設定の変更やGit履歴rewriteは行っていない。
+権利・許諾はユーザーが確認済み。NOTICE、依存物inventory、貢献・報告手順、
+現行／旧仕様の区分、汎用build、二EXEとlicenseの同梱検査、承認済みCIを整備した。
+旧配布物の公開対象からの除外操作、GitHub非公開報告機能の有効化、公開履歴の
+最終確認、最新自動管理の実機受入は後日のGateである。署名だけを残課題とは扱わない。
+新Release／tag／asset、visibilityの変更、旧Release操作、Git履歴rewriteは行っていない。
 
 この判定はプロジェクトの公開準備状況であり、OSSライセンスの適格性と同義ではない。
 署名・CI・Issue template・Code of Conductの有無だけでOSSではなくなるわけではない。
@@ -16,7 +19,26 @@
 OSSの判断基準は [OSIの定義](https://opensource.org/osd)、ライセンス条件は
 [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) を参照する。
 
-## 確認済みの範囲
+## 同日の不足対応と再検証
+
+| 項目 | 現在の結果 |
+|---|---|
+| 権利・許諾 | 自作コード・文書・画像のApache-2.0公開についてユーザーが確認・許諾済みと回答 |
+| ライセンス・貢献 | NOTICE、SECURITY、CONTRIBUTING、Issue／PR template、依存物inventoryを追加 |
+| 現行仕様 | 現行仕様書を作成。AGENTSのSTA方針をADR0005と同期し、旧仕様・ADR・受入記録に対象時点を明記 |
+| build | 標準presetの個人固有VS pathを除去。configureが隔離fixture基点を作る |
+| 版識別 | 二EXE・manifest・resource・契約testを `0.7.21.0` へ同期。署名済み旧版と区別し、実行処理・protocolは変更しない |
+| ローカル回帰 | Debug／Release各47 CTest、Python self-test 41件、141 C++ fileの整形、Doxygen警告0件・追加契約監査不足0件 |
+| 同梱検査 | LICENSE・NOTICE・inventory・二EXE・receiptの完全一致とhashを確認。未署名正式候補、既存ZIP、欠落／偽装Agent、不一致tag、隔離外出力を拒否 |
+| CI | ユーザー承認のread-only Windows x64／Mock workflowを追加。外部Actionを固定commitに限定、実接続・設定・鍵・artifact uploadなし。GitHub上の結果確認は実行後に追記 |
+| 旧Release | 全14assetとmetadataを保全。API size／SHA-256と一致し、公表SHA256SUMSの11payloadとも一致。tag objectとcommit対応をreceiptへ記録 |
+| 運用Gate | 旧配布物は公開対象から外す方針、GitHub非公開報告を採用する方針が確定。除外操作・受付有効化はまだ実行しない |
+
+保全先はGit管理外の `work/archives/legacy-release-20261011_074541`。
+同じPC内のcopyなので、長期・障害対策用の別媒体保全を代替しない。
+署名済みpackage生成、署名付き実更新、実RDP受入をこの結果から推定しない。
+
+## 初回監査で確認済みの範囲（変更前の記録）
 
 | 項目 | 結果 |
 |---|---|
@@ -43,6 +65,9 @@ OSSの判断基準は [OSIの定義](https://opensource.org/osd)、ライセン�
 
 ### G01: 権利帰属と許諾範囲（公開前）
 
+対応: ユーザーの確認・許諾済み回答を記録し、[依存物inventory](dependencies.md) と
+NOTICEを追加。以下は初回監査時の確認条件であり、法的権利の独立認定ではない。
+
 自作ソースには `EnterSystem CO.,LTD.` のcopyright表示があるが、repositoryから
 雇用・委託契約、第三者コードの取り込み履歴、法人としての公開権限までは検証できない。
 AI生成アイコンの制作経路は [資産README](../assets/icons/README.md) にある。
@@ -61,15 +86,18 @@ Microsoftの配布対象と条件は [VS2022再配布文書](https://learn.micro
 
 ### G02: 既存Releaseと履歴の公開範囲（Public化前）
 
+対応: 旧配布物は保全して公開対象から外す方針が確定し、全assetの保全・hash検査は完了。
+旧Release／assetの除外実行、別媒体保全、commit identityとGit履歴の公開承認は残る。
+
 既存三ZIPは社内配布向けで、`LICENSE` を含まない。配置もClient／Agent別folderであり、
 最新版READMEの「同じfolderに二EXE」とは異なる。旧配布物は更新manifest format 2にも対応しない。
 過去のWord、作業記録、署名済みbinaryは最新treeから消しても履歴・Releaseに残る。
 
 完了条件:
 
-- 旧Releaseを公開対象として維持するか、Privateに保全する別の公開方法を採るか、ユーザーが決定する。
+- 確定した除外方針に沿い、別の実行承認後だけ対象旧Release／assetを処理する。
 - 公開する旧配布物について、当時のライセンス、署名者情報、同梱文書、利用手順を確認する。
-- 新しい配布packageにはLICENSEを含める。NOTICEは第三者からの承継義務等を確認して必要な場合に含める。
+- 新しい配布packageにはLICENSE・NOTICE・依存物inventoryを含める（local同梱検査済み）。
 - commitのauthor／committer情報と過去の文書・作業記録を、権利者が公開してよいと確認する。
 
 今回、旧Releaseの削除・再作成、asset差替え、履歴rewrite、force pushは行っていない。
@@ -78,7 +106,9 @@ Private→Publicでは既存コードが公開対象になるため、最新tree
 
 ### G03: 脆弱性の非公開報告窓口（公開前）
 
-`SECURITY.md` はなく、非公開で脆弱性を報告する確認済み窓口がない。
+対応: GitHub private reportingを採用する方針が確定し、[SECURITY.md](../SECURITY.md) を追加。
+Public化時の有効化と受付・通知確認は未実施。
+初回監査時には `SECURITY.md` と確認済み窓口がなかった。
 既存の [security設計文書](security.md) は脅威・実装境界の説明であり、報告窓口の代わりではない。
 APIによるprivate vulnerability reporting確認はPrivate状態で404となり、未確認である。
 
@@ -93,22 +123,20 @@ GitHubのprivate reportingはpublic repository向けの機能である。
 
 ### G04: 過去方針と現行方針の分離（公開前）
 
-- `AGENTS.md` 第13・14・31節等には全sessionを一つのSTAへ置く旧方針が残るが、
-  現行コードと [ADR 0005](adr/0005-dedicated-sta-per-rdp-session.md) はsession専用STAである。
-- 同fileのAgent操作欄には旧button・署名必須・異なるfileを上書きしない記述が残り、
-  現行のmanager設定・自動管理・任意署名・backup付き更新とは異なる。
-- `AGENTS.md` 第20節のPrivate／公開禁止は現在の作業制限として有効である。
-  将来公開時は明示承認に基づいて運用記述を更新し、Apache-2.0の利用者の権利制限として読めないようにする。
-- `known-limitations.md`、`specification.md`、`roadmap.md`、一部ADRは過去の検証時点を扱う。
-  現行の手順と、過去記録・superseded判断の境界をさらに明示する。
+- `AGENTS.md` のSTA旧方針を、現行コードと [ADR 0005](adr/0005-dedicated-sta-per-rdp-session.md) のsession専用STAへ同期。
+- 初回監査の「AGENTS Agent操作欄に旧button・署名必須が残る」という記載は再確認で誤りだった。
+  当該欄は既に自動管理の現行方針へ更新済みであり、この誤指摘を訂正する。
+- Private／公開制限は保守者の現時点の作業規則であり、Apache-2.0利用者の追加制限ではないと明記。
+- `known-limitations.md`、`specification.md`、`roadmap.md`、一部ADRへ歴史記録の表示と現行仕様への参照を追加。
 
-READMEと利用手順は今回現行操作へ更新した。開発規則・旧ADRを独断で新しい設計へ置換していない。
-完了条件は、権利者／保守者が現行の開発規則を確定し、旧文書に対象時点・superseded関係を明記することである。
+現行の [仕様書](current-specification.md) とREADME／利用手順を揃えた。
+過去ADRの決定本文・受入時点は消さず、変更を新設計の実機合格として扱わない。
 
 ### G05: 最新実装の受入とRelease識別（新Release前）
 
-現在の開発binaryは未署名で製品Versionが `0.7.20.0` のまま。
-過去の署名済み同Versionと同一成果物ではない。既存のbutton起動・tray終了後の再起動の
+対応: 未署名の開発binaryを `0.7.21.0` へ更新し、旧版との識別問題を解消。
+[実機受入表](publication-checklist.md#署名を使わない実機受入) は未実施と明記した。
+既存のbutton起動・tray終了後の再起動の
 ユーザー確認を、現在の完全自動管理・セット更新の実機合格と見なさない。
 
 完了条件:
@@ -131,17 +159,16 @@ Git管理外の `work/tmp` が存在せず、固定fixtureの基点検証が拒�
 RDP host testでは正しい引数を与えても45（専用drive作成失敗）を返し、基点の不存在を確認した。
 
 当該clone内に `work/tmp` を作成すると、ソース・binaryを変更せず全47件が合格した。
-READMEの汎用build手順にその作成を追加した。build systemを独断で変更していない。
+初回対応ではREADMEへ手動作成を追記した。その後の不足対応で、test有効のconfigureが
+fixture基点だけを作るよう整備した。標準presetも個人固有pathへ依存しない。
 初回失敗を隠さず記録し、別Windows環境での確認は引き続き推奨する。
 
 ## 改善を推奨する項目（OSSライセンスの必須条件ではない）
 
-- `CONTRIBUTING.md`: build・test・コメント規約、実接続禁止、機密情報の扱い、PRの提出方法。
-- Issue／PR template: Versionと再現条件、機密情報を含めない報告項目。
-- 保守範囲とCode of Conduct: 必要な場合に責任者と実行可能な運用を定める。
-- CI: 現在は未導入。`AGENTS.md` の承認条件を満たす設計後にWindows x64 build・testを追加する。
-- 汎用presetと別Windows環境でのclone検証: 同梱presetは開発者tool配置固定。
-- 第三者・build tool inventory、SBOM、Release再現手順、LICENSE同梱のpackage検査。
+- CONTRIBUTING、Issue／PR template、保守範囲・建設的参加の基本原則を整備した。
+- 承認済みCIと汎用presetを追加した。利用先Windowsでの再現性・互換性は引き続き受入で確認する。
+- build／runtime inventory、local package再現手順、LICENSE／NOTICE同梱検査を追加した。
+  完全なtransitive binary SBOMや外部componentの権利鑑定を行ったとは主張しない。
 - 機械的secret scanの拡充と、人による履歴・配布物・commit identityの最終確認。
 
 ## 監査の限界

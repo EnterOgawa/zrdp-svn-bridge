@@ -5,7 +5,7 @@
  *
  * @file portable_binary_contract_test.cpp
  * @brief Client／Agent配布EXEのx64種別と共通version resourceを検証する。
- * @version 01.00.00
+ * @version 01.00.01
  * @date 2026/08/01
  * @author Shunji Ogawa
  *
@@ -16,6 +16,7 @@
  * <pre>
  * VerNo.         author        update      comment
  * Ver.01.00.00   Shunji Ogawa  2026/10/07  指定C/C++規約へコメントと書式を統一。
+ * Ver.01.00.01   Shunji Ogawa  2026/10/11  OSS公開準備版0.7.21.0の配布metadata契約へ更新。
  * </pre>
  */
 //------------------------------------------------------------------------------
@@ -29,12 +30,12 @@
 
 namespace {
 
-// Microsoft connection barをcontainerより前面に維持するfixed file version
+// portable EXEで期待する製品versionのmajor要素。file独立版とは別管理
 constexpr std::uint16_t kExpectedVersionMajor = 0U ;
 // portable EXEで期待する製品versionのminor要素。file独立版とは別管理
 constexpr std::uint16_t kExpectedVersionMinor = 7U ;
 // portable EXEで期待する製品versionのpatch要素。file独立版とは別管理
-constexpr std::uint16_t kExpectedVersionPatch = 20U ;
+constexpr std::uint16_t kExpectedVersionPatch = 21U ;
 // portable EXEで期待するWindows version resourceのbuild要素
 constexpr std::uint16_t kExpectedVersionBuild = 0U ;
 

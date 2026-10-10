@@ -1,5 +1,7 @@
 # 保存済み設定からの直接起動、トレイ常駐、バックアップ付き更新
 
+> Status: Historical / amended. tray常駐・backup付き更新の境界は現行。署名条件とbutton起動は [ADR 0021](0021-optional-agent-signing.md)／[0022](0022-connection-agent-lifecycle.md) により変更済み。
+
 日付: 2026-10-10
 
 ## 決定

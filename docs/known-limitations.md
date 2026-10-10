@@ -1,5 +1,10 @@
 # ZRdp SVN Bridge 既知の制約と残存risk
 
+> 過去のVersion別受入・制約の記録。本文の更新日は当時の記録日であり、
+> 合格記録を現行開発版の実機受入と解釈しない。
+> 現行の残存リスクは [現行仕様](current-specification.md#残存リスクと確認範囲)、
+> 最終実機確認は [公開前チェックリスト](publication-checklist.md) を参照する。
+
 更新日: 2026-08-10
 
 ## 1. Version 0.7.14初版とVersion 0.7.15候補の検証境界

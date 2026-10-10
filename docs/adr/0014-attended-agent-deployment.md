@@ -1,5 +1,7 @@
 # Client 操作による確認付き Agent 配置
 
+> Status: Historical / amended. 旧手動配置方式の歴史的判断。通常入口・署名条件・上書き方針は後続ADRで置き換えられている。現行は [ADR 0021](0021-optional-agent-signing.md)／[0022](0022-connection-agent-lifecycle.md)。
+
 日付: 2026-10-08
 
 状態: Release buildへ実装。ビルド更新後の再署名と実RDPでのファイル転送確認は別Gate。

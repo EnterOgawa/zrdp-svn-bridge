@@ -1,5 +1,7 @@
 # Agent固定入力のSendInput方式
 
+> Status: Historical / amended. 固定SendInputと安全停止・残存リスクの境界は現行。旧button／開発入力テストは [ADR 0022](0022-connection-agent-lifecycle.md) で廃止している。
+
 日付: 2026-10-10
 
 利用者がR単独とWin＋RのSendInput反映を接続先で確認し、配置・起動の固定入力切替を明示承認した。

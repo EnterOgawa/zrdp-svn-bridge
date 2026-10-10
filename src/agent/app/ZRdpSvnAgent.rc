@@ -7,7 +7,7 @@
  *
  * @file ZRdpSvnAgent.rc
  * @brief Agentのversion情報と共通application iconを定義する。
- * @version 01.00.05
+ * @version 01.00.06
  * @date 2026/08/01
  * @author Shunji Ogawa
  *
@@ -23,6 +23,7 @@
  * Ver.01.00.03   Shunji Ogawa  2026/10/10  起動と設定の分離、tray常駐、backup付き更新を追加。
  * Ver.01.00.04   Shunji Ogawa  2026/10/10  Agent配置・起動の署名要件と未署名別経路を撤廃。
  * Ver.01.00.05   Shunji Ogawa  2026/10/10  セット更新の互換性確認用Bridge protocolを追加。
+ * Ver.01.00.06   Shunji Ogawa  2026/10/11  公開準備版0.7.21.0の識別へ更新。
  * </pre>
  */
 //------------------------------------------------------------------------------
@@ -52,8 +53,8 @@ END
 // -----------------------------------------------------------------------------
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 0,7,20,0
-PRODUCTVERSION 0,7,20,0
+FILEVERSION 0,7,21,0
+PRODUCTVERSION 0,7,21,0
  FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
 #ifdef _DEBUG
  FILEFLAGS VS_FF_DEBUG
@@ -70,11 +71,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "EnterOgawa\0"
             VALUE "FileDescription", "ZRdp SVN Agent\0"
-            VALUE "FileVersion", "0.7.20.0\0"
+            VALUE "FileVersion", "0.7.21.0\0"
             VALUE "InternalName", "ZRdpSvnAgent\0"
             VALUE "OriginalFilename", "ZRdpSvnAgent.exe\0"
             VALUE "ProductName", "ZRdp SVN Bridge\0"
-            VALUE "ProductVersion", "0.7.20.0\0"
+            VALUE "ProductVersion", "0.7.21.0\0"
             VALUE "AgentSetupProtocol", "1\0"
             VALUE "BridgeProtocol", "1\0"
         END
