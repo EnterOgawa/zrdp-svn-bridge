@@ -5,7 +5,7 @@
  *
  * @file rdp_control_host.cpp
  * @brief Microsoft Remote Desktop ActiveXの生成、設定、イベント購読を実装する。
- * @version 01.00.13
+ * @version 01.00.14
  * @date 2026/08/01
  * @author Shunji Ogawa
  *
@@ -30,6 +30,7 @@
  * Ver.01.00.11   Shunji Ogawa  2026/10/10  通常focusを認証完了後かつ警告なしへ限定。
  * Ver.01.00.12   Shunji Ogawa  2026/10/10  開発入力診断APIを廃止し固定入力を維持。
  * Ver.01.00.13   Shunji Ogawa  2026/10/11  コメント監査の不足と実装不一致を修正。
+ * Ver.01.00.14   Shunji Ogawa  2026/10/11  公開CLSIDで旧Windows type libraryへのbuild依存を除去。
  * </pre>
  */
 //------------------------------------------------------------------------------
@@ -148,6 +149,26 @@ constexpr DISPID kDispIdOnAutoReconnected				 = 33 ;
 // 拡張形式の再接続理由・network状態・試行上限を受け取る固定DISPID
 constexpr DISPID kDispIdOnAutoReconnecting2				 = 34 ;
 
+// 公開CLSIDだけを保持し、旧system type libraryに最新coclass宣言を要求しない。
+// 値の出典はMicrosoft Learnの各MsRdpClientNNotSafeForScripting class文書。
+constexpr CLSID	 kRdpClient12ClassId{
+	 0x3f859aa3, 0xc2d4, 0x4faa, {0xb0, 0xe4, 0xfd, 0x0c, 0x9c, 0x4e, 0x5e, 0x3a}} ;
+// MsRdpClient11の公開CLSID。type libraryと実行時の登録有無を分離する。
+constexpr CLSID kRdpClient11ClassId{
+	0x1df7c823, 0xb2d4, 0x4b54, {0x97, 0x5a, 0xf2, 0xac, 0x5d, 0x7c, 0xf8, 0xb8}} ;
+// MsRdpClient10の公開CLSID。新しいControl未登録時だけ選択候補になる。
+constexpr CLSID kRdpClient10ClassId{
+	0xa0c63c30, 0xf08d, 0x4ab4, {0x90, 0x7c, 0x34, 0x90, 0x5d, 0x77, 0x0c, 0x7d}} ;
+// MsRdpClient9の公開CLSID。生成失敗のsecurity回避には使わない。
+constexpr CLSID kRdpClient9ClassId{
+	0x8b918b82, 0x7985, 0x4c24, {0x89, 0xdf, 0xc3, 0x3a, 0xd2, 0xbb, 0xfb, 0xcd}} ;
+// MsRdpClient8の公開CLSID。OS登録済みControlだけを生成する。
+constexpr CLSID kRdpClient8ClassId{
+	0xa3bc03a0, 0x041d, 0x42e3, {0xad, 0x22, 0x88, 0x2b, 0x78, 0x65, 0xc9, 0xc5}} ;
+// MsRdpClient7の公開CLSID。候補下限は従来どおり維持する。
+constexpr CLSID kRdpClient7ClassId{
+	0x54d38bf7, 0xb1ef, 0x4479, {0x96, 0x74, 0x1b, 0xd6, 0xea, 0x46, 0x52, 0x58}} ;
+
 /**
  * @brief 利用可能性を新しい版から確認するRDP ActiveX候補。
  */
@@ -167,12 +188,12 @@ struct RdpControlCandidate {
 [[nodiscard]] const std::array<RdpControlCandidate, 6> &ControlCandidates() noexcept
 {
 	static const std::array<RdpControlCandidate, 6> candidates{{
-		{&CLSID_MsRdpClient12NotSafeForScripting, L"MsRdpClient12", 12U},
-		{&CLSID_MsRdpClient11NotSafeForScripting, L"MsRdpClient11", 11U},
-		{&CLSID_MsRdpClient10NotSafeForScripting, L"MsRdpClient10", 10U},
-		{&CLSID_MsRdpClient9NotSafeForScripting, L"MsRdpClient9", 9U},
-		{&CLSID_MsRdpClient8NotSafeForScripting, L"MsRdpClient8", 8U},
-		{&CLSID_MsRdpClient7NotSafeForScripting, L"MsRdpClient7", 7U},
+		{&kRdpClient12ClassId, L"MsRdpClient12", 12U},
+		{&kRdpClient11ClassId, L"MsRdpClient11", 11U},
+		{&kRdpClient10ClassId, L"MsRdpClient10", 10U},
+		{&kRdpClient9ClassId, L"MsRdpClient9", 9U},
+		{&kRdpClient8ClassId, L"MsRdpClient8", 8U},
+		{&kRdpClient7ClassId, L"MsRdpClient7", 7U},
 	}} ;
 	return candidates ;
 }

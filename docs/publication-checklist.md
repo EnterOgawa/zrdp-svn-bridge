@@ -8,6 +8,7 @@
 
 - [x] ユーザーが自作コード・文書・画像の権利帰属と組織としてのApache-2.0許諾を確認済み（2026-10-11の回答）。
 - [x] 旧三Releaseの配布物は保全し、将来の公開対象から外す。
+- [x] Git履歴のauthor／committer identityと過去の設計・Word文書は、現状の履歴を公開する方針でユーザー確認済み（2026-10-11）。
 - [x] 脆弱性はPublic化時にGitHubの非公開報告機能を有効にする。
 - [x] GitHub Actionsはread-only source取得・Windows x64／Mock検証のみ、実設定・鍵・実接続・成果物uploadなしの設計で承認済み。
 - [x] 署名、Release作成、tag・asset操作、visibility変更は今回行わない。
@@ -21,7 +22,8 @@
 - [x] 公開tree検査、配布準備・同梱file検査scriptを用意。
 - [x] ローカルDebug／Release各47 CTest、Python self-test 41件、整形・コメント監査、同梱file／hash・拒否経路を確認。
 - [ ] 承認されたCIをGitHub上で実行し、結果を確認。
-- [ ] repository全履歴・全公開対象とcommit identityの最終確認。
+- [x] 到達可能な履歴を機械走査し、commit identity・過去文書の公開方針をユーザー確認。走査の限界は監査書に明記。
+- [ ] Public化直前の最新tree・履歴・公開対象の最終再確認。
 - [ ] 別Windows環境での再現性確認（CI結果とは別に、必要な利用環境を確認）。
 
 ## 旧Releaseの保全と除外

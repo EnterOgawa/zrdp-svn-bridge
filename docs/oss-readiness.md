@@ -29,10 +29,13 @@ OSSの判断基準は [OSIの定義](https://opensource.org/osd)、ライセン�
 | build | 標準presetの個人固有VS pathを除去。configureが隔離fixture基点を作る |
 | 版識別 | 二EXE・manifest・resource・契約testを `0.7.21.0` へ同期。署名済み旧版と区別し、実行処理・protocolは変更しない |
 | ローカル回帰 | Debug／Release各47 CTest、Python self-test 41件、141 C++ fileの整形、Doxygen警告0件・追加契約監査不足0件 |
+| 到達可能履歴の再検査 | `c2578e7` 時点の12 commit・543 distinct blobを再走査。鍵・既知実接続情報・個人profile pathは検出せず。追加確認三件は不正Version testと拒否用multicastであり実endpointではない |
 | 同梱検査 | LICENSE・NOTICE・inventory・二EXE・receiptの完全一致とhashを確認。未署名正式候補、既存ZIP、欠落／偽装Agent、不一致tag、隔離外出力を拒否 |
 | CI | ユーザー承認のread-only Windows x64／Mock workflowを追加。外部Actionを固定commitに限定、実接続・設定・鍵・artifact uploadなし。GitHub上の結果確認は実行後に追記 |
+| 初回CIのbuild互換性 | Windows Server 2022のtype libraryに最新版CLSID宣言がなくC2065。公開CLSIDのhost内定義と最新Control選択の非接続検証へ修正し、選択順・認証・DLL非同梱を維持 |
 | 旧Release | 全14assetとmetadataを保全。API size／SHA-256と一致し、公表SHA256SUMSの11payloadとも一致。tag objectとcommit対応をreceiptへ記録 |
 | 運用Gate | 旧配布物は公開対象から外す方針、GitHub非公開報告を採用する方針が確定。除外操作・受付有効化はまだ実行しない |
+| 履歴公開方針 | Gitのauthor／committer identityと過去の設計・Wordを含め、現状の履歴を公開する方針についてユーザー確認済み |
 
 保全先はGit管理外の `work/archives/legacy-release-20261011_074541`。
 同じPC内のcopyなので、長期・障害対策用の別媒体保全を代替しない。
@@ -87,7 +90,8 @@ Microsoftの配布対象と条件は [VS2022再配布文書](https://learn.micro
 ### G02: 既存Releaseと履歴の公開範囲（Public化前）
 
 対応: 旧配布物は保全して公開対象から外す方針が確定し、全assetの保全・hash検査は完了。
-旧Release／assetの除外実行、別媒体保全、commit identityとGit履歴の公開承認は残る。
+旧Release／assetの除外実行と別媒体保全は残る。
+commit identityと過去文書を含む現状のGit履歴の公開方針はユーザー確認済み。
 
 既存三ZIPは社内配布向けで、`LICENSE` を含まない。配置もClient／Agent別folderであり、
 最新版READMEの「同じfolderに二EXE」とは異なる。旧配布物は更新manifest format 2にも対応しない。

@@ -1,10 +1,30 @@
 # ZRdp SVN Bridge テスト計画
 
-更新日: 2026-10-10
+更新日: 2026-10-11
 
 本書には各開発段階の検証履歴を含む。終了済みの作業記録はcommit `cfdaa8c`から
 参照できる。過去の`work/tmp`保存先は整理済みであり、現行テストの依存先ではない。
 Agentの回復条件と全画面制御の確定判断はADR 0011／0012を参照する。
+
+## 公開準備版0.7.21.0の再検証
+
+署名を行わず、Debug／Release各47 CTest、Python self-test 41件、141 C++ fileの
+整形とDoxygen（継承補完なし）を再実行した。全合格、整形不適合・Doxygen警告・追加契約不足は0件。
+二EXEは同版0.7.21.0の未署名Releaseとして標準 `out` へ配置した。
+当初のコードtoken比較の差分は製品版期待値を更新した二つの契約testだけだった。
+その後、CIの旧Windows type libraryでC2065を検出し、host内にMicrosoft公開CLSIDを保持する
+互換修正と非接続smoke検証を追加した。六CLSIDは元の生成type libraryの値と一致し、
+選択順序・生成failure policy・認証・Protocolを変えない。resourceとmanifestは版識別を変更した。
+
+local配布検査は同版二EXE、LICENSE／NOTICE／inventory、receiptの完全一致・hashを確認し、
+未署名正式候補、既存archive、Agent欠落・偽装名、不一致tag、隔離外出力を拒否した。
+入力二EXEのhashは不変である。GitHub Actionsは承認されたread-only／Mock設計で追加した。
+初回CIは公開CLSID宣言欠落によるbuild失敗を記録した。修正後のGitHub上の結果は完了後に記録する。
+実RDP、自動管理の最終受入、署名付き実更新は行わない。
+受入項目と未完了Gateは [公開・配布チェックリスト](publication-checklist.md) を参照する。
+
+以下は各段階の履歴であり、過去の製品版、Doxygen警告数、廃止済みUIの記述を
+現在の合格・現在の操作として読み替えない。
 
 ## 接続別の登録済みAgent設定と表示切替
 

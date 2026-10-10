@@ -6,8 +6,10 @@
 
 本書はVersion `0.7.14.0`当時の配布・署名記録である。記載された一時保管先は
 2026-10-07のworkspace整理で除去した。旧Word文書と作業記録はcommit `cfdaa8c`
-から参照できる。現行版の署名済みhash、配布物、更新手順は
+から参照できる。過去の署名済み社内版のhashと配布記録は
 [Version 0.7.20リリースノート](release-notes-0.7.20.md)を参照する。
+現行の公開準備版は未署名・正式Release未作成であり、
+[公開・配布Gate](publication-checklist.md) と [現行仕様](current-specification.md) を参照する。
 
 ## 1. 配布候補
 

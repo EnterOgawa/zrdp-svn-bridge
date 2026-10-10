@@ -5,7 +5,7 @@
  *
  * @file rdp_host_smoke_test.cpp
  * @brief 非表示Win32環境でRDP ActiveX生成と接続前設定の契約を検証する。
- * @version 01.00.13
+ * @version 01.00.14
  * @date 2026/08/01
  * @author Shunji Ogawa
  *
@@ -29,6 +29,7 @@
  * Ver.01.00.11   Shunji Ogawa  2026/10/10  認証前に通常focusを移さない契約を検証。
  * Ver.01.00.12   Shunji Ogawa  2026/10/10  接続別設定・自動Agent管理の回帰検証を追加。
  * Ver.01.00.13   Shunji Ogawa  2026/10/11  コメント監査の不足と実装不一致を修正。
+ * Ver.01.00.14   Shunji Ogawa  2026/10/11  最新Controlの公開CLSIDと実行時選択を非接続で検証。
  * </pre>
  */
 //------------------------------------------------------------------------------
@@ -77,6 +78,32 @@ public:
 		static_cast<void>( std::move( event)) ;
 	}
 } ;
+
+/**
+ * @brief 最新CLSIDの登録状態とhostの選択が一致するか、通信せず確認する。
+ * @param[in] host 生成成功済みの未接続host。
+ * @return 最新登録時に最新版を選び、未登録時に旧候補を選んだ場合true。
+ * @note class factoryだけを照会し、Connect・認証・registry変更を行わない。
+ */
+bool TestLatestControlSelection( const zrdp::client::rdp::RdpControlHost &host)
+{
+	// Microsoft公開CLSIDを独立して照会し、誤ったGUIDで旧版へ落ちる回帰を検出する。
+	constexpr CLSID latest_class_id{
+		0x3f859aa3, 0xc2d4, 0x4faa, {0xb0, 0xe4, 0xfd, 0x0c, 0x9c, 0x4e, 0x5e, 0x3a}} ;
+	ATL::CComPtr<IClassFactory> factory ;
+	const HRESULT				result =
+		CoGetClassObject( latest_class_id, CLSCTX_INPROC_SERVER, nullptr, IID_IClassFactory,
+						 reinterpret_cast<void **>( &factory.p)) ;
+	// 最新classが登録されていればhostもその同じ公開CLSIDを選択しなければならない。
+	if( SUCCEEDED( result)) {
+		return factory != nullptr && host.selected_control_name() == L"MsRdpClient12" ;
+	}
+
+	// 未登録以外の生成問題を、旧環境の正常fallbackと見なさない。
+	return (result == REGDB_E_CLASSNOTREG || result == CLASS_E_CLASSNOTAVAILABLE) &&
+		   !host.selected_control_name().empty() &&
+		   host.selected_control_name() != L"MsRdpClient12" ;
+}
 
 /**
  * @brief 未接続の実ActiveXへFocusを要求しても別controlのfocusを維持するか確認する。
@@ -349,6 +376,11 @@ int wmain( int argc, wchar_t **argv)
 
 				// 一つ目のActiveX生成成功後だけ既存の接続前契約を確認する
 				if( SUCCEEDED( create_result)) {
+					// 新旧type libraryでbuildしても、実行時の最新登録Control選択を維持する。
+					if( !TestLatestControlSelection( host)) {
+						result = 58 ;
+					}
+
 					// 認証前にはhost自体のFocusもmodal UIへ介入できない
 					if( !TestUnconnectedFocus( host, parent)) {
 						result = 57 ;

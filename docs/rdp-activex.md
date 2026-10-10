@@ -1,6 +1,6 @@
 # ZRdp Remote Desktop ActiveX設計
 
-更新日: 2026-10-10
+更新日: 2026-10-11
 
 ## 1. 責務
 
@@ -22,6 +22,26 @@ window、event sink、Connection Point cookie、`ESVNBRG` transport、message lo
 session間で共有しない。一つのsessionでMicrosoft Controlの切断または破棄が待機
 しても、別sessionとmanagerのWindow messageを処理できる。最大16組という有限上限は
 維持する。詳細はADR 0005に記録する。
+
+### build時のtype libraryと実行時のControl選択
+
+Windows Server 2022のCIで、system type libraryには最新版の
+`CLSID_MsRdpClient12NotSafeForScripting` 宣言がなく、従来ソースはC2065でbuildできなかった。
+公開CLSIDをhost内の定数で保持し、coclass宣言の有無を実行時の登録有無と混同しない。
+COM interfaceは引き続きsystem type libraryからimportし、DLL／生成headerは同梱しない。
+
+候補順は12→11→10→9→8→7を維持する。未登録の場合だけ次候補へ進み、
+登録されたControlの生成失敗を旧版へ落として迂回しない。認証・SVC・設定・STA境界は変更しない。
+非接続smoke testは最新class factoryの登録有無と選択名の一致も検証する。
+
+| 候補 | Microsoft公開CLSID |
+|---|---|
+| [12](https://learn.microsoft.com/en-us/windows/win32/termserv/msrdpclient12notsafeforscripting) | `3F859AA3-C2D4-4FAA-B0E4-FD0C9C4E5E3A` |
+| [11](https://learn.microsoft.com/en-us/windows/win32/termserv/msrdpclient11notsafeforscripting) | `1DF7C823-B2D4-4B54-975A-F2AC5D7CF8B8` |
+| [10](https://learn.microsoft.com/en-us/windows/win32/termserv/msrdpclient10notsafeforscripting) | `A0C63C30-F08D-4AB4-907C-34905D770C7D` |
+| [9](https://learn.microsoft.com/en-us/windows/win32/termserv/msrdpclient9notsafeforscripting) | `8B918B82-7985-4C24-89DF-C33AD2BBFBCD` |
+| [8](https://learn.microsoft.com/en-us/windows/win32/termserv/msrdpclient8notsafeforscripting) | `A3BC03A0-041D-42E3-AD22-882B7865C9C5` |
+| [7](https://learn.microsoft.com/en-us/windows/win32/termserv/msrdpclient7notsafeforscripting) | `54D38BF7-B1EF-4479-9674-1BD6EA465258` |
 
 ## 2. 認証とsecurity
 

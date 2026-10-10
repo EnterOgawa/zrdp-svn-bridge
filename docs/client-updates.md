@@ -1,6 +1,6 @@
 # ZRdp SVN Bridge Client／Agentのセット自動更新
 
-更新日: 2026-10-10
+更新日: 2026-10-11
 
 ClientはGitHubの公開Releaseを確認し、新版があれば利用者へ通知する。
 EXEの取得は利用者の同意後、置換はすべてのRDP session WindowとAgent設定画面の
