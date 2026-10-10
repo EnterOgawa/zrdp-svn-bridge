@@ -33,6 +33,7 @@ OSSの判断基準は [OSIの定義](https://opensource.org/osd)、ライセン�
 | 同梱検査 | LICENSE・NOTICE・inventory・二EXE・receiptの完全一致とhashを確認。未署名正式候補、既存ZIP、欠落／偽装Agent、不一致tag、隔離外出力を拒否 |
 | CI | ユーザー承認のread-only Windows x64／Mock workflowを追加。外部Actionを固定commitに限定、実接続・設定・鍵・artifact uploadなし。GitHub上の結果確認は実行後に追記 |
 | 初回CIのbuild互換性 | Windows Server 2022のtype libraryに最新版CLSID宣言がなくC2065。公開CLSIDのhost内定義と最新Control選択の非接続検証へ修正し、選択順・認証・DLL非同梱を維持 |
+| CI二回目のtest異常 | Debug47件とRelease build・46件は成功。smokeが `0xc0000409`。test通知のmessage番号だけの判定に衝突を注入すると同じ異常を再現し、HWND＋所有tokenへ修正。修正後のローカル20反復は成功、CI再確認待ち |
 | 旧Release | 全14assetとmetadataを保全。API size／SHA-256と一致し、公表SHA256SUMSの11payloadとも一致。tag objectとcommit対応をreceiptへ記録 |
 | 運用Gate | 旧配布物は公開対象から外す方針、GitHub非公開報告を採用する方針が確定。除外操作・受付有効化はまだ実行しない |
 | 履歴公開方針 | Gitのauthor／committer identityと過去の設計・Wordを含め、現状の履歴を公開する方針についてユーザー確認済み |

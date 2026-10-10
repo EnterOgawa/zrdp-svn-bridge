@@ -10,4 +10,5 @@ licenses and trademarks are not replaced by this project's license.
 Windows RDP system DLLs and development tools are not bundled.
 
 ZRdp does not imply affiliation with, certification by, or endorsement by
-Zscaler. See docs/dependencies.md for the component inventory.
+Zscaler. See the component inventory: docs/dependencies.md in the source
+repository, or DEPENDENCIES.md in the portable package.

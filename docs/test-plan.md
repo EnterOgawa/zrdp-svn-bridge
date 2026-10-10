@@ -20,6 +20,15 @@ local配布検査は同版二EXE、LICENSE／NOTICE／inventory、receiptの完�
 未署名正式候補、既存archive、Agent欠落・偽装名、不一致tag、隔離外出力を拒否した。
 入力二EXEのhashは不変である。GitHub Actionsは承認されたread-only／Mock設計で追加した。
 初回CIは公開CLSID宣言欠落によるbuild失敗を記録した。修正後のGitHub上の結果は完了後に記録する。
+二回目はDebug全47件とRelease build・46件が成功したが、非接続ActiveX smokeが
+`0xc0000409` で異常終了した。ローカルRelease smokeの20反復は成功し、CI上の原因は未確定。
+testの専用STA loopがmessage番号だけで通知を識別していた。Window messageと
+宛先tokenなしのthread messageを同番号で投入すると、promiseの重複完了によって
+ローカルでも同じ `0xc0000409` を再現した。製品側のloopは既にHWNDを区別しており、
+test側へHWND＋所有state token判定を追加した。衝突注入を回帰条件として残し、修正後20反復は成功した。
+CI異常時のcall stackは取得していないため、異常code一致だけを原因の完全証明とは扱わない。
+固定marker、30秒のtest期限、CIでの20反復を追加。tool導入、他process attach、
+実Connect、dump／EXE upload、CFG等の無効化は行わない。
 実RDP、自動管理の最終受入、署名付き実更新は行わない。
 受入項目と未完了Gateは [公開・配布チェックリスト](publication-checklist.md) を参照する。
 

@@ -1,6 +1,6 @@
 # ZRdp SVN Agent
 
-更新日: 2026-10-10
+更新日: 2026-10-11
 
 ## 1. 配布と起動条件
 
@@ -152,6 +152,9 @@ Phase 9改善I-001でユーザー受入済みである。
 Version `0.7.20.0`で複数RDP sessionを使用する場合は、各sessionのRDP画面内で
 Agentを一つずつ起動する。一つのAgent processやWTS channel handleを別RDP
 sessionと共有しない。wire protocolはVersion `0.6.0.0`と互換である。
+
+上記は署名済み社内版の当時の手順。現行の公開準備版では、登録済み設定に基づいて
+Clientが各RDP sessionのAgentを自動管理する。session間でprocess／channelを共有しない境界は維持する。
 
 接続済みupstream Socketはsend／receive進捗が30分ない場合、対象streamだけを
 `CLOSE(Timeout)`として終了する。allowlistは起動時に一度だけ全体検証するため、

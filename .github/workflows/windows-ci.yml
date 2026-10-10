@@ -23,7 +23,7 @@ jobs:
       CMAKE_BUILD_PARALLEL_LEVEL: 4
     steps:
       - name: ソース取得（公式Actionを固定commitで使用）
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - name: Repositoryと監査scriptの検証
@@ -55,6 +55,8 @@ jobs:
           cmake --build --preset release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ctest --preset release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --preset release -R '^unit.rdp_host_smoke$' --repeat until-fail:20
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: 配布準備の検査（未署名development fixtureのみ）
         shell: pwsh

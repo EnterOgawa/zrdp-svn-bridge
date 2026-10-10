@@ -5,7 +5,7 @@
  *
  * @file rdp_host_smoke_test.cpp
  * @brief 非表示Win32環境でRDP ActiveX生成と接続前設定の契約を検証する。
- * @version 01.00.14
+ * @version 01.00.15
  * @date 2026/08/01
  * @author Shunji Ogawa
  *
@@ -30,6 +30,7 @@
  * Ver.01.00.12   Shunji Ogawa  2026/10/10  接続別設定・自動Agent管理の回帰検証を追加。
  * Ver.01.00.13   Shunji Ogawa  2026/10/11  コメント監査の不足と実装不一致を修正。
  * Ver.01.00.14   Shunji Ogawa  2026/10/11  最新Controlの公開CLSIDと実行時選択を非接続で検証。
+ * Ver.01.00.15   Shunji Ogawa  2026/10/11  CI thread通知の所有判定と固定marker・衝突回帰を追加。
  * </pre>
  */
 //------------------------------------------------------------------------------
@@ -176,6 +177,13 @@ void RunIsolatedHostThread( IsolatedHostThreadState &state) noexcept
 						600, nullptr, nullptr, GetModuleHandleW( nullptr), nullptr) ;
 	HRESULT create_result = parent == nullptr ? HRESULT_FROM_WIN32( GetLastError())
 											  : host.Create( parent, RECT{0, 0, 800, 600}) ;
+	// 同番号のWindow messageと宛先tokenなしthread messageをtest通知へ誤認しない。
+	if( SUCCEEDED( create_result)) {
+		static_cast<void>( PostMessageW( parent, kMessagePingIsolatedHost, 0U, 0L)) ;
+		static_cast<void>(
+			PostThreadMessageW( GetCurrentThreadId(), kMessagePingIsolatedHost, 0U, 0L)) ;
+	}
+
 	state.ready.set_value( create_result) ;
 
 	// 生成成功時だけ専用message loopを維持し、他STAの処理と直列化しない
@@ -187,15 +195,17 @@ void RunIsolatedHostThread( IsolatedHostThreadState &state) noexcept
 			break ;
 		}
 
-		// 隔離host破棄要求は所有STAで実行し、完了をpromiseへ通知する
-		if( message.message == kMessageDestroyIsolatedHost) {
+		// Window messageや他ownerのthread通知を、fixture破棄要求として消費しない。
+		if( message.hwnd == nullptr && message.lParam == reinterpret_cast<LPARAM>( &state) &&
+		   message.message == kMessageDestroyIsolatedHost) {
 			host.Destroy() ;
 			state.destroyed.set_value() ;
 			continue ;
 		}
 
-		// ping messageへの応答で残存STAがdispatch可能なことを通知する
-		if( message.message == kMessagePingIsolatedHost) {
+		// fixture自身の宛先tokenを持つthread pingだけを一回のpromiseへ通知する。
+		if( message.hwnd == nullptr && message.lParam == reinterpret_cast<LPARAM>( &state) &&
+		   message.message == kMessagePingIsolatedHost) {
 			state.pinged.set_value() ;
 			continue ;
 		}
@@ -333,6 +343,7 @@ int wmain( int argc, wchar_t **argv)
 	}
 
 	int result = 0 ;
+	std::cerr << "RDP smoke: main-host-start\n" ;
 	// ATL ActiveX containmentをprocessへ登録してからhostを生成する
 	if( !ATL::AtlAxWinInit()) {
 		result = 2 ;
@@ -376,6 +387,7 @@ int wmain( int argc, wchar_t **argv)
 
 				// 一つ目のActiveX生成成功後だけ既存の接続前契約を確認する
 				if( SUCCEEDED( create_result)) {
+					std::cerr << "RDP smoke: settings-start\n" ;
 					// 新旧type libraryでbuildしても、実行時の最新登録Control選択を維持する。
 					if( !TestLatestControlSelection( host)) {
 						result = 58 ;
@@ -664,6 +676,7 @@ int wmain( int argc, wchar_t **argv)
 				}
 
 				// 一つ目のsession破棄が二つ目のActiveX lifetimeへ波及しないことを確認する
+				std::cerr << "RDP smoke: main-host-destroy\n" ;
 				host.Destroy() ;
 				// 一つ目のhost破棄で二つ目のWindowまで消えていないことを確認する
 				if( second_created && !IsWindow( second_host.window()) && result == 0) {
@@ -693,6 +706,7 @@ int wmain( int argc, wchar_t **argv)
 		}
 
 		IsolatedHostThreadState first_isolated ;
+		std::cerr << "RDP smoke: isolated-hosts-start\n" ;
 		IsolatedHostThreadState second_isolated ;
 		std::future<HRESULT>	first_ready		= first_isolated.ready.get_future() ;
 		std::future<HRESULT>	second_ready	= second_isolated.ready.get_future() ;
@@ -714,9 +728,9 @@ int wmain( int argc, wchar_t **argv)
 
 		// 両方の隔離STAが開始した場合だけ片側破棄と他側pingを試験する
 		if( first_started && second_started) {
-			static_cast<void>(
-				PostThreadMessageW( first_isolated.thread_id.load( std::memory_order_acquire),
-								   kMessageDestroyIsolatedHost, 0U, 0L)) ;
+			static_cast<void>( PostThreadMessageW(
+				first_isolated.thread_id.load( std::memory_order_acquire),
+				kMessageDestroyIsolatedHost, 0U, reinterpret_cast<LPARAM>( &first_isolated))) ;
 			// 一方のActiveX破棄完了後も他方のSTAへmessageを送れることを確認する
 			if( first_destroyed.wait_for( kThreadTestTimeout) != std::future_status::ready) {
 				// 先行errorがなければ片側hostの破棄timeoutを固定codeへ保持する
@@ -724,9 +738,9 @@ int wmain( int argc, wchar_t **argv)
 					result = 40 ;
 				}
 			} else {
-				static_cast<void>(
-					PostThreadMessageW( second_isolated.thread_id.load( std::memory_order_acquire),
-									   kMessagePingIsolatedHost, 0U, 0L)) ;
+				static_cast<void>( PostThreadMessageW(
+					second_isolated.thread_id.load( std::memory_order_acquire),
+					kMessagePingIsolatedHost, 0U, reinterpret_cast<LPARAM>( &second_isolated))) ;
 				// 他側STAのping応答timeoutを先行errorを失わず検証失敗にする
 				if( second_pinged.wait_for( kThreadTestTimeout) != std::future_status::ready &&
 				   result == 0) {
@@ -742,9 +756,12 @@ int wmain( int argc, wchar_t **argv)
 			second_isolated.thread_id.load( std::memory_order_acquire), WM_QUIT, 0U, 0L)) ;
 		first_thread.join() ;
 		second_thread.join() ;
+		std::cerr << "RDP smoke: isolated-hosts-joined\n" ;
 
 		ATL::AtlAxWinTerm() ;
 	}
+
+	std::cerr << "RDP smoke: com-uninitialize\n" ;
 
 	CoUninitialize() ;
 	return result ;

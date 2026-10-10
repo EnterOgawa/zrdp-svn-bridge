@@ -163,6 +163,7 @@ target_link_libraries(
 
 target_compile_definitions(zrdp_rdp_host_smoke_test PRIVATE ZRDP_MSTSCAX_TYPE_LIBRARY="$ENV{SystemRoot}/System32/mstscax.dll")
 add_test(NAME unit.rdp_host_smoke COMMAND zrdp_rdp_host_smoke_test "${PROJECT_SOURCE_DIR}/work/tmp")
+set_tests_properties(unit.rdp_host_smoke PROPERTIES TIMEOUT 30)
 
 add_executable(
     zrdp_diagnostic_log_test
