@@ -1,6 +1,6 @@
 # ZRdp SVN Bridge セキュリティ方針
 
-更新日: 2026-08-03
+更新日: 2026-10-10
 
 ## 1. 接続履歴
 
@@ -160,3 +160,71 @@ endpoint、response内容は記録しない。
 
 この方針はRDP password、SVN／Trac credential、HTTP payload、SVN diff、
 Trac ticket／comment／attachmentを一切保存しない既存の診断方針を変更しない。
+
+## 6. Client／Agentセット更新の境界
+
+Client側のセット更新だけに、固定GitHub Release配布hostへのHTTPS取得を追加する。
+Agentの取得は開発PC側だけで行う。HTTP SVN／Trac中継の対象、allowlist、Virtual Channelは変更しない。
+更新通知前は有限manifestだけを取得し、同じRelease tagの二EXEは利用者の同意後に取得する。
+署名・timestamp・現行Clientとの公開鍵一致・SHA-256・製品metadata・protocolを
+二EXEとも完全検証し、同一製品版を必須とする。全RDP sessionと設定画面終了・保存完了後にだけ固定二EXEを置換する。
+片方欠落のmanifestや取得失敗では更新しない。通常の部分失敗では元hash照合済みの旧セットへ復元する。
+電源断等の二file同時atomic性は保証せず、復元不能ではstageと旧二backupを保持する。
+
+署名・通信・file権限の検証失敗では更新だけを停止する。認証token、任意URL、
+管理者昇格、security policy変更、RDP強制切断、別process強制終了を実装しない。
+同じWindowsユーザーまたは管理者による既存EXE・書込み可能配置の改変への
+完全防御を保証するものではない。復旧条件と残存stageの扱いは
+[Clientの自動更新](client-updates.md)を参照する。
+
+## 7. 接続別設定と自動Agent管理
+
+接続マネージャーがRDP接続先・domain・userの組と承認済みallowlistを
+current-user DPAPIで保存する。別接続へ設定を推定継承しない。
+未設定・未承認・破損ではProxyを使えず、旧allowlistで通信を継続しない。
+
+簡素化した設定画面では、IP・HTTPポート・用途を指定した `登録` を当該宛先の
+業務利用承認と自動保存の明示操作にする。HTTP Tracも登録した完全一致宛先だけを許可する。
+その意味を画面に表示し、読込みや別接続の未関連付け設定から承認を推定しない。
+登録・削除は保存成功後だけ一覧に公開し、失敗時は旧設定を維持する。
+
+RDP認証後に専用driveの固定二fileと固定setupだけを使って自動更新・起動する。
+設定変更は相互合意した限定SVC controlへINIだけを渡し、任意path・command・PIDは渡さない。
+Agentは旧Socketを閉じ、INIをbackup付きatomic renameで更新して固定自身を再起動する。
+最新INIのACK前にClient ProxyとAgent relayを有効化しない。削除・承認撤回では協調停止する。
+
+固定入力は対象前面で一度に一sessionだけとし、認証・世代・focus・clipboardを各段階で検証する。
+途中失効・部分受付・protocol異常では再送せず、復旧失敗が続く場合も有限停止する。
+強制終了、任意shell、追加port、startup／service登録、policy変更は行わない。
+Windows警告は自動承認しない。設定と入力の詳細は [接続別Agent設定](agent-settings.md) を参照する。
+
+## Agent配置と起動の任意署名
+
+2026-10-10の追加指示により、Client／Agentの署名は起動とAgent配置の許可条件にしない。
+署名付きと未署名を同じ経路で扱い、未署名だけの選択と警告、別CLIを廃止する。
+署名なしでも正式metadata、同一製品版、setup対応、有限サイズ、承認済みINIを検証する。
+metadataは発行者や改ざん防止の証明ではないため、信頼できるsource・配布元を使用する。
+
+接続先では専用drive直下の固定Agentに`--rdp-setup`だけを渡す。
+active RDP session、固定LocalAppData配置先、二file、allowlist、reparse・hardlink拒否、
+バックアップ付き更新とrollback、固定EXEだけの起動を維持する。
+Agent応答まで成功とは表示しない。Windowsや組織の実行・転送制限、警告確認は変更しない。
+Client自動更新の署名・公開鍵・hash検証は別機能として維持する。
+[Agentの任意署名](adr/0021-optional-agent-signing.md)が過去ADRの署名必須を置き換える。
+
+## Agent固定入力のSendInput境界
+
+初回自動配置は専用RDP driveと固定Agentの`--rdp-setup`だけを使い、Client／Agentのmetadataと
+全宛先承認済みINIを検証する。固定ユーザー配置先、バックアップ付き更新、45秒の応答期限を維持する。
+従来のclipboard配置とは別で、専用sourceの平文INIをcurrent-user限定の一時folderへ公開する。
+
+2026-10-10の明示承認により固定Win＋R／Ctrl＋V／EnterはSendInputを使用する。
+所有STA、認証・警告、実Control focus・前景、関連キー解放を確認し、COM照会後にも
+元の認証世代・phase・drive・Bridge・clipboard・取消条件を同期確認する。
+初回だけfocusを準備し、後続は奪い返さない。早着・再入・残留timer、失効、途中切替では入力しない。
+
+SendInputは接続先を直接指定しないため、直前確認後の切替競合でローカル側へ貼付け・Enterが届き、
+誤実行するリスクを完全には排除できない。操作手順に明記し、入力中の操作・Window切替を控えてもらう。
+部分受付では追加解放・再送・別経路fallbackをせず、手動解放を案内する。入力済みの起動は取り消せない。
+任意キー・文字列・commandのAPI、入力capture、権限昇格、policy変更は追加しない。
+詳細は[Agent固定入力のSendInput方式](adr/0017-sendinput-agent-controls.md)を参照する。

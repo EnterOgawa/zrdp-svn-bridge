@@ -1,6 +1,6 @@
 # ZRdp SVN Bridge 設定
 
-更新日: 2026-07-31
+更新日: 2026-10-10
 
 ## 1. Clientが保持する設定
 
@@ -291,3 +291,40 @@ ZRdpはEclipse、JavaHL、Mylynの設定を自動変更せず、repositoryとRDP
 redirect先が別endpoint、hostname、またはHTTPSの場合はsecurity boundaryにより
 失敗する。失敗時もZRdpへcredentialやticket内容を入力せず、Mylynのerror表示と
 payloadを含まないZRdp診断logだけを確認する。
+
+## 10. Clientの自動更新
+
+実装済みのClient更新機能は、同じ`client.ini`の`[update]`で制御する。
+`enabled=false`で外部の更新確認を止める。既定sourceは
+`EnterOgawa/zrdp-svn-bridge`の公開GitHub Releasesであり、認証tokenは使用しない。
+現在の署名済み配布版`0.7.20.0`には本機能を含まないため、初回は署名済み新版の
+手動配布が必要である。
+
+```ini
+[proxy]
+port=18080
+
+[update]
+enabled=false
+repository=EnterOgawa/zrdp-svn-bridge
+```
+
+更新sectionがない場合は既定sourceを確認する。更新設定の不正は更新だけを止め、
+正常なProxy設定を無効化しない。`[update]`だけの場合はProxy portを18080とする。
+詳しい操作、検証条件、復旧、配布手順は[Clientの自動更新](client-updates.md)を参照する。
+
+## 11. 接続別Agent設定
+
+接続マネージャーの `Agent設定` で、現在のRDP接続先・domain・userの組に紐づく
+HTTP SVN／承認済みHTTP TracのIPv4とHTTPポートを保存する。各設定は128 endpoint、
+設定全体は16件、表示名は64 UTF-16単位まで。未承認先を含むINIは出力・配置しない。
+
+保存先は `%LOCALAPPDATA%\ZRdpSvnBridge\agent-settings.bin`。
+形式2をcurrent-user DPAPIで暗号化し、形式1は未関連付けとして保全する。
+RDP履歴Version 3と `client.ini` は変更しない。
+
+RDP認証後の配置・更新・起動、疎通断からの復旧、設定変更時の協調再起動は自動で行う。
+起動の確認dialogと入力テストは廃止した。署名は必須にせず、Windowsの警告は維持する。
+設定画面はIP・ポート・用途の `登録` と一覧の `削除` だけとし、両操作で自動保存する。
+登録はその完全一致宛先の業務利用承認を兼ねる。独立した保存・承認checkbox・INI入出力は置かない。
+詳細は [Agent設定](agent-settings.md) を参照する。

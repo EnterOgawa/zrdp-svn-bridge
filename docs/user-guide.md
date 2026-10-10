@@ -1,9 +1,12 @@
 # ZRdp SVN Bridge 利用手順書
 
 - 文書ID: `ZRDP-USER-001`
-- 対象Version: `0.7.20.0`
-- 対象: 社内試行利用者
-- 更新日: 2026-08-25
+- 対象: `0.7.20.0` を製品Versionとする現行開発ソース（新Release未作成）
+- 対象利用者: 試行利用者・自前ビルド利用者
+- 更新日: 2026-10-11
+
+過去の同Versionの署名済み社内配布物とは操作が異なる。現行の接続別設定・
+Agent自動管理・セット更新を説明する。過去の受入結果を最新ソースの受入結果として扱わない。
 
 ## 1. はじめに
 
@@ -29,7 +32,7 @@ endpointと操作は、所属組織から許可された範囲に限定する。
 - ZRdpから接続したactive RDPユーザーsession
 - 通常ユーザーとしてEXEを実行できること
 - 許可済みHTTP SVN／Trac endpointへ既存経路で接続可能であること
-- 実環境endpointだけを記載した`agent.ini`
+- RDPの専用drive／clipboard転送が組織policyで許可されていること
 
 管理者権限、service登録、driver、inbound port、Firewall変更は不要である。
 
@@ -39,30 +42,32 @@ endpointと操作は、所属組織から許可された範囲に限定する。
 
 | 対象PC | File |
 |---|---|
-| 開発PC | `ZRdpSvnBridge.exe` |
-| 支給PC | `ZRdpSvnAgent.exe` |
+| 開発PCで起動 | `ZRdpSvnBridge.exe` |
+| 開発PCのClientと同じdirectoryから接続先へ自動配置 | `ZRdpSvnAgent.exe` |
 
-社内配布版では両EXEのVersionが`0.7.20.0`で一致し、Authenticode署名が有効である
-ことを確認する。Windows ExplorerでEXEのプロパティを開き、「デジタル署名」tabから
-署名状態を確認できる。
+両EXEのVersionを一致させ、信頼できる配布元を使用する。署名済み配布物では
+Windows Explorerのプロパティ「デジタル署名」tabから有効性を確認する。
+通常起動・Agent配置は署名を必須としない。未署名の自前buildも同じ経路で使用できるが、
+Version・製品情報・安全なfileの検証は維持する。セット自動更新では両EXEの署名が必須である。
 
 次が同梱されていても実行しない。
 
 - 出所不明なDLL
 - PDB、dump、packet capture
 - 他環境の`agent.ini`、credential、RDP file
-- 署名が無効またはVersionが一致しないEXE
+- 出所が不明、配布元の署名と一致しない、またはVersionが一致しないEXE
 
 ## 4. 配置
 
 ### 4.1 Client
 
-`ZRdpSvnBridge.exe`を通常ユーザーが実行できるdirectoryへ配置する。診断logを
+二つのEXEを、開発PCの通常ユーザーが実行できる同じdirectoryへ配置する。診断logを
 見つけやすくするため、社内policyで許可された書込み可能directoryを推奨する。
 
 ```text
 %LOCALAPPDATA%\ZRdp\
-└─ ZRdpSvnBridge.exe
+├─ ZRdpSvnBridge.exe
+└─ ZRdpSvnAgent.exe
 ```
 
 既定port `18080`が競合する場合だけ、EXEの横へ`client.ini`を置く。
@@ -72,11 +77,13 @@ endpointと操作は、所属組織から許可された範囲に限定する。
 port=18080
 ```
 
-Port以外は設定できない。通常は`client.ini`を作成しない。
+通常は`client.ini`を作成しない。更新確認を無効化する場合は `[update]` の
+`enabled=false` も設定できる。詳細は [セット更新](client-updates.md) を参照する。
 
 ### 4.2 Agent
 
-`ZRdpSvnAgent.exe`と実環境用`agent.ini`を同じ書込み可能directoryへ配置する。
+Clientが認証後に次の固定directoryへAgentと設定を配置・更新して起動する。
+通常は接続先での手動配置・手動起動を行わない。
 
 ```text
 %LOCALAPPDATA%\ZRdp\
@@ -84,7 +91,8 @@ Port以外は設定できない。通常は`client.ini`を作成しない。
 └─ agent.ini
 ```
 
-`agent.ini`には組織から明示的に許可されたHTTP endpointだけを記載する。
+Clientは接続マネージャーの「Agent設定」で登録した許可済み宛先からINIを生成する。
+以下は生成内容の説明例であり、通常利用でこのINIを手動作成する必要はない。
 
 ```ini
 [allowlist]
@@ -96,7 +104,22 @@ endpoint.1002=198.51.100.20:8080
 repository、共通資料へ転載しない。
 
 同じ`IPv4:port`にSVNとTracが存在する場合、pathごとにentryを重複追加しない。
-設定変更後はAgentを再起動する。
+設定変更はClientから行う。接続中は自動で協調停止・再起動する。
+
+### 4.3 接続別Agent設定
+
+接続先、ドメイン、ユーザー名を指定して「Agent設定」を開く。
+許可済みのHTTP endpointのIP、ポート、用途を入力して「登録」を押す。
+削除は一覧の選択後に「削除」を押す。登録・削除は自動保存される。
+
+設定の保存単位は接続先＋ドメイン＋ユーザー名であり、接続を切り替えると
+その接続に登録済みの宛先だけを表示する。未設定の場合は空一覧である。
+登録は当該endpointの業務利用承認（Tracを含む）として扱う。
+登録が一件もない接続ではAgentを自動起動・再起動せず、`Agent:要設定` を表示する。
+RDP画面は継続できるがHTTP中継は使用できない。
+
+画像と入力・保存仕様は [README](../README.md#3-この接続のagent設定を登録する) と
+[Agent設定](agent-settings.md) を参照する。
 
 ## 5. RDP接続
 
@@ -156,24 +179,22 @@ Credential UIをCancelまたは閉じた場合、ZRdpは追加の接続errorを�
 反復せず、そのSession Windowだけを閉じる。接続管理Windowと他の接続は維持する。
 認証失敗や接続障害ではWindowsが返したerrorを確認する。
 
-## 6. Agentを起動する
+## 6. Agentの自動起動と復旧
 
-Agentは必ずZRdpで接続した支給PCのRDP画面内から起動する。
+登録済みAgent設定のある接続では、認証完了後、RDP画面が前面かつ入力が
+落ち着いた状態を確認してClientが配置・更新・起動する。独自の起動dialogは表示しない。
+固定のWin+R／貼り付け／実行を送信するため、接続先の実行画面が一時表示されることがある。
+自動処理中は入力を避け、Windowsの警告が出た場合は利用者が確認する。
+前面状態や転送policy等の検証が失敗しても別経路へfallbackせず、RDPを維持する。
 
-1. RDP接続が完了していることを確認する。
-2. 支給PCで`ZRdpSvnAgent.exe`を起動する。
-3. `allowlist限定SVN streamを有効にしました。`と表示されることを確認する。
-4. `Clientと接続しました。`と表示されるまで待つ。
-5. Clientのsession titleで`Agent:接続済み`を確認する。
-6. `Proxy:利用可 127.0.0.1:<port>`を確認する。
+最新設定のAgent応答を待ち、session titleの `Agent:接続済み` と
+`Proxy:利用可 127.0.0.1:<port>` を確認してからHTTP通信を開始する。
 
-設定欠落または不正時はAgentがEcho-onlyで起動し、Proxyは利用可能にならない。
-`agent.ini`を修正してAgentを再起動する。
-
-通常停止はAgent consoleでCtrl+Cを押す。RDP画面は維持され、ClientはAgent待機へ
-戻る。同じRDP sessionでAgentを再起動すると自動的にBridgeを再確立する。
-
-RDPを切断または再接続した場合は、新しいRDP session内でAgentを起動し直す。
+Agentはconsoleではなく接続先のタスクトレイに常駐する。疎通断ではClientが
+有限回・backoff付きで再起動を試みる。トレイで終了しても設定がある限り復旧対象となる。
+意図して停止する場合はRDPを切断するか、その接続の登録をすべて削除する。
+設定変更時は既存HTTP streamを終了し、新しい設定で協調再起動するため、
+SVN／Trac操作の完了後に行う。再接続は新しいBridge sessionとして扱う。
 
 ## 7. Session titleの見方
 
@@ -183,6 +204,7 @@ Session titleには次の情報を表示する。
 |---|---|
 | `RDP:接続済み` | RDPログインが完了している |
 | `Agent:待機中` | 対応Agentが未接続 |
+| `Agent:要設定` | この接続の登録済み宛先がなく、自動起動しない |
 | `Agent:接続済み` | ESVNBRG handshakeが成立している |
 | `Proxy:利用可 127.0.0.1:<port>` | 新しいHTTP streamを開始できる |
 | `stream=N` | 現在activeなHTTP stream数 |
@@ -263,7 +285,7 @@ Redirect先がhostname、HTTPS、別の未許可endpointの場合はZRdpのsecur
 3件目: 127.0.0.1:18082
 ```
 
-- 各RDP session内でAgentを一つずつ起動する。
+- 登録済み設定に基づき、Clientが各RDP session内でAgentを自動起動する。
 - 一つのAgentを複数sessionから共有しない。
 - SVN／Trac側には対応sessionのportを設定する。
 - 終了したsessionのport slotは次の新規sessionで再利用される。
@@ -298,7 +320,7 @@ remote desktop寸法を変更しない。
 
 - Session Windowの閉じるbuttonは対象RDP sessionだけを切断する。
 - 接続中は切断完了を待ってからWindowが閉じる。連打やタスク終了は行わない。
-- Agentを先に止めてもRDPは継続する。
+- Agent停止でもRDPは継続するが、設定があれば自動復旧を試みる。
 - RDP接続先の再起動や最終外部切断では、対象Windowがerror dialogなしで閉じる。
 - 接続管理Windowと別sessionは継続する。
 - すべてのsessionを終了後、接続管理Windowを閉じてClientを終了する。
@@ -335,8 +357,9 @@ Logには通常、接続先、ユーザー名、URL、credential、HTTP payload�
 | 状況 | 確認内容 |
 |---|---|
 | AgentがEcho-onlyになる | `agent.ini`の場所、section、重複、IPv4／portを確認してAgent再起動 |
-| `Agent:待機中`のまま | Agentを同じactive RDP sessionで起動したか確認 |
-| Proxyが利用可にならない | Agent console、allowlist、Client／Agent Versionを確認 |
+| `Agent:要設定` | マネージャーの接続情報と当該接続の登録を確認 |
+| `Agent:待機中`のまま | 前面のRDP画面、Windows警告、転送・実行policyを確認 |
+| Proxyが利用可にならない | Agentのtray状態、設定、Client／Agent Versionを確認 |
 | Proxy `BindFailed` | 別Client processや別applicationがportを使用していないか確認 |
 | SVNが`403` | 宛先`IPv4:port`がAgent allowlistと完全一致するか確認 |
 | SVNが`503` | Agent／BridgeがReadyになるまで待つ |
@@ -367,12 +390,15 @@ Password、repository URL、source、diff、ticket本文、screen capture、pack
 
 ## 16. 更新とrollback
 
-1. SVN／Trac処理が完了していることを確認する。
-2. AgentをCtrl+Cで終了する。
-3. すべてのRDP Session WindowとClientを終了する。
-4. Client／Agent両方を同じ新Versionへ置き換える。
-5. Authenticode署名とVersionを確認する。
-6. `agent.ini`を維持し、Agentを起動してProxy利用可を確認する。
+更新確認は起動時と24時間ごとに自動実行する。ダウンロード・適用は同意後に行い、
+同VersionのClient／Agentをセットで取得する。適用前にSVN／Trac操作を完了し、
+すべてのRDP sessionとAgent設定画面を閉じ、設定保存の完了を待つ。
+接続先Agentは次回RDP接続時に更新する。署名・manifest・部分失敗時のrollbackと
+現在のPrivate取得制約は [セット更新](client-updates.md) を参照する。
+
+未署名の自前buildは自動更新対象外である。手動更新ではClientを終了して、開発PCの
+二つのEXEを同Versionで置き換える。次の接続で接続先へ反映する。
+既存Agentが旧方式で動作中の場合や更新が安全に行えない場合は、強制終了・上書きしない。
 
 接続履歴Version 3を旧Clientが読めない場合は、Client終了後に次のfileだけを退避または
 削除すると空の履歴で開始できる。

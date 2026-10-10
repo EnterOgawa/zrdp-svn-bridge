@@ -1,6 +1,6 @@
 # ZRdp Remote Desktop ActiveX設計
 
-更新日: 2026-07-31
+更新日: 2026-10-10
 
 ## 1. 責務
 
@@ -43,6 +43,13 @@ session間で共有しない。一つのsessionでMicrosoft Controlの切断ま�
 - `OnAuthenticationWarningDisplayed`から`Dismissed`まで、親Windowの
   `WM_SETFOCUS`でActiveX childへfocusを移し直さない。Microsoft dialogのmodal focusを
   container側で奪わない。
+- 認証event前やdialog間も含め、`Connect`受付直後、`Connecting`、`Connected`、
+  `Reconnecting`ではZRdpから通常focusを移さない。`LoginComplete`または
+  `AutoReconnected`後にmessageを予約し、callback外で`LoggedIn`、警告なし、
+  有効かつ有効化された親とhost、当該sessionのactive／foregroundを再確認する。
+  非表示の接続入力欄へfocusを戻す処理もsession Windowでは行わない。
+  認証UIの所有関係、NLA、CredSSP、証明書判断は変更しない。詳細と実機確認条件は
+  [ADR 0020](adr/0020-authentication-focus-isolation.md)に記録する。
 - `IMsRdpClientNonScriptable2::UIParentWindowHandle`へsession top-level Windowを
   明示設定せず、credential UIと後続certificate UIの親をActiveX Control Windowの
   既定処理へ一貫して委譲する。
@@ -50,6 +57,45 @@ session間で共有しない。一つのsessionでMicrosoft Controlの切断ま�
   2秒／5秒の有限retryは認証UIへ到達する前の`263/0`完全一致だけに限定する。
 - credential保存を許可しない。
 - `mstsc.exe`、system DLL、RDP protocolをコピーまたは再実装しない。
+
+### 自動配置の入力準備
+
+接続前に`IMsRdpClientAdvancedSettings::EnableWindowsKey`を非0、
+`IMsRdpClientSecuredSettings::KeyboardHookMode`を1に設定してreadbackする。
+Windowsキーの組合せは、既定の全画面限定ではなくウィンドウ表示中も接続先へ送る。
+`KeyboardHookMode`は接続中に設定できないため、入力直前はreadbackだけを行う。
+確認が成立しない場合は自動配置を停止し、RDP画面接続は可能な限り維持する。
+標準Controlのpropertyを使用し、独自keyboard hookやpolicy変更は行わない。
+([EnableWindowsKey](https://learn.microsoft.com/en-us/windows/win32/termserv/imsrdpclientadvancedsettings-enablewindowskey)、
+[KeyboardHookMode](https://learn.microsoft.com/en-us/windows/win32/termserv/imsrdpclientsecuredsettings-keyboardhookmode))
+
+Agent設定は接続マネージャーで接続別に保存する。認証後に固定setupで自動配置・更新・起動し、設定変更時は協調再起動する。
+署名の有無は起動条件にせず、固定setup argumentは`--rdp-setup`だけを使用する。
+[Agentの任意署名](adr/0021-optional-agent-signing.md)に対象と制約を記載する。
+
+2026-10-10の明示承認により、配置・起動の固定Win+R／Ctrl+V／EnterはSendInputを使用する。
+初回focus準備だけを、同じClient processが前景の可視・有効・非最小化sessionへ限定する。
+後続段階はfocusを奪い返さず、前景・active Windowと実ControlのIOleWindow配下へのfocusをreadbackする。
+所有STA、警告のない認証、関連キーと修飾キーの解放を確認し、COM照会後にもownerの同期callbackで
+元の認証世代、入力phase、専用drive、Bridge状態、clipboard世代、取消条件を再確認する。
+認証警告、他Window切替、最小化、切断・再接続では未送信入力を失効させ、戻っても再開しない。
+Windowsの前景制限を解除せず、AttachThreadInput、権限昇格、SendKeys fallbackは行わない。
+([SetForegroundWindow](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow)、
+[SetFocus](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setfocus))
+
+これらは入力前提の確認であり、接続先のRun dialogの表示、clipboard同期、実行や配置の
+完了を保証しない。`SendKeys`のE_FAILの内部原因をfocusだけに確定するものでもない。
+入力準備とSendInputの受付数・元Win32 error・HRESULTを別々に記録し、完了はAgent応答で確認する。
+初回準備後350 ms、後続入力は前のAPI終了後700 ms以上を空け、予定から3秒遅れた入力は停止する。
+各固定列を一度だけ挿入し、全件だけS_OKとする。部分受付では追加解放や再送を行わず、手動解放を案内する。
+SendInputはremote sessionを指定しないため、直前確認後の切替競合でローカル側へ貼付けやEnterが届く
+誤実行リスクを操作手順へ明記する。開発用入力診断のUIと送信APIは削除した。
+([SendInput](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput))
+
+Agentの固定Run／Paste／Enterだけを製品内に残し、単独キー・SendKeys比較・
+メモ帳への診断入力は提供しない。対象前面と入力休止を待ち、起動確認dialogを出さずに
+managerの有限queueから所有STAへ渡す。開始後の前面切替では未送信入力を停止する。
+設定ACK前のProxy gateと復旧条件は [ADR 0022](adr/0022-connection-agent-lifecycle.md) に従う。
 
 ## 3. 表示mode
 
@@ -288,12 +334,23 @@ Windowを破棄する。既に`Disconnecting`の場合は二重呼出しを行�
 
 ## 8. 検証境界
 
+Agent自動起動は接続別の保存設定を使う。保存設定なしの場合は編集へ案内する。
+対象ID・認証世代を固定し、無確認でも各入力段階の安全条件を再検証する。
+AgentのタスクトレイUIは接続先processの専用UI threadに所有し、RDP ActiveX、
+SendInputの固定列、ESVNBRG、Proxyのdata planeは変更しない。
+配置先の旧二fileは接続先にbackupして上書き更新するが、稼働Agentは強制終了しない。
+
 自動testは実RDP接続を開始せず、非表示のWin32 parent上で次を確認する。
 
 - ActiveX生成と破棄
 - 不正な接続前設定の拒否
 - 分離したDomain／UserNameの設定と、結合済み・上限超過・埋込みNULの拒否
 - 3つの表示modeの接続前設定
+- Windowsキー有効化と`KeyboardHookMode=1`の接続前設定とreadback
+- 未認証・非所有STAでの入力準備拒否と、純粋なforeground／focus前後条件
+- 開発用固定Win＋Rの確認取消、確認／focus中の世代失効、競合、元HRESULT保持、一回送信
+- 開発用入力の最小待機、結果表示分離、前景切替・再確認失敗・期限・timer失敗・再入・残留通知の拒否
+- 三種類の固定scan-code列のgolden値、未知種別拒否、各menu commandと表示の対応、個別の固定event名
 - マイクON／OFFと3つのリモート音声再生先の接続前設定とreadback
 - 未知の音声再生先の拒否
 - 文書用IPv4 literalを使った全画面識別表示の接続前設定とreadback

@@ -1,5 +1,74 @@
 add_executable(zrdp_build_contract_test unit/build_contract_test.cpp)
 
+add_executable(zrdp_agent_deployment_test unit/agent_deployment_test.cpp)
+target_link_libraries(zrdp_agent_deployment_test PRIVATE zrdp_agent_settings zrdp_client_update)
+add_dependencies(zrdp_agent_deployment_test ZRdpSvnBridge ZRdpSvnAgent)
+add_test(NAME unit.agent_deployment COMMAND zrdp_agent_deployment_test "$<TARGET_FILE:ZRdpSvnBridge>" "$<TARGET_FILE:ZRdpSvnAgent>")
+set_tests_properties(unit.agent_deployment PROPERTIES TIMEOUT 10)
+
+add_executable(zrdp_agent_deployment_window_test unit/agent_deployment_window_test.cpp "${PROJECT_SOURCE_DIR}/src/client/app/agent_settings.rc")
+target_link_libraries(zrdp_agent_deployment_window_test PRIVATE zrdp_agent_settings_ui)
+add_test(NAME unit.agent_deployment_window COMMAND zrdp_agent_deployment_window_test)
+set_tests_properties(unit.agent_deployment_window PROPERTIES TIMEOUT 10)
+
+add_executable(zrdp_agent_start_window_test unit/agent_start_window_test.cpp "${PROJECT_SOURCE_DIR}/src/client/app/agent_settings.rc")
+target_link_libraries(zrdp_agent_start_window_test PRIVATE zrdp_agent_settings_ui)
+add_test(NAME unit.agent_start_window COMMAND zrdp_agent_start_window_test)
+set_tests_properties(unit.agent_start_window PROPERTIES TIMEOUT 10)
+
+add_executable(zrdp_session_agent_controls_test unit/session_agent_controls_test.cpp
+    "${PROJECT_SOURCE_DIR}/src/client/app/main_window.cpp"
+    "${PROJECT_SOURCE_DIR}/src/client/app/ZRdpSvnBridge.rc"
+    "${PROJECT_SOURCE_DIR}/src/client/app/agent_settings.rc"
+    "${PROJECT_SOURCE_DIR}/assets/icons/zrdp-icon.rc")
+target_include_directories(zrdp_session_agent_controls_test PRIVATE "${PROJECT_SOURCE_DIR}/src/client/app")
+target_link_libraries(zrdp_session_agent_controls_test PRIVATE zrdp_client_bridge zrdp_client_proxy
+    zrdp_agent_settings_ui zrdp_connection_history zrdp_rdp zrdp_rdp_window_sizing comctl32 gdi32 ole32 shell32 user32)
+add_test(NAME unit.session_agent_controls COMMAND zrdp_session_agent_controls_test)
+set_tests_properties(unit.session_agent_controls PROPERTIES TIMEOUT 10)
+
+foreach(_agent_settings_test IN ITEMS model service windows)
+    add_executable(zrdp_agent_settings_${_agent_settings_test}_test unit/agent_settings_${_agent_settings_test}_test.cpp)
+    target_link_libraries(zrdp_agent_settings_${_agent_settings_test}_test PRIVATE zrdp_agent_settings)
+    add_test(NAME unit.agent_settings_${_agent_settings_test} COMMAND zrdp_agent_settings_${_agent_settings_test}_test)
+    set_tests_properties(unit.agent_settings_${_agent_settings_test} PROPERTIES TIMEOUT 10)
+endforeach()
+
+add_executable(zrdp_agent_settings_window_test unit/agent_settings_window_test.cpp "${PROJECT_SOURCE_DIR}/src/client/app/agent_settings.rc")
+target_link_libraries(zrdp_agent_settings_window_test PRIVATE zrdp_agent_settings_ui comctl32 user32)
+add_test(NAME unit.agent_settings_window COMMAND zrdp_agent_settings_window_test)
+set_tests_properties(unit.agent_settings_window PROPERTIES TIMEOUT 15)
+
+foreach(_update_test IN ITEMS policy apply service)
+    add_executable(zrdp_client_update_${_update_test}_test unit/client_update_${_update_test}_test.cpp)
+    target_link_libraries(zrdp_client_update_${_update_test}_test PRIVATE zrdp_client_update)
+    add_test(NAME unit.client_update_${_update_test} COMMAND zrdp_client_update_${_update_test}_test)
+    set_tests_properties(unit.client_update_${_update_test} PROPERTIES TIMEOUT 10)
+endforeach()
+
+add_executable(zrdp_client_update_windows_test unit/client_update_windows_test.cpp)
+target_link_libraries(zrdp_client_update_windows_test PRIVATE zrdp_client_update)
+add_dependencies(zrdp_client_update_windows_test ZRdpSvnBridge ZRdpSvnAgent)
+add_test(NAME unit.client_update_windows COMMAND zrdp_client_update_windows_test "$<TARGET_FILE:ZRdpSvnBridge>" "$<TARGET_FILE:ZRdpSvnAgent>")
+set_tests_properties(unit.client_update_windows PROPERTIES TIMEOUT 30)
+
+add_test(NAME unit.client_update_invalid_helper COMMAND "$<TARGET_FILE:ZRdpSvnBridge>" --zrdp-maintenance 0 0)
+add_test(NAME unit.client_update_invalid_restart COMMAND "$<TARGET_FILE:ZRdpSvnBridge>" --zrdp-update-restarted 0 0 ../outside)
+set_tests_properties(unit.client_update_invalid_helper unit.client_update_invalid_restart PROPERTIES WILL_FAIL TRUE TIMEOUT 5)
+
+find_program(ZRDP_TEST_POWERSHELL NAMES pwsh powershell)
+if(ZRDP_TEST_POWERSHELL)
+    add_test(
+        NAME unit.client_update_manifest_script
+        COMMAND "${ZRDP_TEST_POWERSHELL}" -NoProfile -NonInteractive -File
+            "${PROJECT_SOURCE_DIR}/tests/unit/client_update_manifest_script_test.ps1"
+            -RepositoryRoot "${PROJECT_SOURCE_DIR}"
+            -ClientExecutable "$<TARGET_FILE:ZRdpSvnBridge>"
+            -WorkingDirectory "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+    set_tests_properties(unit.client_update_manifest_script PROPERTIES TIMEOUT 30)
+endif()
+
 target_link_libraries(zrdp_build_contract_test PRIVATE zrdp_build_options)
 
 add_test(NAME unit.build_contract COMMAND zrdp_build_contract_test)
@@ -87,11 +156,13 @@ target_link_libraries(
     PRIVATE
         zrdp_build_options
         zrdp_rdp
+        zrdp_agent_setup
         ole32
         user32
 )
 
-add_test(NAME unit.rdp_host_smoke COMMAND zrdp_rdp_host_smoke_test)
+target_compile_definitions(zrdp_rdp_host_smoke_test PRIVATE ZRDP_MSTSCAX_TYPE_LIBRARY="$ENV{SystemRoot}/System32/mstscax.dll")
+add_test(NAME unit.rdp_host_smoke COMMAND zrdp_rdp_host_smoke_test "${PROJECT_SOURCE_DIR}/work/tmp")
 
 add_executable(
     zrdp_diagnostic_log_test
@@ -510,6 +581,16 @@ add_executable(
     zrdp_phase6_hardening_integration_test
     integration/phase6_hardening_test.cpp
 )
+
+add_executable(zrdp_agent_setup_test unit/agent_setup_test.cpp)
+target_link_libraries(zrdp_agent_setup_test PRIVATE zrdp_agent_setup)
+add_test(NAME unit.agent_setup COMMAND zrdp_agent_setup_test "${PROJECT_SOURCE_DIR}/work/tmp" "$<TARGET_FILE:ZRdpSvnAgent>")
+set_tests_properties(unit.agent_setup PROPERTIES TIMEOUT 30)
+
+add_executable(zrdp_agent_bootstrap_ui_test unit/agent_bootstrap_ui_test.cpp "${PROJECT_SOURCE_DIR}/src/client/app/agent_settings.rc")
+target_link_libraries(zrdp_agent_bootstrap_ui_test PRIVATE zrdp_agent_settings_ui)
+add_test(NAME unit.agent_bootstrap_ui COMMAND zrdp_agent_bootstrap_ui_test "${PROJECT_SOURCE_DIR}/work/tmp")
+set_tests_properties(unit.agent_bootstrap_ui PROPERTIES TIMEOUT 10)
 
 target_link_libraries(
     zrdp_phase6_hardening_integration_test

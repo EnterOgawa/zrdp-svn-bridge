@@ -1,10 +1,148 @@
 # ZRdp SVN Bridge テスト計画
 
-更新日: 2026-10-07
+更新日: 2026-10-10
 
 本書には各開発段階の検証履歴を含む。終了済みの作業記録はcommit `cfdaa8c`から
 参照できる。過去の`work/tmp`保存先は整理済みであり、現行テストの依存先ではない。
 Agentの回復条件と全画面制御の確定判断はADR 0011／0012を参照する。
+
+## 接続別の登録済みAgent設定と表示切替
+
+一覧には現在の接続に登録済みの宛先だけを表示し、旧未関連付け設定や未承認候補は表示・起動へ流用しない。
+接続変更は開いている設定画面へだけ配送し、保存先を途中で変えず再読込みする。
+保存失敗では元接続・入力を保全し、Load中・Save中の変更は最後の一件だけを保持する。
+
+隔離fixtureで接続A→B→未登録→A、接続未選択、閉じて再読込み、hidden候補のindex対応、
+登録済みprojection、保存中の切替、保存失敗と再保存、同名二接続のDPAPI保存を確認した。
+Debug 47/47（7.92秒）、Release 47/47（8.33秒）。書式141 fileの不適合0、
+formatter self-test16件合格、Doxygenの新規警告なし（既存8件）、`git diff --check`正常。
+自作dataだけの設定画面を96 DPIで表示確認した。未署名のRelease Clientを `out` へ出力し、
+Agentのhashが修正前と同じであることを確認した。製品版は0.7.20.0を維持する。
+実RDPでの登録済み設定による自動起動と、マネージャー操作からの追従は利用者受入に残す。
+
+## Agent自動管理のダイアログ撤廃
+
+RDP認証後のAgent配置・起動・復旧では、独自の確認・進捗・失敗dialogを表示しない。
+設定画面の自動表示も除去し、設定なしは `Agent:要設定` と手動設定入口で案内する。
+Agentの失敗は既存終了codeと固定診断へ記録する。Windowsの実行画面は一時表示され、
+Windows警告・認証の扱いは変更しない。
+
+隔離したAgent EXEを非転送pathから固定setup引数で実行し、5秒以内の拒否終了と診断codeを確認した。
+SVC・実INI・実配置先への処理は拒否guardより後にあり、この試験では実行しない。
+resource試験は要設定表示、接続しないsession UIは認証前の停止表示と自動入力拒否を確認した。
+Debug 47/47（9.40秒）、Release 47/47（7.49秒）。Release二EXEは未署名で `out` へ出力した。
+Agent EXEのmodal dialog API importはなく、書式141 fileの不適合0、formatter self-test16件合格、
+Doxygenの新規警告なし（既存8件）、`git diff --check`正常。
+実RDPでは設定済みの自動起動・復旧、未設定時の無dialog待機、手動登録後の開始を受入確認する。
+
+## 接続マネージャーのメニュー廃止
+
+Agent／更新のmenu barと手動更新確認の入口を除去した。Agent設定は既存buttonから操作し、
+更新確認は既存の起動時と24時間周期のworkerへ統一する。更新無効設定、取得・適用への同意、
+署名検証と全session終了待ちは維持する。Window寸法はmenuなしで計算する。
+
+配布EXEをresource dataとして開き、旧menu不在を確認した。自動確認・見送り抑止、
+同意前の取得禁止と適用保留は既存fake backendの回帰試験を通す。
+Debug 47/47（8.81秒）、Release 47/47（7.42秒）。書式141 fileの不適合0、
+formatter self-test16件合格、Doxygenの新規警告なし（既存8件）、`git diff --check`正常。
+未署名のRelease二EXEを `out` へ出力した。実更新元と実RDPは試験に使用しない。
+
+## Agent設定画面の登録と削除
+
+IP・HTTPポート・用途の三列と入力欄、登録・削除・閉じるに簡素化した。
+登録はその宛先の業務利用承認と自動保存を兼ね、別の承認checkboxや保存buttonを置かない。
+読込みだけで旧未関連付け設定を承認せず、同じ完全一致宛先の再登録は匿名IDを保つ。
+
+隔離UI fixtureで、自動保存、同一宛先の用途変更、新規宛先追加、選択削除と最後の空設定保存、
+他接続の保全、保存失敗・queue競合時の旧一覧と入力保持、二重操作・保存中終了の抑止、
+廃止controlとcommandの無作用、未承認draftと復号失敗後の保存拒否を確認した。
+自作dataだけの画面を96 DPIで表示確認し、RDP、実宛先、実設定には接続しない。
+
+最終結果: Debug 47/47（9.08秒）、Release 47/47（7.13秒）。書式141 fileの不適合0、
+formatter self-test16件合格、Doxygenの新規警告なし（既存8件）、`git diff --check`正常。
+Release二EXEを `out` に配置した。今回も未署名で、製品版0.7.20.0と保存形式2は変更しない。
+
+## 接続別Agent設定と自動管理
+
+接続マネージャーに設定を集約し、接続先・domain・userごとに保存する。
+認証後の固定配置・更新・起動、疎通断の有限復旧、変更INIによる協調再起動、
+削除・承認撤回による中継停止を対象とする。起動確認と開発入力テストは廃止した。
+
+ローカルの全47 CTestへ、接続keyの独立性、同名の別接続、改名、保存形式1／2、
+接続固定editor、INI-only更新とbackup、controlの方向・重複・拒否ACK後CLOSE、
+設定ACK前のSocket gate、停止event、backoff・期限境界、診断UI／API不在を追加した。
+実RDP、実repositoryと実credentialは自動試験に使わない。
+
+最終ローカル結果: Debug 47/47（9.87秒）、Release 47/47（7.84秒）。
+書式141 fileの不適合0、formatter self-test16件合格、`git diff --check`は正常。
+Doxygenは新規警告なし、lambda commentの関連付けによる既存警告8件を維持する。
+INIのdisk一致だけでなく稼働allowlistとの一致も確認し、不一致なら再起動する判定を含む。
+Releaseの二EXEを `out` へ出力した。製品版は0.7.20.0のままであり、今回のbuildは未署名である。
+
+実機Gate: 旧Agentを終了して初回配置、既配置更新、トレイ終了からの自動復旧、
+接続中の設定変更、承認撤回、複数RDPの対象分離、全画面、他画面からの復帰、
+入力途中の切替、Windows警告と転送policy拒否。RDP自体が維持されることも確認する。
+詳細は [ADR 0022](adr/0022-connection-agent-lifecycle.md) を参照する。
+
+以下は各段階の検証履歴であり、現行の操作手順は [接続別Agent設定](agent-settings.md) を正本とする。
+
+## Agent配置と起動の署名要件撤廃
+
+2026-10-10の追加指示により、署名付き・未署名を同じ通常経路で扱う。
+未署名テスト専用のcheckbox、別警告、別CLIを廃止し、Client自動更新の検証は維持する。
+過去の署名gateと未署名テストの記録は当時の検証履歴として残す。
+
+ローカルDebug 47/47（9.17秒）、Release 47/47（7.67秒）。書式140 file不適合0、
+formatter self-test16件合格。Doxygenの変更対象契約に新規警告なし。
+通常経路での未署名の実Agent配置・再利用・backup更新、同一製品版の判定、
+別製品拒否、廃止UIとresourceの不在、既存更新検証を確認する。
+当段階では署名要件だけを変更した。現在の自動ライフサイクルと入力テスト削除は上記の後続実装に含む。
+
+## Agent直接起動・トレイ・上書き更新（2026-10-10）
+
+現行統一起動の実Agent起動とClient応答はユーザーから成功報告を受けた。
+今回の新機能は設定画面を経由しない保存設定Load、独立起動確認、tray常駐、
+バックアップ付き上書き更新。自動起動はClient buttonを押した後だけで、ログオン登録はしない。
+
+ローカルの既存CTestへ、保存なし／未承認／複数候補、対象ID・認証世代の失効、
+未署名OFF復元と取消、純編集画面、fake Shellの追加／更新／復帰／協調終了／失敗停止、
+EXE・INI更新とbackup保全、空file修復、使用中fileでの部分更新復旧、
+更新後検証失敗、復旧不能分類、hard link拒否を追加する。
+実RDP・実clipboard・実宛先通信を自動testに含めない。
+新tray・上書き更新・今回変更後の実SVN／Trac操作は実機Gateとして残す。
+
+ローカル結果: Debug 47/47、Release 47/47。設定／通常起動確認／未署名確認／
+tray menuの自作fixtureを96 DPIで表示確認した。実Shellを使うtray fixtureは
+RDPやSocketを開始せず、通常終了で自身のiconを削除した。
+書式監査140 file中不適合0件、formatter self-test 16件合格。
+
+## トレイ終了後の同じRDP内button再起動（2026-10-10）
+
+実トレイ初回起動はユーザー確認済み。終了後buttonが無反応になる回帰は、
+完了phase残留と配布drive再使用不可を対象に修正した。
+Debug 47/47（9.24秒）、Release 47/47（7.94秒）、書式140 file不適合0、formatter試験16件合格。
+
+- [x] 同一認証世代の完了後Agent終了だけをidleへ戻す判定
+- [x] 途中／失敗／未認証／別世代の再起動判定拒否
+- [x] Cancel後の物理公開保持と同一EXE・INI・modeの再許可を繰返す
+- [x] 変更EXE／INI／mode／停止要求の拒否と公開file保全
+- [x] workerによる毎回の再検証、新しいrequest ID、同一driveの再利用
+- [x] 成功画面だけの自動終了、今回の応答前と失敗画面の終了禁止
+- [x] 本番FixedInputSequenceと同じreset境界で四回のRun／Paste／Enterを開始・完了する
+- [x] Completeだけの明示初期化、途中／取消／失敗／別世代の初期化拒否
+- [x] 初期化だけでは入力を予約せず、残留timer・早着・再入・二重完了を送信へ変換しない
+- [ ] 最新Clientで初回起動後、トレイ終了して同じRDPの`Agent起動`から再起動できる
+- [ ] 前回成功画面を閉じない場合も再操作し、今回のAgent応答まで確認できる
+- [ ] 未署名テストでは同じ設定と今回の未署名checkbox選択で繰返し再起動できる
+
+この実機確認を自動テストで代替したとは扱わない。EXE・設定・署名modeの変更は
+新しいRDP接続で準備する。RDPを維持し、Agent強制終了や入力の自動再試行はしない。
+
+先の修正ではMainWindowの完了phaseだけを戻し、入力sequenceのCompleteが残った。
+ユーザー報告の「初回は起動、二回目は確認後に開始不能」をこの回帰として扱う。
+同認証世代で応答確認済みAgentが終了した場合に限り、sequenceとphaseを同時に戻す。
+この追加修正のローカル結果はDebug全47/47、Releaseの変更対象二試験2/2。
+書式140 file不適合0、formatter self-test16件合格。実RDPの二回目起動は受入待ち。
 
 ## 1. 現在の対象
 
@@ -1195,3 +1333,27 @@ local完了し、実機のAgent強制終了／再起動でも回帰成功した�
 - [x] taskbarから復元後も全画面を維持する
 - [x] `Ctrl+Alt+Break`、三表示mode、動的解像度が従来どおり機能する
 - [x] RDP、Agent、Proxy、HTTP stream、別sessionに影響がない
+
+
+## Client／Agentセット更新（2026-10-10）
+
+同じRelease tagの固定二EXEをformat 2の一manifestで扱う。実RDPやGitHub配布公開を自動試験しない。
+
+- [x] format 1、Agent key欠落、未知asset、空／上限超過size、digest不正を拒否
+- [x] 二候補の同一版・setup・wire metadataを検証し、未署名候補を拒否
+- [x] scriptの同版二EXE serialization、片方未署名・別publisher・欠落・混在版の拒否
+- [x] Windows隔離fileで正常セット置換と両旧backupを確認
+- [x] Agent lock（第一file）では両方不変、Client lock（第二file）ではAgentを復元
+- [x] 差替え後検証失敗と起動失敗では元二EXEへ復元
+- [x] 同意前はEXE未取得、全session／設定画面終了・保存完了前は未適用
+- [x] Debug／Release全CTestとformat・Doxygen・diffを確認
+- [ ] 署名済み新版Releaseから二EXE取得・検証・再起動・両backup保全の実機受入
+- [ ] 新Clientから次回RDP接続し、登録済み設定がある接続のAgentを更新・起動
+- [ ] 電源断等の残存stageから旧同版二EXEを利用者が手動復旧する手順を確認
+
+更新中に実RDPを強制切断せず、Agentの接続先allowlistや署名任意の通常起動は変更しない。
+設計は[ADR 0023](adr/0023-paired-client-agent-updates.md)を参照する。
+
+
+Debugは47/47（11.30秒）、Releaseは47/47（10.02秒）。formatは141file適合、self-test 16件合格。
+Doxygenは既存8警告だけで追加警告なし。実設定・実RDP・配布公開・署名は実施していない。

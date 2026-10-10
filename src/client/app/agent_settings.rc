@@ -1,0 +1,186 @@
+//------------------------------------------------------------------------------
+/**
+ * Copyright (c) 2026 EnterSystem CO.,LTD.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * @file agent_settings.rc
+ * @brief Agent設定画面と内容を記録しない固定日本語resourceを定義する。
+ * @version 01.00.19
+ * @date 2026/10/08
+ * @author Shunji Ogawa
+ *
+ * @par 更新履歴
+ * <pre>
+ * VerNo.         author        update      comment
+ * Ver.01.00.00   Shunji Ogawa  2026/10/08  Agent接続先の承認付き設定画面を追加。
+ * Ver.01.00.01   Shunji Ogawa  2026/10/08  確認付きAgent配置の境界と操作を追加。
+ * Ver.01.00.02   Shunji Ogawa  2026/10/09  session画面のAgent配置・確認付き起動を追加。
+ * Ver.01.00.03   Shunji Ogawa  2026/10/09  初回配置と固定Agent起動の自動化を追加。
+ * Ver.01.00.04   Shunji Ogawa  2026/10/09  初期配置の停止段階とHRESULT診断を追加。
+ * Ver.01.00.05   Shunji Ogawa  2026/10/09  自動入力のfocusとWindowsキー転送を確認。
+ * Ver.01.00.06   Shunji Ogawa  2026/10/09  配置から独立した開発用Win+R testを追加。
+ * Ver.01.00.07   Shunji Ogawa  2026/10/09  入力testの有限待機と結果表示分離を明記。
+ * Ver.01.00.08   Shunji Ogawa  2026/10/10  Win単独とR単独の選択・確認・結果を追加。
+ * Ver.01.00.09   Shunji Ogawa  2026/10/10  R単独SendInputの確認と受付数・停止説明を追加。
+ * Ver.01.00.10   Shunji Ogawa  2026/10/10  固定Win+RのSendInput比較と停止境界を追加。
+ * Ver.01.00.11   Shunji Ogawa  2026/10/10  Agent固定入力をSendInputへ切替え停止境界を維持。
+ * Ver.01.00.12   Shunji Ogawa  2026/10/10  配置なしの固定Ctrl+V／Enter診断と失効確認を追加。
+ * Ver.01.00.13   Shunji Ogawa  2026/10/10  Agent起動の統合と明示未署名配置テストを追加。
+ * Ver.01.00.14   Shunji Ogawa  2026/10/10  起動と設定の分離、tray常駐、backup付き更新を追加。
+ * Ver.01.00.15   Shunji Ogawa  2026/10/10  トレイ終了後の同じRDP内Agent再起動を修正。
+ * Ver.01.00.16   Shunji Ogawa  2026/10/10  Agent配置・起動の署名要件と未署名別経路を撤廃。
+ * Ver.01.00.17   Shunji Ogawa  2026/10/10  接続別設定と自動Agent管理・診断削除を反映。
+ * Ver.01.00.18   Shunji Ogawa  2026/10/10  IP・port・用途の登録削除と自動保存へ簡素化。
+ * Ver.01.00.19   Shunji Ogawa  2026/10/10  接続変更と登録済み宛先だけの表示・起動を統一。
+ * </pre>
+ */
+//------------------------------------------------------------------------------
+#pragma code_page(65001)
+#include <windows.h>
+#include <commctrl.h>
+#include "resource.h"
+
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+
+IDD_AGENT_SETTINGS DIALOGEX 0, 0, 420, 242
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+CAPTION "ZRdp SVN Bridge - Agent設定"
+FONT 9, "Meiryo UI"
+BEGIN
+    LTEXT "接続先:", -1, 8, 8, 42, 14
+    LTEXT "", IDC_AGENT_PROFILE, 54, 8, 358, 14, SS_ENDELLIPSIS
+    CONTROL "", IDC_AGENT_ENDPOINTS, "SysListView32", LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP, 8, 28, 404, 112
+    LTEXT "IP:", -1, 8, 154, 24, 12
+    EDITTEXT IDC_AGENT_IPV4, 36, 150, 138, 16, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT "ポート:", -1, 182, 154, 38, 12
+    EDITTEXT IDC_AGENT_PORT, 225, 150, 40, 16, ES_NUMBER | ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT "用途:", -1, 277, 154, 26, 12
+    COMBOBOX IDC_AGENT_PURPOSE, 307, 150, 105, 70, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON "登録", IDC_AGENT_ADD, 36, 176, 70, 18
+    PUSHBUTTON "削除", IDC_AGENT_REMOVE, 114, 176, 80, 18
+    PUSHBUTTON "閉じる", IDCANCEL, 342, 176, 70, 18
+    LTEXT "HTTPのみ。「登録」はこの接続先の業務利用許可（Tracを含む）として扱います。\n登録・削除は自動保存され、接続中のAgentへ反映します。", -1, 8, 201, 404, 24
+    LTEXT "", IDC_AGENT_STATUS, 8, 229, 404, 13, SS_LEFTNOWORDWRAP
+END
+
+IDD_AGENT_LAUNCH DIALOGEX 0, 0, 480, 348
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ZRdp SVN Bridge - Agent起動の確認"
+FONT 9, "Meiryo UI"
+BEGIN
+    LTEXT "", IDC_LAUNCH_TARGET, 8, 8, 464, 22
+    LTEXT "保存済み設定:", -1, 8, 38, 70, 12
+    COMBOBOX IDC_LAUNCH_PROFILE, 82, 34, 390, 100, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT IDC_LAUNCH_WARNING, 8, 76, 464, 238, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON "設定...", IDC_LAUNCH_SETTINGS, 8, 324, 72, 18
+    PUSHBUTTON "起動", IDOK, 316, 324, 72, 18
+    DEFPUSHBUTTON "キャンセル", IDCANCEL, 396, 324, 76, 18
+END
+
+IDD_AGENT_DEPLOYMENT DIALOGEX 0, 0, 440, 316
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+CAPTION "ZRdp SVN Bridge - 接続先へ配置"
+FONT 9, "Meiryo UI"
+BEGIN
+    LTEXT "", IDC_DEPLOY_TARGET, 8, 8, 424, 24
+    LTEXT "転送対象: ZRdpSvnAgent.exe / agent.ini（起動しません）\n1. 接続先で稼働中のAgentがあれば、手動で終了します。\n2. 接続先のExplorerで %LOCALAPPDATA% を開き、ZRdpフォルダを作成します。\n3. ZRdpフォルダを開き、ファイル一覧へフォーカスを移してください。", IDC_DEPLOY_INSTRUCTIONS, 8, 37, 424, 90
+    CONTROL "接続先のExplorerで %LOCALAPPDATA%\\ZRdp を開き、配置先を確認しました", IDC_DEPLOY_FOLDER_READY, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 8, 135, 424, 20
+    PUSHBUTTON "この接続先へ貼り付け", IDC_DEPLOY_PASTE, 8, 161, 142, 20
+    LTEXT "", IDC_DEPLOY_STATUS, 8, 183, 424, 72
+    PUSHBUTTON "二ファイルの配置を確認して終了", IDC_DEPLOY_COMPLETE, 8, 260, 200, 20
+    PUSHBUTTON "中止", IDCANCEL, 368, 260, 64, 20
+    LTEXT "上書きはWindowsの確認画面で判断してください。転送中はClientを終了しないでください。", IDC_DEPLOY_FOOTER, 8, 284, 424, 26
+END
+
+STRINGTABLE
+BEGIN
+    IDS_AGENT_LAUNCH_NEEDS_SETTINGS "起動に使える保存済みAgent設定がありません。設定画面で接続先の用途と利用承認を確認して保存してください。\n保存後は画面を閉じ、セッションの「Agent起動」を押してください。"
+    IDS_AUTO_DEPLOY_CONFIRM "接続先: %s\n\nAgentと承認済み設定を、配布専用のRDPドライブへ公開し、固定Agentの初期配置・起動を要求します。通常のC/Dドライブは転送しません。\n設定はこのPCのユーザー専用一時フォルダに平文で置かれ、セッション終了時に回収します。クリップボードは固定の起動文字列で置き換わり、元には戻せません。\n\n配置先は接続先ユーザーの %%LOCALAPPDATA%%\\ZRdp です。異なる既存Agent/INIは接続先にバックアップして上書き更新します。稼働中Agentは事前に終了してください。転送とEXE実行の業務上の許可を確認してください。\n固定Win＋R／Ctrl＋V／EnterをSendInputで要求します。接続先を直接指定するAPIではなく、直前確認後でも切替が重なるとローカルの別画面へ貼付け・Enterが届き、誤実行するリスクがあります。\n入力中はキーボード・マウスを操作せず、別ウィンドウへ切り替えないでください。途中切替では残りの入力を停止し、戻っても再開しません。部分受付では該当キーを手動で押して離してください。\nWindowsの警告は利用者が確認し、禁止された転送・実行は停止します。\n\n未配置なら配置、同じ配置済み二ファイルなら再利用、異なる二ファイルならバックアップして更新し、Agentを起動しますか？"
+    IDS_AUTO_DEPLOY_TITLE "ZRdp SVN Bridge - Agent起動"
+    IDS_AUTO_DEPLOY_INSTRUCTIONS "Agentと承認済みINIを確認し、未配置なら %LOCALAPPDATA%\\ZRdp へ配置、同じ配置済み二ファイルなら再利用して起動します。\nフォルダ作成・貼付け・EXE選択は不要です。SendInput中は操作・ウィンドウ切替をしないでください。切替が重なるとローカル側への誤入力・誤実行のリスクが残ります。\nWindowsの警告が表示された場合は、接続先画面で内容を確認してください。\n既存の異なるAgent/INIはバックアップして上書き更新します。稼働中Agentは事前に終了してください。中止しても、既に送信した起動や配置済みファイルは取り消されません。"
+    IDS_AUTO_DEPLOY_WAITING "固定Agentの起動を要求しています。Agent応答はまだ確認していません（最大45秒）。"
+    IDS_AUTO_DEPLOY_FAILED "初期配置・起動の入力を停止したか、Agent応答を確認できませんでした。接続先の警告、既存Agent/INI、転送ポリシーを確認してください。RDPは維持します。再試行には新しいRDP接続を使用してください。"
+    IDS_AUTO_DEPLOY_DETAILS "初期配置を停止：%s（段階%u／分類%u）\nHRESULT: 0x%08X\nRDPは維持します。閉じてから新しいRDP接続で準備し直してください。"
+    IDS_AUTO_STAGE_NONE "段階未確定"
+    IDS_AUTO_STAGE_REQUEST "起動要求の受付"
+    IDS_AUTO_STAGE_VALIDATION "接続・配置条件の確認"
+    IDS_AUTO_STAGE_CLIPBOARD "クリップボードの公開"
+    IDS_AUTO_STAGE_RUN "Win＋Rの送信"
+    IDS_AUTO_STAGE_TIMER "入力タイマーの開始"
+    IDS_AUTO_STAGE_PASTE "貼り付け前の確認／Ctrl＋V"
+    IDS_AUTO_STAGE_ENTER "実行前の確認／Enter"
+    IDS_AUTO_STAGE_RESPONSE "Agentの応答待ち"
+    IDS_AUTO_STAGE_INPUT_PREPARATION "入力フォーカス・キー転送の確認"
+    IDS_START_UNAVAILABLE "Agent接続を確認できなくなりました。接続先のAgent状態を確認し、必要ならこの画面を閉じてやり直してください。"
+    IDS_SESSION_AGENT_DEPLOY "Agent配置・起動"
+    IDS_SESSION_AGENT_START "Agent起動"
+    IDS_START_INSTRUCTIONS "1. 接続先Explorerで %LOCALAPPDATA%\\ZRdp を開きます。\n2. ZRdpSvnAgent.exe と agent.ini の配置・転送完了を確認します。\n3. Agent EXEのWindows署名を確認し、未起動であることを確認します。\n4. ファイル一覧で ZRdpSvnAgent.exe だけを選択してください。\nClientは接続先の選択内容を自動検証できません。\n\nSendInputでEnterだけを送ります。直前確認後も切替が重なるとローカルの別画面へ誤入力・誤実行するリスクがあります。\n要求後は操作・ウィンドウ切替を控えてください。途中切替は未送信入力を停止します。部分受付ではEnterを手動で押して離してください。"
+    IDS_START_READY "接続先の配置・署名・INI・EXEの選択を確認してから、起動を要求してください。"
+    IDS_START_SENT "Enter要求を送信しました。Agentの応答待ちです。接続先のWindows画面で起動結果を確認してください。"
+    IDS_START_CONNECTED "Agentからの応答を確認しました。SVN Bridgeを利用できます。"
+    IDS_START_FAILED "起動キーを送信できませんでした。前景・フォーカス・接続状態を確認し、閉じてやり直してください。部分受付ではEnterが押下状態で残る可能性があります。Enterを手動で押して離してください。既に送った起動は取り消せません。"
+    IDS_START_PENDING "入力準備が完了しました。Enterはまだ送信していません。結果まで操作・ウィンドウ切替を控えてください。"
+    IDS_AUTO_DEPLOY_PARTIAL_DETAILS "固定入力を一部だけ受付：%s（段階%u／分類%u）\nHRESULT: 0x%08X\n残りの入力は停止しました。Win／Ctrl／R／V／Enterの押下が残る可能性があります。該当キーを手動で押して離してください。追加解放・再送は行いません。既に送った起動や配置は取り消せません。RDPは維持します。"
+    IDS_START_INVALIDATED "接続が切断または再接続されました。古い起動要求を停止しました。閉じてからやり直してください。"
+    IDS_SESSION_AGENT_BUSY "Agent設定または配置が別の対象で開いています。現在の操作を終了してから、このセッションで開き直してください。"
+    IDS_DEPLOY_SESSION_REQUIRED "配置には、認証完了したRDP接続が一件だけ必要です。複数接続・認証中・再接続中は受け付けません。"
+    IDS_DEPLOY_CONFIRM "接続先: %s\n\nClientと同じフォルダのZRdpSvnAgent.exeと、この設定から生成するagent.iniをWindowsクリップボードへ公開します。\n現在のクリップボードは置き換わり、元には戻せません。業務接続先の設定が含まれます。他アプリや別のRDPにもクリップボードが共有される可能性があります。\n\n他のRDP接続を閉じ、ファイル転送の業務上の許可を確認してください。GPO等の制限は変更しません。\n配置先は接続先ユーザーの %%LOCALAPPDATA%%\\ZRdpです。フォルダ準備と配置結果は利用者が確認します。Agentの起動は行いません。\n\n配置準備を開始しますか？"
+    IDS_DEPLOY_FAILED "配置ファイルを準備・公開できませんでした。Clientと同一製品版のZRdpSvnAgent.exeを同じフォルダに置いてください。\n設定の全接続先の承認も確認してください。RDPと既存Agentは変更していません。"
+    IDS_DEPLOY_READY "二ファイルをクリップボードへ公開しました。接続先への転送はまだ完了していません。"
+    IDS_DEPLOY_PASTE_SENT "Ctrl+V要求を送信しました。接続先の二ファイルとWindowsの転送結果を確認してください。"
+    IDS_DEPLOY_INVALIDATED "接続状態またはクリップボードが変化しました。貼り付けを停止しました。中止して再準備してください。"
+    IDS_DEPLOY_COMPLETE_CONFIRM "接続先の %LOCALAPPDATA%\\ZRdp にZRdpSvnAgent.exeとagent.iniの二ファイルが配置され、転送が終了したことを確認しましたか？\nClientによる配置結果の自動検証ではありません。クリップボードの公開を終了します。Agentは起動しません。"
+    IDS_DEPLOY_CANCEL_CONFIRM "転送が終了または中断したことを確認してください。\n配置用クリップボードの公開を終了しますか？完了したコピーや途中のファイルは自動削除しません。"
+    IDS_DEPLOY_CONNECTION_BLOCKED "Agent配置の準備・公開中は追加のRDP接続を開始できません。配置画面で公開を終了してください。"
+    IDS_DEPLOY_PASTE_PENDING "貼り付け要求を送信中です。配置完了はまだ確認していません。"
+    IDS_DEPLOY_CLEAR_FAILED "クリップボード公開を終了できませんでした。追加接続は停止中です。他アプリの操作後に「中止」を再試行してください。"
+    IDS_MANAGER_AGENT_SETTINGS "Agent設定"
+    IDS_AGENT_SETTINGS_TITLE "ZRdp SVN Bridge - Agent設定"
+    IDS_AGENT_SETTINGS_DEFAULT_NAME "既定"
+    IDS_AGENT_SETTINGS_COL_IP "リポジトリのIPv4"
+    IDS_AGENT_SETTINGS_COL_PORT "HTTPポート"
+    IDS_AGENT_SETTINGS_COL_PURPOSE "用途"
+    IDS_AGENT_SETTINGS_COL_APPROVAL "承認"
+    IDS_AGENT_SETTINGS_SVN "HTTP SVN"
+    IDS_AGENT_SETTINGS_TRAC "HTTP Trac"
+    IDS_AGENT_SETTINGS_APPROVED "承認済み"
+    IDS_AGENT_SETTINGS_UNAPPROVED "未承認"
+    IDS_AGENT_SETTINGS_BUSY "設定: 処理中（RDP接続は継続できます）"
+    IDS_AGENT_SETTINGS_EMPTY "この接続には登録済みの接続先がありません。IP・ポート・用途を入力して登録してください。"
+    IDS_AGENT_SETTINGS_SELECT_CONNECTION "接続マネージャーで接続先・ドメイン・ユーザーを選択してください。"
+    IDS_AGENT_SETTINGS_LOADED "IP・ポート・用途を入力して登録、または一覧から選択して削除してください。"
+    IDS_AGENT_SETTINGS_SAVED "登録・削除を保存しました。接続中のAgentへ自動反映します。"
+    IDS_AGENT_SETTINGS_EXPORTED "agent.iniを出力しました。接続先へコピーし、Agentを再起動してください。"
+    IDS_AGENT_SETTINGS_IMPORTED "INIを読み込みました。用途・承認は推定しません。各接続先を確認して更新してください。"
+    IDS_AGENT_SETTINGS_ERROR_FORMAT "登録・削除できませんでした（設定:%u／検証:%u／行:%u）。入力・重複・保存先を確認してください。"
+    IDS_AGENT_SETTINGS_DELETE_CONFIRM "選択した保存済み設定を、このWindowsユーザーの設定一覧から削除しますか？\nこの接続の中継を停止し、接続中のAgentへ協調停止を要求します。出力済みINIは削除しません。"
+    IDS_AGENT_SETTINGS_DISCARD_CONFIRM "保存していない編集があります。破棄しますか？"
+    IDS_AGENT_SETTINGS_IMPORT_TITLE "既存のAgent INIを読み込む"
+    IDS_AGENT_SETTINGS_EXPORT_TITLE "agent.iniをこのPCへ出力する"
+    IDS_AGENT_SETTINGS_APPROVAL_REQUIRED "一件以上の未承認接続先があります。用途と利用許可を確認し、各接続先を更新してから出力してください。"
+    IDS_AGENT_SETTINGS_APPLY_FIELDS "接続先欄の変更を「追加」または「選択先を更新」で一覧へ反映してください。"
+    IDS_AGENT_SETTINGS_NAME_REQUIRED "64文字以内の設定名を入力してください。"
+    IDS_AGENT_SETTINGS_SELECT_ENTRY "削除する接続先を一覧から選択してください。"
+    IDS_AGENT_SETTINGS_UPDATE_BLOCKED "Client更新の適用中はAgent設定画面を開けません。再起動後に操作してください。"
+    IDS_AGENT_SETTINGS_QUEUE_BUSY "別の設定操作が進行中です。完了後に操作してください。"
+    IDS_AGENT_SETTINGS_CREATE_FAILED "Agent設定画面を生成できませんでした。RDP接続は継続します。"
+    IDS_AGENT_SETTINGS_FAILURE "Agent設定を処理できませんでした。"
+    IDS_AGENT_SETTINGS_UNSPECIFIED "未選択"
+    IDS_AGENT_RESTART_PACKAGE_FAILED "同じRDP接続でのAgent再起動を準備できませんでした。前回と同じEXE・保存済み設定が必要です。変更がある場合や再検証できない場合は、新しいRDP接続で起動してください。RDP接続と既存ファイルは変更していません。"
+END
+
+IDD_AGENT_START DIALOGEX 0, 0, 460, 280
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+CAPTION "ZRdp SVN Bridge - Agentを起動"
+FONT 9, "Meiryo UI"
+BEGIN
+    LTEXT "", IDC_START_TARGET, 8, 8, 444, 24
+    LTEXT "", IDC_START_INSTRUCTIONS, 8, 37, 444, 125
+    CONTROL "接続先でAgent EXEだけを選択し、誤入力リスクを確認しました", IDC_START_CONFIRMED, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 8, 166, 444, 20
+    PUSHBUTTON "このセッションで起動を要求", IDC_START_SEND, 8, 190, 172, 20
+    LTEXT "", IDC_START_STATUS, 8, 216, 444, 43
+    PUSHBUTTON "閉じる", IDCANCEL, 388, 262, 64, 16
+END

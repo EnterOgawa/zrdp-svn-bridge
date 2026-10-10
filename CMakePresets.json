@@ -15,6 +15,7 @@
       "binaryDir": "${sourceDir}/build/vs2022-x64",
       "cacheVariables": {
         "BUILD_TESTING": "ON",
+        "ZRDP_PORTABLE_OUTPUT_DIRECTORY": "${sourceDir}/out",
         "CMAKE_GENERATOR_INSTANCE": "C:/develop/tools/Microsoft"
       }
     }

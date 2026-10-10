@@ -277,7 +277,7 @@ Host: 192.0.2.10
 - 一つの session Window を切断または終了しても、接続管理 Windowと他の
   session Windowを維持する。全 Window が終了した場合だけ Client processを
   終了する。
-- session Windowはtitle bar、表示modeだけのコンパクトな一行、RDP表示領域で
+- session Windowはtitle bar、表示mode・全画面のコンパクトな一行、RDP表示領域で
   構成し、接続入力、切断button、Bridge状態欄、status barを重複表示しない。
   接続条件と初期表示modeは接続管理 Windowで確定し、session Window右上の
   閉じる操作で確認後にそのsessionだけを切断・終了する。
@@ -298,7 +298,7 @@ Host: 192.0.2.10
     - 接続後は最後のwindow size変更から250 ms後に、`IMsRdpClient9::UpdateSessionDisplaySettings`でremote desktop寸法をRDP表示領域へ合わせる。
     - このmodeでは接続先applicationのlayoutが変化し得ることを、他の2 modeと区別できる名称で明示する。
 - 3 modeは接続管理 Windowでsession開始前に一つだけ選択する。session Windowには
-  3 modeのラジオボタンだけを一行で表示し、接続成立後も切り替え可能とする。
+  3 modeのラジオボタンを一行で表示し、接続成立後も切り替え可能とする。
   Smart Sizingと動的解像度を同時に有効化しない。
 - sessionごとに、接続開始時にActiveXへ要求したremote desktop幅／高さを
   手動Window変更の基準アスペクト比として保持する。通常Windowで利用者が辺または
@@ -353,7 +353,50 @@ Host: 192.0.2.10
   - 3つの排他的な表示mode（等倍表示／Smart Sizing／動的解像度）
   - マイク転送
   - リモート音声の再生先
-- session Windowは3つの排他的な表示modeだけを操作欄へ表示し、title barは次を
+- session Windowの操作欄には3つの排他的な表示modeと全画面buttonだけを表示する。
+  Agent設定は接続マネージャーの `Agent設定` buttonから編集し、
+  RDP接続先・domain・userの組へcurrent-user DPAPIで保存する。接続名の変更では
+  設定を引き継ぐが、別接続へ設定を推定継承しない。独立保存形式2を使い、
+  形式1は未関連付けとして保全する。RDP履歴形式は変更しない。
+  Agent設定画面はIP・HTTPポート・用途の登録と削除だけに簡素化し、両操作で自動保存する。
+  登録は指定宛先の業務利用承認を兼ねることを画面に表示し、Tracも明示登録のみ許可する。
+  一覧には選択接続の登録済み宛先だけを表示する。旧未関連付け設定と未承認候補は
+  保存snapshotで保全するが、表示・起動・他接続への推定継承はしない。
+  managerの接続先・domain・user・接続名の変更では、開いている設定画面だけを再読込みする。
+  未登録接続は空一覧、接続未選択は編集不可とする。保存中は最後の変更一件だけを保留し、
+  保存成功後に切り替える。失敗では元接続と再登録用入力を保全する。
+  自動配置と設定変更には同じ接続の登録済み宛先だけを使用し、未承認候補の混在で
+  登録済み宛先まで未設定と誤判定しない。表示rowと元entryの対応を検証して削除する。
+  保存成功後だけ一覧を更新し、失敗時は旧一覧と入力を保全する。
+  設定名編集、個別保存、設定全体削除、承認checkbox、INI入出力を画面に置かない。
+  接続マネージャーにmenu barを置かず、更新確認は起動時と24時間周期で自動実行する。
+  更新無効設定、EXE取得・適用の同意と署名検証は維持し、自動確認を無確認適用にしない。
+  2026-10-10の追加指示により、format 2で同じRelease tagのClient／Agentをセット取得する。
+  二EXEの同一版・署名者・timestamp・hash・固定metadataを検証し、全RDP／設定画面終了と保存完了後に適用する。
+  元Agentも署名済み同版セットとして検証し、欠落・lock・部分失敗では更新を拒否または旧セットへ復元する。
+  二file同時のOS-level atomic性は保証せず、電源断等ではstageと旧二backupを保全する。
+  接続先Agentは次回RDP認証後に既存固定setupで反映し、登録0件なら起動しない。詳細はADR 0023とする。
+  2026-10-10の明示指示により、認証後にAgentを自動配置・更新・起動し、
+  疎通断では同じ認証世代だけを有限backoffで復旧する。設定変更は旧Socketを閉じて
+  INIをbackup付きatomic renameで更新し、Agentを協調停止・再起動する。
+  最新設定のACK前にProxyを使わせない。削除・承認撤回では協調停止する。
+  起動確認、起動button、開発用入力テストのUIと送信APIは廃止する。
+  認証後のAgent自動管理では独自dialogを表示しない。未設定・未承認でも設定画面を
+  自動表示せず、titleの `Agent:要設定` とmanagerの手動Agent設定buttonで案内する。
+  Agentのsetup・通常起動失敗は既存終了codeと固定診断で報告し、modal警告を表示しない。
+  Windowsの実行画面は固定起動方式で一時表示されるが、Windows警告は隠さず自動承認しない。
+  配布用の専用driveと固定 `--rdp-setup` だけを使い、公開済みdriveは変更しない。
+  配置先は接続先userの `%LOCALAPPDATA%\ZRdp`、異なる二fileはbackupして更新する。
+  稼働Agentは同じsessionの限定eventで協調停止し、15秒で停止できなければ更新しない。
+  強制kill、通常／dynamic drive転送、任意command／path／PID、startup／service登録、
+  shell、policy変更、追加受信portを実装しない。
+  固定SendInputは一度に一sessionだけで、認証・前面・focus・clipboard世代を各段階で確認する。
+  他画面・最小化・認証警告中は入力を開始せず、途中失効と部分受付では再送しない。
+  起動応答は45秒、連続三回の失敗で停止し、安定30秒後だけ失敗数を戻す。
+  Windows警告を自動承認しない。Client／Agentの署名は起動条件にせず、metadata、
+  同一製品版、承認INIとfile安全性は検証する。Client自動更新の署名検証は維持する。
+  詳細はADR 0021／0022とする。
+  全画面中はこれらの独自操作欄を隠す。title barは次を
   表示する。
   - RDP 接続状態
   - Agent 接続状態
@@ -478,6 +521,8 @@ Host: 192.0.2.10
 
 - CMake の中間生成物、test binary、PDB 等は source tree 外または `build/` 以下へ置く。
 - ユーザーが実機確認・portable配布に使用するRelease版`ZRdpSvnBridge.exe`と、Phase 1以降の`ZRdpSvnAgent.exe`は、workspace直下の`out/`へ出力する。
+- 現在の成果物の受け渡し先は **`D:\develop\zrdp\out`** に統一する。検証用buildを使った場合も、利用者へ渡す最新版のClient／Agent EXEを`work/tmp`や`build`だけに残さない。中間生成物とtest binaryの出力先は従来どおり`build`等とする。
+- `out`に旧署名済みEXEがある場合は、上書き前にworkspace内へ保全する。未署名buildは未署名と明示し、出力先指定を署名やRelease公開の許可とは扱わない。
 - `out/`は生成物専用かつGit管理外とし、Release EXEと実行時に自動生成される`out/logs/`以外のsource file、設定、credentialを置かない。
 - Visual Studio が生成する `.vs/`、`build/`、binary、log を source directory に混在させない。
 
@@ -665,7 +710,7 @@ work/tmp/
 - 複数RDP接続は、一つのClient process内の接続管理 Windowから独立session
   Windowを生成し、sessionごとにbase portから重複しないloopback Proxy portを
   割り当てる方式とする。
-- session Windowはtitle bar、表示modeだけの一行、RDP表示へ簡素化し、接続先、
+- session Windowはtitle bar、表示mode・全画面の一行、RDP表示へ簡素化し、接続先、
   RDP／Agent状態、Proxy port、stream数、転送量をtitleへ集約する。
 - RDP音声リダイレクトは接続管理 Windowのprofile設定とし、マイク転送と
   3種類の音声再生先を接続前にActiveXへ適用する。接続中の変更機能は設けず、
@@ -694,40 +739,59 @@ work/tmp/
 - 汎用 VPN、SOCKS、任意 TCP Forward として利用できない。
 
 ## 25. C++ コーディング規約
-- 既存コードが存在する場合は、より厳しい既存規約を優先する。
+- ユーザー提示の `c_cpp_coding_standard.md` ver01.01.03とC++見本を適用する。
+  本projectでの適用範囲、既存識別子の維持、整形手順は `docs/coding-standard.md` を参照する。
+  以下のcomment規約は、この明示指定に合わせたproject内の要約である。
 
 ### 25.1 ソースコメント付与ルール
 
 #### 25.1.1 基本方針
-- 本規約は、参照ソース `winsystem.cpp` とユーザー提示の `AplMain.java` に共通する
-  「ファイル／class概要」
-  「定義群の区切り」「function契約」「処理段階」「分岐理由」「loop目的」を
-  明示する構成を、本プロジェクトの C++20、Doxygen、Git、RAII 方針へ
-  適合させたものとする。
-- 参照ソースの実装、固有名、著作権表示、作成者、日付、手書きversion、
-  手書き変更履歴は本projectへ複写しない。参照するのはコメントの構造と
-  説明密度だけとする。
+- file／型／functionの契約、定義群の区切り、処理段階、分岐理由、loop目的を
+  C++20、Doxygen、RAII方針に合わせて記載する。
+- 見本の実装や他project固有の識別子・移行記録は複写しない。
+  自作sourceの権利表示は `Copyright (c) 2026 EnterSystem CO.,LTD.` と
+  `SPDX-License-Identifier: Apache-2.0` とし、第三者の表示は原文を維持する。
 - すべての `.h`、`.cpp`、resource source、test source に適用する。
   通常は変更箇所と周辺を同じ変更で整備し、全source監査をユーザーが
   明示した場合は、未変更箇所も含めてcommentだけの一括整備を行ってよい。
 - ソースコメントの説明文は原則として日本語で記載する。API 名、class 名、function 名、protocol 名、error code 等は正確な英語表記を維持する。
-- コメントは UTF-8 で記録し、文は原則として句点 `。` まで記載する。
+- コメントはUTF-8で記録する。Doxygen契約の文は句点 `。` まで記載し、
+  短い処理説明の `//` では末尾の句点を省略する。
 - コメントは code の言い換えではなく、目的、理由、前提、制約、所有権、失敗時動作のうち、code だけでは判別しにくい事項を記載する。
 - 接続先、ドメイン、ユーザー名、実 IP、実 URL、credential、payload、取引先固有名等の機密情報を、例示を含めコメントへ記載しない。
 - コメントと実装は同じ変更で更新する。実装と矛盾したコメントを残すことは、コメントがない状態より重大な defect として扱う。
 
 #### 25.1.2 ファイル先頭コメント
 - 新規 `.h`／`.cpp` には、include guard または最初の `#include` より前に Doxygen の file comment を付与する。
-- file comment には最低限 `@file`、`@brief`、そのファイルの責務を記載する。thread affinity、security boundary、主要な所有関係がある場合は `@details` または `@note` で追記する。
-- 作成者名、会社名、作成日、手書き version、手書き変更履歴は記載しない。これらは Git history と version resource で管理する。
+- file commentには権利・SPDX表示、`@file`、`@brief`、`@version`、`@date`、
+  `@author`、`@par 更新履歴`を記載する。thread affinity、security boundary、
+  主要な所有関係がある場合は `@details` または `@note` で追記する。
+- file版は `01.00.00` 形式、履歴版は `Ver.01.00.00` 形式とする。
+  最新履歴と `@version` を一致させ、論理変更単位で採番する。製品versionとは独立する。
+- 制作者は `Shunji Ogawa`、日付は `YYYY/MM/DD` とする。既存sourceに作成日が
+  なかった今回の移行ではGit初回登録日を用い、架空の過去履歴は作らない。
 
 ```cpp
+//------------------------------------------------------------------------------
 /**
+ * Copyright (c) 2026 EnterSystem CO.,LTD.
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @file connection_history.cpp
  * @brief RDP 接続履歴の重複排除と暗号化永続化を実装する。
+ * @version 01.00.00
+ * @date 2026/08/01
+ * @author Shunji Ogawa
+ *
+ * @par 更新履歴
+ * <pre>
+ * VerNo.         author        update      comment
+ * Ver.01.00.00   Shunji Ogawa  2026/10/07  指定C/C++規約へコメントと書式を統一。
+ * </pre>
  *
  * @note file I/O と DPAPI は UI thread では実行しない。
  */
+//------------------------------------------------------------------------------
 ```
 
 #### 25.1.3 ファイル内の区切り
@@ -748,7 +812,8 @@ work/tmp/
 
 #### 25.1.4 class・型・function の契約
 - public class、public function、protocol type、security boundary には Doxygen comment を必須とする。
-- private function、free function、callback、thread entry、Win32／COM 境界にも、処理が自明な getter／setter でない限り Doxygen comment を付与する。
+- private function、free function、callback、thread entry、Win32／COM境界、
+  constructor、destructor、短いgetter／setterにも `/** ... */` のDoxygen契約を付与する。
 - test sourceの`main`／`wmain`、test用callback、fake transport、mock server、
   test helperにもDoxygen commentを付与し、どの契約または失敗条件を検証するか
   明示する。
@@ -773,9 +838,10 @@ work/tmp/
 #### 25.1.5 定数・変数・状態値
 - 定数には、名前だけで単位または制約が明確でない場合、用途、単位、上限理由を記載する。
 - member、static state、HANDLE、SOCKET、COM interface、buffer には、所有者、解放責任、sentinel 値、thread 制約が自明でない場合にコメントを付与する。
-- class／structのmemberは、参照sourceの内部定義欄と同様に、役割が名前だけで
-  完全に説明できない場合はdeclaration直前または行末へDoxygen commentを付ける。
-  同一責務のWin32 control handle群等はsection commentでまとめてよい。
+- class／struct／unionのすべてのfieldとenumのすべての値は、宣言直前の
+  `/// ...` で個別に説明する。行末の `///<` は使用しない。
+  class内のstatic／constexprもこの規則を優先する。
+- ローカル変数、global変数、file scope変数、定数の説明には通常の `//` を使用する。
 - `bool`、enum、bit flag の各値が業務状態または互換性条件を表す場合は、その意味を declaration の近くへ記載する。
 - 短い単位や値の対応は行末コメントを使用してよい。複数行になる説明や理由は declaration の直前へ記載する。
 - 変数名から明らかな内容を「件数」「結果」等と言い換えるだけのコメントは付与しない。
@@ -790,13 +856,13 @@ work/tmp/
 - RAII で自明に解放される resource に対して、単に「解放する」とだけ記載するコメントは不要とする。
 
 #### 25.1.7 条件分岐・loop・switch
-- `if` 文では、条件の意図が自明でない場合、条件式の直前に理由を示すコメントを付与する。
+- すべての `if` と `else if` の直前に、条件成立時の処理意図を示すcommentを付与する。
 - security check、length check、overflow check、allowlist check、state check、thread check、ownership check の `if` には必ず、拒否または許可する理由を記載する。
 - guard clause には、どの不正状態または不要処理を早期終了させるのかを記載する。
 - `else` が異なる業務状態または互換経路を表す場合は、各 branch の意味を明示する。単なる真偽の反転を繰り返すコメントは不要とする。
 - `for`、range-for、`while`、`do while` の直前には、loop の目的を記載する。
 - 上限、終了条件、順序、重複排除、fragment 再構成等が重要な loop では、invariant または有限である理由も記載する。
-- `switch` の各 `case` が code から明確でない状態遷移を表す場合は、その意味を記載する。
+- `switch` の目的とすべての `case`／`default` の意味を記載する。
 - fallthrough は `[[fallthrough]]` と理由コメントを必須とする。
 
 #### 25.1.8 platform・並行処理・security 境界
@@ -810,12 +876,19 @@ work/tmp/
 - 大量の code を `//` または `/* ... */` で無効化して残さない。不要 code は Git history に任せて削除する。
 - `#if 0` は、issue、残す理由、再有効化または削除の完了条件が明確な短期的検証 code に限る。
 - TODO、FIXME は issue 番号、理由、完了条件を伴う場合だけ使用する。
-- 個人名、作業日誌、変更履歴、review 会話、暫定 debug 出力を恒久 comment として残さない。
+- file headerの制作者・更新履歴以外に作業日誌、review会話、暫定debug出力を残さない。
 - API document を長文で転載しない。必要な制約だけを要約し、判断に依存する場合は公式文書の名称または ADR を参照する。
 - 自明な行ごとの逐語 comment、実装と同じ情報しか持たない comment、将来保証できない推測 comment を付与しない。
 
 ### 25.2 その他の C++ 規約
 
+- indentはtab、tab幅は4とする。functionの開始braceは次行、class／namespace／
+  制御文の開始braceは同じ行に置く。
+- call／宣言／制御文は `Function( argument)`、`if( condition)` の片側空白形式とし、
+  引数なしは `Function()` とする。grouping括弧は式の構造を維持する。
+- statement末尾のsemicolon直前へspaceを置く。ただし `for` headerの区切りは除く。
+- pointer／referenceは識別子側へ寄せる。既存の公開API／protocol／識別子を
+  この書式整備だけのために改名しない。
 - `if`、`for`、`while` 等の block 終了後は、次の独立処理との間に原則 1 行空ける。
 - `if ... else`、`try ... catch`、`try ... finally` 相当の連続構造では間を空けない。
 - `switch` では case 間の視認性を保つ。

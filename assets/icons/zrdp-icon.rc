@@ -1,12 +1,26 @@
 #pragma code_page(65001)
 
+//------------------------------------------------------------------------------
 /**
+ * Copyright (c) 2026 EnterSystem CO.,LTD.
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @file zrdp-icon.rc
  * @brief ClientとAgentが共有するapplication icon resourceを定義する。
+ * @version 01.00.00
+ * @date 2026/08/01
+ * @author Shunji Ogawa
+ *
+ * @par 更新履歴
+ * <pre>
+ * VerNo.         author        update      comment
+ * Ver.01.00.00   Shunji Ogawa  2026/10/07  指定C/C++規約へコメントと書式を統一。
+ * </pre>
  */
+//------------------------------------------------------------------------------
 
 #include <windows.h>
 #include "../../src/common/resource_ids.h"
 
-// 配布EXEとruntime Windowへ同一の製品識別iconを埋め込む。
+// 配布EXEとruntime Windowへ同一の製品識別iconを埋め込む
 IDI_ZRDP_APP ICON "zrdp.ico"

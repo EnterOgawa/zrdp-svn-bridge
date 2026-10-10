@@ -1,10 +1,25 @@
+//------------------------------------------------------------------------------
 /**
+ * Copyright (c) 2026 EnterSystem CO.,LTD.
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @file phase6_hardening_test.cpp
  * @brief Agent異常終了、Client再起動、RDP再接続、allowlist切替を反復検証する。
+ * @version 01.00.01
+ * @date 2026/08/01
+ * @author Shunji Ogawa
  *
  * @details fake SVCと文書用IPv4だけを使用し、実RDP、外部network、実SVNへ
  *          接続しない。各再開では旧decoder、PING sequence、queueを再利用しない。
+ *
+ * @par 更新履歴
+ * <pre>
+ * VerNo.         author        update      comment
+ * Ver.01.00.00   Shunji Ogawa  2026/10/07  指定C/C++規約へコメントと書式を統一。
+ * Ver.01.00.01   Shunji Ogawa  2026/10/11  コメント監査の不足と実装不一致を修正。
+ * </pre>
  */
+//------------------------------------------------------------------------------
 
 #include "agent/bridge/agent_bridge.h"
 #include "agent/network/allowlist.h"
@@ -26,32 +41,30 @@ namespace {
  * @param[in,out] sink 受信先。
  * @return 全fragmentを受理できた場合はtrue。
  */
-template <typename Sink>
-[[nodiscard]] bool DeliverFragmented(
-    const std::span<const std::byte> chunk,
-    Sink& sink) {
-    constexpr std::array<std::size_t, 4> sizes{
-        3U,
-        29U,
-        251U,
-        701U,
-    };
-    std::size_t offset = 0U;
-    std::size_t size_index = 0U;
-    // frame境界と一致しないfragmentをwire順のまま最後まで渡す。
-    while (offset < chunk.size()) {
-        const std::size_t size = std::min(
-            sizes[size_index % sizes.size()],
-            chunk.size() - offset);
-        if (!sink(chunk.subspan(offset, size))) {
-            return false;
-        }
+template<typename Sink>
+[[nodiscard]] bool DeliverFragmented( const std::span<const std::byte> chunk, Sink &sink)
+{
+	constexpr std::array<std::size_t, 4> sizes{
+		3U,
+		29U,
+		251U,
+		701U,
+	} ;
+	std::size_t offset	   = 0U ;
+	std::size_t size_index = 0U ;
+	// frame境界と一致しないfragmentをwire順のまま最後まで渡す
+	while( offset < chunk.size()) {
+		const std::size_t size = std::min( sizes[size_index % sizes.size()], chunk.size() - offset) ;
+		// hardening fixtureの分割fragment配送失敗をhelperへ返す
+		if( !sink( chunk.subspan( offset, size))) {
+			return false ;
+		}
 
-        offset += size;
-        ++size_index;
-    }
+		offset += size ;
+		++size_index ;
+	}
 
-    return true;
+	return true ;
 }
 
 /**
@@ -60,27 +73,35 @@ template <typename Sink>
  * @param[in,out] agent Agent protocol owner。
  * @return queue全体を受理できた場合はtrue。
  */
-[[nodiscard]] bool PumpClientToAgent(
-    zrdp::client::bridge::ClientBridge& client,
-    zrdp::agent::bridge::AgentBridge& agent) {
-    bool more_data = false;
-    // Clientの有限queueが空になるまでfragment化してAgentへ順次配信する。
-    do {
-        std::vector<std::byte> chunk;
-        if (!client.TakeOutboundChunk(chunk, more_data)) {
-            return false;
-        }
+[[nodiscard]] bool PumpClientToAgent( zrdp::client::bridge::ClientBridge &client,
+									 zrdp::agent::bridge::AgentBridge	&agent)
+{
+	bool more_data = false ;
+	// Clientの有限queueが空になるまでfragment化してAgentへ順次配信する
+	do {
+		std::vector<std::byte> chunk ;
+		// Client送信chunkを取り出せなければframeを失った状態で試験を進めない
+		if( !client.TakeOutboundChunk( chunk, more_data)) {
+			return false ;
+		}
 
-        auto sink = [&agent](
-                        const std::span<const std::byte> fragment) {
-            return agent.OnChannelData(fragment);
-        };
-        if (!DeliverFragmented(chunk, sink)) {
-            return false;
-        }
-    } while (more_data);
+		/**
+		 * @cond LOCAL_CALLBACK_CONTRACT
+		 * @brief fake SVCのfragmentをAgentへ同期配送して再構成を検証する。
+		 * @param[in] fragment 今回の分割片。Agentは呼出し中に所有bufferへコピーする。
+		 * @return Agentがfragmentを受理できた場合はtrue。
+		 * @endcond
+		 */
+		auto sink = [&agent]( const std::span<const std::byte> fragment) {
+			return agent.OnChannelData( fragment) ;
+		} ;
+		// Clientのfragment配送失敗ではhardening往復を中止する
+		if( !DeliverFragmented( chunk, sink)) {
+			return false ;
+		}
+	} while( more_data) ;
 
-    return true;
+	return true ;
 }
 
 /**
@@ -89,27 +110,35 @@ template <typename Sink>
  * @param[in,out] client Client protocol owner。
  * @return queue全体を受理できた場合はtrue。
  */
-[[nodiscard]] bool PumpAgentToClient(
-    zrdp::agent::bridge::AgentBridge& agent,
-    zrdp::client::bridge::ClientBridge& client) {
-    bool more_data = false;
-    // Agentのserialized writer queueが空になるまでClientへ順次配信する。
-    do {
-        std::vector<std::byte> chunk;
-        if (!agent.TakeOutboundChunk(chunk, more_data)) {
-            return false;
-        }
+[[nodiscard]] bool PumpAgentToClient( zrdp::agent::bridge::AgentBridge	&agent,
+									 zrdp::client::bridge::ClientBridge &client)
+{
+	bool more_data = false ;
+	// Agentのserialized writer queueが空になるまでClientへ順次配信する
+	do {
+		std::vector<std::byte> chunk ;
+		// Agent応答chunkを取り出せなければ往復を失敗にする
+		if( !agent.TakeOutboundChunk( chunk, more_data)) {
+			return false ;
+		}
 
-        auto sink = [&client](
-                        const std::span<const std::byte> fragment) {
-            return client.OnChannelData(fragment);
-        };
-        if (!DeliverFragmented(chunk, sink)) {
-            return false;
-        }
-    } while (more_data);
+		/**
+		 * @cond LOCAL_CALLBACK_CONTRACT
+		 * @brief fake SVCのfragmentをClientへ同期配送して応答再構成を検証する。
+		 * @param[in] fragment 今回の応答片。呼出し終了後のspanを保持しない。
+		 * @return Clientがfragmentを受理できた場合はtrue。
+		 * @endcond
+		 */
+		auto sink = [&client]( const std::span<const std::byte> fragment) {
+			return client.OnChannelData( fragment) ;
+		} ;
+		// Agentのfragment配送失敗をhardening helperへ伝える
+		if( !DeliverFragmented( chunk, sink)) {
+			return false ;
+		}
+	} while( more_data) ;
 
-    return true;
+	return true ;
 }
 
 /**
@@ -118,16 +147,13 @@ template <typename Sink>
  * @param[in,out] agent Agent protocol owner。
  * @return 両端がReadyの場合はtrue。
  */
-[[nodiscard]] bool StartReadySession(
-    zrdp::client::bridge::ClientBridge& client,
-    zrdp::agent::bridge::AgentBridge& agent) {
-    return client.StartSession() &&
-        PumpClientToAgent(client, agent) &&
-        PumpAgentToClient(agent, client) &&
-        client.snapshot().state ==
-            zrdp::client::bridge::ClientBridgeState::Ready &&
-        agent.snapshot().state ==
-            zrdp::agent::bridge::AgentBridgeState::Ready;
+[[nodiscard]] bool StartReadySession( zrdp::client::bridge::ClientBridge &client,
+									 zrdp::agent::bridge::AgentBridge	&agent)
+{
+	return client.StartSession() && PumpClientToAgent( client, agent) &&
+		   PumpAgentToClient( agent, client) &&
+		   client.snapshot().state == zrdp::client::bridge::ClientBridgeState::Ready &&
+		   agent.snapshot().state == zrdp::agent::bridge::AgentBridgeState::Ready ;
 }
 
 /**
@@ -136,15 +162,12 @@ template <typename Sink>
  * @param[in,out] agent Agent protocol owner。
  * @return 応答待ちが解消されReadyを維持した場合はtrue。
  */
-[[nodiscard]] bool RoundTripHealth(
-    zrdp::client::bridge::ClientBridge& client,
-    zrdp::agent::bridge::AgentBridge& agent) {
-    return client.QueueHealthCheck() &&
-        PumpClientToAgent(client, agent) &&
-        PumpAgentToClient(agent, client) &&
-        !client.snapshot().health_check_outstanding &&
-        client.snapshot().state ==
-            zrdp::client::bridge::ClientBridgeState::Ready;
+[[nodiscard]] bool RoundTripHealth( zrdp::client::bridge::ClientBridge &client,
+								   zrdp::agent::bridge::AgentBridge	  &agent)
+{
+	return client.QueueHealthCheck() && PumpClientToAgent( client, agent) &&
+		   PumpAgentToClient( agent, client) && !client.snapshot().health_check_outstanding &&
+		   client.snapshot().state == zrdp::client::bridge::ClientBridgeState::Ready ;
 }
 
 /**
@@ -152,24 +175,25 @@ template <typename Sink>
  * @param[in,out] client Client protocol owner。
  * @return 一件以上のchunkを有限queueから破棄できた場合はtrue。
  */
-[[nodiscard]] bool DiscardClientQueue(
-    zrdp::client::bridge::ClientBridge& client) {
-    bool more_data = false;
-    bool discarded = false;
-    // crash相当を再現するため、現在queue済みの有限chunkだけを全て破棄する。
-    do {
-        std::vector<std::byte> chunk;
-        if (!client.TakeOutboundChunk(chunk, more_data)) {
-            return false;
-        }
+[[nodiscard]] bool DiscardClientQueue( zrdp::client::bridge::ClientBridge &client)
+{
+	bool more_data = false ;
+	bool discarded = false ;
+	// crash相当を再現するため、現在queue済みの有限chunkだけを全て破棄する
+	do {
+		std::vector<std::byte> chunk ;
+		// 破棄対象の送信chunkを取得できなければ消失応答試験の前提を満たさない
+		if( !client.TakeOutboundChunk( chunk, more_data)) {
+			return false ;
+		}
 
-        discarded = discarded || !chunk.empty();
-    } while (more_data);
+		discarded = discarded || !chunk.empty() ;
+	} while( more_data) ;
 
-    return discarded;
+	return discarded ;
 }
 
-}  // namespace
+} // namespace
 
 // -----------------------------------------------------------------------------
 // テスト実行
@@ -179,132 +203,103 @@ template <typename Sink>
  * @brief Phase 6のmalformed入力、resource上限、切断cleanupを検証する。
  * @return 全検証成功時は0、失敗時は失敗段階を表す非0 code。
  */
-int wmain() {
-    using zrdp::agent::bridge::AgentBridge;
-    using zrdp::agent::bridge::AgentBridgeState;
-    using zrdp::agent::network::Allowlist;
-    using zrdp::client::bridge::ClientBridge;
-    using zrdp::client::bridge::ClientBridgeState;
-    using zrdp::protocol::OpenTarget;
+int wmain()
+{
+	using zrdp::agent::bridge::AgentBridge ;
+	using zrdp::agent::bridge::AgentBridgeState ;
+	using zrdp::agent::network::Allowlist ;
+	using zrdp::client::bridge::ClientBridge ;
+	using zrdp::client::bridge::ClientBridgeState ;
+	using zrdp::protocol::OpenTarget ;
 
-    ClientBridge client;
-    AgentBridge agent;
-    agent.Reset();
-    if (!StartReadySession(client, agent)) {
-        return 1;
-    }
+	ClientBridge client ;
+	AgentBridge	 agent ;
+	agent.Reset() ;
+	// Ready sessionを開始できなければ死活確認の反復試験を実行しない
+	if( !StartReadySession( client, agent)) {
+		return 1 ;
+	}
 
-    // 通常health checkを反復し、周期処理でqueueやsequenceが混線しないことを確認する。
-    for (std::size_t round = 0U; round < 64U; ++round) {
-        if (!RoundTripHealth(client, agent)) {
-            return 2;
-        }
-    }
+	// 通常health checkを反復し、周期処理でqueueやsequenceが混線しないことを確認する
+	for( std::size_t round = 0U; round < 64U; ++round) {
+		// 通常health往復が反復中も成立することを確認する
+		if( !RoundTripHealth( client, agent)) {
+			return 2 ;
+		}
+	}
 
-    // Agent crashでは未応答PING後に旧stateを捨て、新AgentへのHELLOをqueueする。
-    if (!client.QueueHealthCheck() ||
-        !DiscardClientQueue(client) ||
-        !client.OnHealthCheckTimeout() ||
-        client.snapshot().state !=
-            ClientBridgeState::WaitingForAgent) {
-        return 3;
-    }
+	// Agent crashでは未応答PING後に旧stateを捨て、新AgentへのHELLOをqueueする
+	if( !client.QueueHealthCheck() || !DiscardClientQueue( client) ||
+	   !client.OnHealthCheckTimeout() ||
+	   client.snapshot().state != ClientBridgeState::WaitingForAgent) {
+		return 3 ;
+	}
 
-    AgentBridge restarted_agent;
-    restarted_agent.Reset();
-    if (!PumpClientToAgent(client, restarted_agent) ||
-        !PumpAgentToClient(restarted_agent, client) ||
-        client.snapshot().state != ClientBridgeState::Ready ||
-        !RoundTripHealth(client, restarted_agent)) {
-        return 4;
-    }
+	AgentBridge restarted_agent ;
+	restarted_agent.Reset() ;
+	// Agent再起動後の再交渉と死活確認が正常復帰することを確認する
+	if( !PumpClientToAgent( client, restarted_agent) || !PumpAgentToClient( restarted_agent, client) ||
+	   client.snapshot().state != ClientBridgeState::Ready ||
+	   !RoundTripHealth( client, restarted_agent)) {
+		return 4 ;
+	}
 
-    // Client process再起動相当の新HELLOでAgent側旧sequenceをresetする。
-    ClientBridge restarted_client;
-    if (!StartReadySession(
-            restarted_client,
-            restarted_agent) ||
-        !RoundTripHealth(
-            restarted_client,
-            restarted_agent)) {
-        return 5;
-    }
-    client.StopSession();
+	// Client process再起動相当の新HELLOでAgent側旧sequenceをresetする
+	ClientBridge restarted_client ;
+	// Client再起動後も新sessionとhealth sequenceが独立することを確認する
+	if( !StartReadySession( restarted_client, restarted_agent) ||
+	   !RoundTripHealth( restarted_client, restarted_agent)) {
+		return 5 ;
+	}
 
-    // RDP disconnect／reconnectを反復し、旧fragmentやhealth stateを再利用しない。
-    for (std::size_t cycle = 0U; cycle < 32U; ++cycle) {
-        restarted_client.StopSession();
-        restarted_agent.Reset();
-        if (restarted_client.snapshot().state !=
-                ClientBridgeState::Stopped ||
-            restarted_agent.snapshot().state !=
-                AgentBridgeState::WaitingForHello ||
-            !StartReadySession(
-                restarted_client,
-                restarted_agent) ||
-            !RoundTripHealth(
-                restarted_client,
-                restarted_agent)) {
-            return 6;
-        }
-    }
+	client.StopSession() ;
 
-    constexpr std::string_view old_configuration =
-        "[allowlist]\n"
-        "endpoint.1001=192.0.2.10:80\n";
-    constexpr std::string_view invalid_reload =
-        "[allowlist]\n"
-        "endpoint.1001=192.0.2.10:80\n"
-        "endpoint.1002=192.0.2.10:80\n";
-    constexpr std::string_view new_configuration =
-        "[allowlist]\n"
-        "endpoint.2001=198.51.100.20:8080\n";
-    constexpr OpenTarget old_target{
-        {192U, 0U, 2U, 10U},
-        80U};
-    constexpr OpenTarget new_target{
-        {198U, 51U, 100U, 20U},
-        8080U};
+	// RDP disconnect／reconnectを反復し、旧fragmentやhealth stateを再利用しない
+	for( std::size_t cycle = 0U; cycle < 32U; ++cycle) {
+		restarted_client.StopSession() ;
+		restarted_agent.Reset() ;
+		// 双方停止・reset後に旧状態を再利用せず再開できることを確認する
+		if( restarted_client.snapshot().state != ClientBridgeState::Stopped ||
+		   restarted_agent.snapshot().state != AgentBridgeState::WaitingForHello ||
+		   !StartReadySession( restarted_client, restarted_agent) ||
+		   !RoundTripHealth( restarted_client, restarted_agent)) {
+			return 6 ;
+		}
+	}
 
-    Allowlist active_allowlist;
-    std::uint32_t endpoint_id = 0U;
-    if (!zrdp::agent::network::ParseAllowlist(
-            old_configuration,
-            active_allowlist).succeeded() ||
-        !active_allowlist.Find(
-            old_target,
-            endpoint_id) ||
-        endpoint_id != 1001U) {
-        return 7;
-    }
+	constexpr std::string_view old_configuration = "[allowlist]\n"
+												   "endpoint.1001=192.0.2.10:80\n" ;
+	constexpr std::string_view invalid_reload	 = "[allowlist]\n"
+												   "endpoint.1001=192.0.2.10:80\n"
+												   "endpoint.1002=192.0.2.10:80\n" ;
+	constexpr std::string_view new_configuration = "[allowlist]\n"
+												   "endpoint.2001=198.51.100.20:8080\n" ;
+	constexpr OpenTarget	   old_target{{192U, 0U, 2U, 10U}, 80U} ;
+	constexpr OpenTarget	   new_target{{198U, 51U, 100U, 20U}, 8080U} ;
 
-    // 不正reloadは途中entryを公開せず、検証済み旧設定をatomicに維持する。
-    if (zrdp::agent::network::ParseAllowlist(
-            invalid_reload,
-            active_allowlist).succeeded() ||
-        !active_allowlist.Find(
-            old_target,
-            endpoint_id) ||
-        active_allowlist.Find(
-            new_target,
-            endpoint_id)) {
-        return 8;
-    }
+	Allowlist				   active_allowlist ;
+	std::uint32_t			   endpoint_id = 0U ;
+	// 旧allowlistの匿名IDとtarget対応が正常に読めることを確認する
+	if( !zrdp::agent::network::ParseAllowlist( old_configuration, active_allowlist).succeeded() ||
+	   !active_allowlist.Find( old_target, endpoint_id) || endpoint_id != 1001U) {
+		return 7 ;
+	}
 
-    // Agent再起動相当の新instanceだけへ新allowlistを適用し、旧targetを許可しない。
-    Allowlist restarted_allowlist;
-    if (!zrdp::agent::network::ParseAllowlist(
-            new_configuration,
-            restarted_allowlist).succeeded() ||
-        !restarted_allowlist.Find(
-            new_target,
-            endpoint_id) ||
-        endpoint_id != 2001U ||
-        restarted_allowlist.Find(
-            old_target,
-            endpoint_id)) {
-        return 9;
-    }
+	// 不正reloadは途中entryを公開せず、検証済み旧設定をatomicに維持する
+	if( zrdp::agent::network::ParseAllowlist( invalid_reload, active_allowlist).succeeded() ||
+	   !active_allowlist.Find( old_target, endpoint_id) ||
+	   active_allowlist.Find( new_target, endpoint_id)) {
+		return 8 ;
+	}
 
-    return 0;
+	// Agent再起動相当の新instanceだけへ新allowlistを適用し、旧targetを許可しない
+	Allowlist restarted_allowlist ;
+	// 新allowlistは新targetだけを許可し、旧targetが残らないことを確認する
+	if( !zrdp::agent::network::ParseAllowlist( new_configuration, restarted_allowlist).succeeded() ||
+	   !restarted_allowlist.Find( new_target, endpoint_id) || endpoint_id != 2001U ||
+	   restarted_allowlist.Find( old_target, endpoint_id)) {
+		return 9 ;
+	}
+
+	return 0 ;
 }

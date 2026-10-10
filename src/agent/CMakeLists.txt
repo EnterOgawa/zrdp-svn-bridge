@@ -1,8 +1,16 @@
 add_library(
-    zrdp_agent_network
+    zrdp_agent_allowlist
     STATIC
         network/allowlist.cpp
         network/allowlist.h
+)
+
+target_include_directories(zrdp_agent_allowlist PUBLIC "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(zrdp_agent_allowlist PUBLIC zrdp_protocol)
+
+add_library(
+    zrdp_agent_network
+    STATIC
         network/upstream_connection.cpp
         network/upstream_connection.h
 )
@@ -16,6 +24,7 @@ target_include_directories(
 target_link_libraries(
     zrdp_agent_network
     PUBLIC
+        zrdp_agent_allowlist
         zrdp_protocol
     PRIVATE
         Ws2_32
@@ -89,6 +98,7 @@ target_link_libraries(
     PRIVATE
         zrdp_agent_bridge
         zrdp_agent_runtime
+        zrdp_agent_setup
         zrdp_build_options
         zrdp_common
         Wtsapi32

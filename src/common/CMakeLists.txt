@@ -24,3 +24,7 @@ target_link_libraries(
     PRIVATE
         ole32
 )
+
+add_library(zrdp_agent_setup STATIC agent_setup.cpp agent_setup.h)
+target_include_directories(zrdp_agent_setup PUBLIC "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(zrdp_agent_setup PUBLIC zrdp_build_options PRIVATE zrdp_client_update zrdp_agent_allowlist zrdp_agent_runtime advapi32 shell32 ole32)

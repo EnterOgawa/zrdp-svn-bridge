@@ -1,12 +1,31 @@
 #pragma code_page(65001)
 
+//------------------------------------------------------------------------------
 /**
+ * Copyright (c) 2026 EnterSystem CO.,LTD.
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @file ZRdpSvnBridge.rc
  * @brief Clientのmanifest、version、icon、日本語UI文字列を定義する。
+ * @version 01.00.05
+ * @date 2026/08/01
+ * @author Shunji Ogawa
  *
  * @details credentialや実接続先をresourceへ埋め込まず、配布EXEに必要な
  *          固定metadataと利用者向け文字列だけを保持する。
+ *
+ * @par 更新履歴
+ * <pre>
+ * VerNo.         author        update      comment
+ * Ver.01.00.00   Shunji Ogawa  2026/10/07  指定C/C++規約へコメントと書式を統一。
+ * Ver.01.00.01   Shunji Ogawa  2026/10/07  Clientの同意付き更新と設定の分離を追加。
+ * Ver.01.00.02   Shunji Ogawa  2026/10/08  Agent設定画面の入口を追加。
+ * Ver.01.00.03   Shunji Ogawa  2026/10/10  managerメニューを撤廃し自動更新確認へ統一。
+ * Ver.01.00.04   Shunji Ogawa  2026/10/10  自動起動の未設定案内をtitle resourceへ追加。
+ * Ver.01.00.05   Shunji Ogawa  2026/10/10  Client／Agentセット更新のmetadataと案内を追加。
+ * </pre>
  */
+//------------------------------------------------------------------------------
 
 #include "resource.h"
 #include <windows.h>
@@ -52,6 +71,9 @@ BEGIN
             VALUE "OriginalFilename", "ZRdpSvnBridge.exe\0"
             VALUE "ProductName", "ZRdp SVN Bridge\0"
             VALUE "ProductVersion", "0.7.20.0\0"
+            VALUE "UpdaterProtocol", "1\0"
+            VALUE "PairedUpdateProtocol", "1\0"
+            VALUE "BridgeProtocol", "1\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -62,6 +84,19 @@ END
 
 STRINGTABLE
 BEGIN
+    IDS_UPDATE_OFFER_FORMAT           "ClientとAgentの新しいバージョンがあります。\n\n現在: %s\n更新先: %s\n\nダウンロードと署名検証を開始しますか？\nRDP接続は自動切断しません。すべてのRDPウィンドウとAgent設定画面を閉じ、設定保存が完了した後、ClientとAgentをセットで更新し、Clientを再起動します。接続先のAgentは次回RDP接続時に更新します。"
+    IDS_UPDATE_CHECKING               "更新: 確認中"
+    IDS_UPDATE_DOWNLOADING            "更新: 取得・検証中"
+    IDS_UPDATE_WAITING                "更新: RDP／設定ウィンドウ終了待ち"
+    IDS_UPDATE_APPLYING               "更新: 適用中"
+    IDS_UPDATE_LATEST                 "このClientより新しい互換バージョンはありません。"
+    IDS_UPDATE_DISABLED               "Clientの自動更新は無効です。client.iniの[update]設定を確認してください。"
+    IDS_UPDATE_BUSY                   "更新の確認・準備が進行中、またはRDPウィンドウの終了を待っています。"
+    IDS_UPDATE_FAILURE_FORMAT         "Clientの更新を確認・適用できませんでした。RDP接続と設定は変更していません。\n\n分類: update-%u\n公開Release、通信制限、互換性、書込み権限を確認してください。"
+    IDS_UPDATE_SIGNATURE_FAILURE_FORMAT "署名または発行者の検証に失敗したため、ClientとAgentを更新しません。未署名の開発版からの自動更新も行いません。\n\n分類: update-%u\nWindowsで信頼される、現在と同じ発行者の同一版の署名済みClientとAgentが必要です。"
+    IDS_UPDATE_CONNECT_BLOCKED        "Clientの更新適用中は新しいRDP接続を開始できません。更新後の再起動をお待ちください。"
+    IDS_UPDATE_RECOVERED              "更新を完了できなかったため、旧版ClientとAgentに復元しました。この起動では同じ更新を自動提示しません。接続は通常どおり利用できます。"
+    IDS_UPDATE_HELPER_FAILED          "Client更新の完了または復旧を確認できませんでした。旧版Client・Agentのbackupと更新用stageを手動で確認してください。稼働中のプログラムは強制停止していません。"
     IDS_APP_TITLE                     "ZRdp SVN Bridge - Phase 9 (0.7.20)"
     IDS_CONNECTION_NAME_LABEL         "接続名:"
     IDS_SERVER_LABEL                  "接続先:"
@@ -132,6 +167,7 @@ BEGIN
     IDS_TITLE_RDP_RECONNECTING        "再接続中"
     IDS_TITLE_RDP_DISCONNECTING       "切断中"
     IDS_TITLE_RDP_FAILED              "エラー"
+    IDS_TITLE_AGENT_NEEDS_SETTINGS    "要設定"
     IDS_TITLE_AGENT_STOPPED           "停止"
     IDS_TITLE_AGENT_WAITING           "待機中"
     IDS_TITLE_AGENT_CONNECTED         "接続済み"

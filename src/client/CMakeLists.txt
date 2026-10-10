@@ -127,6 +127,67 @@ target_link_libraries(
         Ws2_32
 )
 
+add_library(
+    zrdp_agent_settings
+    STATIC
+        agent_settings/agent_settings_model.cpp
+        agent_settings/agent_settings_model.h
+        agent_settings/agent_settings_service.cpp
+        agent_settings/agent_settings_service.h
+        agent_settings/agent_settings_windows.cpp
+        agent_deployment/agent_deployment.cpp
+        agent_deployment/agent_deployment.h
+        agent_deployment/agent_deployment_clipboard.cpp
+)
+
+target_include_directories(zrdp_agent_settings PUBLIC "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(zrdp_agent_settings PUBLIC zrdp_agent_allowlist zrdp_agent_setup PRIVATE zrdp_client_update bcrypt crypt32 ole32 shell32 shlwapi uuid)
+
+add_library(
+    zrdp_agent_settings_ui
+    STATIC
+        app/agent_settings_window.cpp
+        app/agent_settings_window.h
+        app/agent_deployment_window.cpp
+        app/agent_deployment_window.h
+        app/agent_start_window.cpp
+        app/agent_start_window.h
+)
+target_link_libraries(zrdp_agent_settings_ui PUBLIC zrdp_agent_settings PRIVATE comctl32 comdlg32 user32 gdi32)
+
+add_library(
+    zrdp_client_update
+    STATIC
+        update/github_release_source.cpp
+        update/github_release_source.h
+        update/update_apply.cpp
+        update/update_apply.h
+        update/update_image_verifier.cpp
+        update/update_image_verifier.h
+        update/update_manifest.cpp
+        update/update_manifest.h
+        update/update_service.cpp
+        update/update_service.h
+        update/update_windows.cpp
+        update/update_windows.h
+        update/update_windows_handles.h
+)
+
+target_include_directories(zrdp_client_update PUBLIC "${PROJECT_SOURCE_DIR}/src")
+
+target_link_libraries(
+    zrdp_client_update
+    PUBLIC
+        zrdp_build_options
+    PRIVATE
+        bcrypt
+        crypt32
+        shell32
+        version
+        winhttp
+        wintrust
+)
+
 add_executable(
     ZRdpSvnBridge
     WIN32
@@ -147,6 +208,7 @@ add_executable(
         app/session_proxy_port_allocator.h
         app/ZRdpSvnBridge.manifest
         app/ZRdpSvnBridge.rc
+        app/agent_settings.rc
         "${PROJECT_SOURCE_DIR}/assets/icons/zrdp-icon.rc"
 )
 
@@ -163,6 +225,8 @@ target_link_libraries(
         zrdp_build_options
         zrdp_client_bridge
         zrdp_client_proxy
+        zrdp_client_update
+        zrdp_agent_settings_ui
         zrdp_connection_history
         zrdp_rdp
         zrdp_rdp_window_sizing

@@ -21,6 +21,10 @@ CMakeUserPresets.json
 *.tlh
 *.tli
 
+# Python source-formatting tool caches
+__pycache__/
+*.pyc
+
 # Logs, dumps, and captures
 logs/
 dumps/

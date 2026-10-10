@@ -1,6 +1,6 @@
 # localhost HTTP Proxy
 
-更新日: 2026-07-31
+更新日: 2026-10-07
 
 ## 1. 現在の状態
 
@@ -62,11 +62,17 @@ UI／COM threadへ戻し、RDP描画や入力をblocking I/Oで停止させな�
 - 一つのincoming connectionは、最初の正常requestの`IPv4:port`へ固定する。
   Keep-Alive中の宛先変更は拒否する。
 - `Proxy-Connection`、`Proxy-Authorization`、標準hop-by-hop header、および
-  `Connection`で指定されたheaderをupstreamへ送らない。
+  `Connection`で指定されたheaderを、後述の検証済みchunked framingを除いて
+  upstreamへ送らない。
+- `Connection`が`Host`または`Content-Length`を指名した要求は、header／bodyの
+  転送開始前に固定`400`で拒否する。大小文字、comma、複数Connection行、受信分割で
+  結果を変えず、指名したheaderの欠落やbody長0でも受理しない。
 - end-to-end header、method、path、query、HTTP versionは必要以上に変更しない。
 - `Content-Length` bodyは入力chunk単位で中継し、request全体を保持しない。
 - `Transfer-Encoding`は単一の`chunked`だけを受け付け、size、extension、data
   CRLF、zero chunk、trailerをincrementalに検証して同じwire framingで中継する。
+- 検証済みchunkedの`Transfer-Encoding`／`Trailer`は、Connectionで指名されていても
+  次hopのframingとして維持する。長さheaderだけを落として元のbody処理を続けない。
 - `Content-Length`と`Transfer-Encoding`の併用、複数coding、未知codingを
   request smuggling境界で拒否する。
 - `Expect: 100-continue`、Authorization、Cookie、Depth、Destination、
@@ -133,6 +139,25 @@ Proxyから指定された宛先をAgentが無条件に接続することはな�
   `CLOSE(Timeout)`を生成してlocal Socketを閉じることを確認した。
 - Agent異常終了後のhealth timeout、同一RDP sessionでのAgent再起動、Client再起動、
   RDP再接続相当のstate再生成をfake SVCで反復した。
+
+### Connection指名の拒否と要求境界
+
+2026-10-07の公開前ソース検証では、ConnectionがHost／Content-Lengthを指名する
+要求の拒否と、正常要求の変換前後の境界を回帰testへ追加した。
+
+- 大小文字混在、comma、複数Connection行、header欠落、body長0を、すべての
+  二分割位置とbyte単位入力で拒否し、その要求の出力を生成しない。
+- 初回の不正要求と同一callback内のpipeline違反では、固定400を返し、
+  Agent向けOPEN／DATAも上流送信queueも生成しない。
+- OPEN済みKeep-Aliveでの違反は対象streamのCLOSEだけを生成し、別streamの
+  正常要求を継続できる。
+- 正常な固定長body、chunked、Trailer、既存hop-by-hop除去、複数要求は、
+  wire byteと再解析後の要求数・body境界を維持する。
+- Windows x64のDebug／Release buildと、各構成の全30 CTestが成功した。
+
+このGateはin-memoryとloopback Mockでの検証である。署名済み配布EXEは変更せず、
+修正を隔離buildで確認した。実SVN／Tracの回帰は、配布候補を用いてユーザーが
+承認した環境・操作で別途確認する。
 
 ## 6. Mylyn Trac互換性
 

@@ -1,6 +1,6 @@
 # ESVNBRG Application Protocol
 
-更新日: 2026-07-30
+更新日: 2026-10-10
 
 ## 1. 基本規則
 
@@ -46,6 +46,9 @@ type、flags、streamId、payload lengthのいずれかが不正な場合はfail
 | 10 | `PING` | Phase 1 EchoまたはAgent死活確認要求 |
 | 11 | `PONG` | Echoまたは死活確認応答 |
 | 12 | `PROTOCOL_ERROR` | connection-level protocol停止通知 |
+| 13 | `AGENT_CONFIGURE` | Clientの承認済みINI |
+| 14 | `AGENT_CONFIGURE_ACK` | Agentの設定確認・再起動・拒否 |
+| 15 | `AGENT_STOP` | Clientから同じAgentの協調停止 |
 
 connection-level `CLOSE`は`streamId=0`、`sequence=0`、空payloadに固定する。
 stream-level `CLOSE`は非0 `streamId`を使用する。`WINDOW_UPDATE`も非0
@@ -236,3 +239,21 @@ encode、decode、allocation、queue、sequence、payload、timeout、transport�
 該当Bridge sessionを停止する。RDP画面接続は可能な限り維持し、旧queueや
 旧sequenceを次のRDP sessionへ再利用しない。独自圧縮、暗号化、再送、途中再開は
 実装しない。
+
+## Agentの限定ライフサイクルcontrol
+
+feature bit `0x00000004` を相互合意した場合だけ使用する。
+現行productionはEcho + Streams + Lifecycleの `0x00000007`。
+frame header、byte order、protocol version 1とHTTP data planeは維持する。
+現行AgentはLifecycle非対応Clientとの中継をfail-closedで拒否するため、二EXEを同時に更新する。
+
+`AGENT_CONFIGURE` はstreamId 0、sequence 1、最大65,536 byteかつ合意frame上限以下のINI。
+一HELLOにつき一要求だけとし、任意path・command・process IDを含めない。
+`AGENT_CONFIGURE_ACK` はstreamId 0、sequence 1、一byteの結果
+（1=同一INI確認済み、2=INI更新済みで再起動、3=拒否）。
+重複ACK、未知結果、逆方向、未交渉、非0 streamを拒否する。
+新HELLOでは全Socketを閉じ、設定確認を取り直す。
+
+`AGENT_STOP` はstreamId 0、sequence 0、空payload。Agent自身だけを協調停止する。
+設定ACK 1を確認するまでClient ProxyもAgent stream relayも新しいHTTP streamを開始しない。
+拒否直後のCLOSEでも拒否状態を消して自動再試行しない。

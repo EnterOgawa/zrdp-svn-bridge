@@ -1,10 +1,24 @@
+//------------------------------------------------------------------------------
 /**
+ * Copyright (c) 2026 EnterSystem CO.,LTD.
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * @file client_proxy_worker_test.cpp
  * @brief production listenerのloopback限定bindとBridge未ready即時503を検証する。
+ * @version 01.00.00
+ * @date 2026/08/01
+ * @author Shunji Ogawa
  *
  * @details test processの127.0.0.1とOS割当portだけを使用し、外部network、
  *          DNS、実SVNへ接続しない。
+ *
+ * @par 更新履歴
+ * <pre>
+ * VerNo.         author        update      comment
+ * Ver.01.00.00   Shunji Ogawa  2026/10/07  指定C/C++規約へコメントと書式を統一。
+ * </pre>
  */
+//------------------------------------------------------------------------------
 
 #include <WinSock2.h>
 #include <WS2tcpip.h>
@@ -28,59 +42,92 @@ namespace {
  */
 class TestSocket final {
 public:
-    TestSocket() noexcept = default;
+	/**
+	 * @brief 初期状態の管理instanceを構築し、所有資源の解放責任を固定する。
+	 */
+	TestSocket() noexcept = default ;
 
-    explicit TestSocket(
-        const SOCKET socket) noexcept
-        : socket_(socket) {
-    }
+	/**
+	 * @brief 初期状態の管理instanceを構築し、所有資源の解放責任を固定する。
+	 * @param[in] socket 受け取る資源handle。無効値を許容し、有効な場合だけ終了時に解放する。
+	 */
+	explicit TestSocket( const SOCKET socket) noexcept : socket_( socket)
+	{
+	}
 
-    ~TestSocket() {
-        if (socket_ != INVALID_SOCKET) {
-            static_cast<void>(closesocket(socket_));
-        }
-    }
+	/**
+	 * @brief 所有資源を終了経路で解放し、後続の参照を残さない。
+	 */
+	~TestSocket()
+	{
+		// test Socketを所有している場合だけ破棄時に閉じる
+		if( socket_ != INVALID_SOCKET) {
+			static_cast<void>( closesocket( socket_)) ;
+		}
+	}
 
-    TestSocket(const TestSocket&) = delete;
-    TestSocket& operator=(const TestSocket&) = delete;
+	/**
+	 * @brief 所有資源とlifecycleの複製を禁止する。
+	 */
+	TestSocket( const TestSocket &)			  = delete ;
+	/**
+	 * @brief 所有資源とlifecycleの複製を禁止する。
+	 * @return 呼出し禁止のため戻り値は生成しない。
+	 */
+	TestSocket &operator=( const TestSocket &) = delete ;
 
-    TestSocket(TestSocket&& other) noexcept
-        : socket_(other.Release()) {
-    }
+	/**
+	 * @brief 初期状態の管理instanceを構築し、所有資源の解放責任を固定する。
+	 * @param[in] other 所有権を引き継ぐ移動元。終了時に同じ資源を重複解放しない。
+	 */
+	TestSocket( TestSocket &&other) noexcept : socket_( other.Release())
+	{
+	}
 
-    TestSocket& operator=(TestSocket&& other) noexcept {
-        if (this != &other) {
-            if (socket_ != INVALID_SOCKET) {
-                static_cast<void>(closesocket(socket_));
-            }
+	/**
+	 * @brief 現在の所有資源を解放し、移動元から単独所有権を引き継ぐ。
+	 * @param[in] other 所有権を引き継ぐ移動元。終了時に同じ資源を重複解放しない。
+	 * @return 更新後の自身への参照。
+	 */
+	TestSocket &operator=( TestSocket &&other) noexcept
+	{
+		// 自己moveでtest Socketを失わないよう別instanceだけから移譲する
+		if( this != &other) {
+			// 移譲前に既存の所有Socketだけを閉じる
+			if( socket_ != INVALID_SOCKET) {
+				static_cast<void>( closesocket( socket_)) ;
+			}
 
-            socket_ = other.Release();
-        }
+			socket_ = other.Release() ;
+		}
 
-        return *this;
-    }
+		return *this ;
+	}
 
-    /**
-     * @brief 非owning Socket値を返す。
-     * @return 現在値。
-     */
-    [[nodiscard]] SOCKET Get() const noexcept {
-        return socket_;
-    }
+	/**
+	 * @brief 非owning Socket値を返す。
+	 * @return 現在値。
+	 */
+	[[nodiscard]] SOCKET Get() const noexcept
+	{
+		return socket_ ;
+	}
 
 private:
-    /**
-     * @brief close責任をmove先へ移す。
-     * @return 以前の所有Socket。
-     */
-    [[nodiscard]] SOCKET Release() noexcept {
-        const SOCKET released = socket_;
-        socket_ = INVALID_SOCKET;
-        return released;
-    }
+	/**
+	 * @brief close責任をmove先へ移す。
+	 * @return 以前の所有Socket。
+	 */
+	[[nodiscard]] SOCKET Release() noexcept
+	{
+		const SOCKET released = socket_ ;
+		socket_				  = INVALID_SOCKET ;
+		return released ;
+	}
 
-    SOCKET socket_{INVALID_SOCKET};
-};
+	/// このRAII instanceが単独所有するSocket。Closeまたは破棄で解放する。
+	SOCKET socket_{INVALID_SOCKET} ;
+} ;
 
 /**
  * @brief workerが指定stateへ到達するまで有限時間pollする。
@@ -88,23 +135,21 @@ private:
  * @param[in] state 期待state。
  * @return 2秒以内に一致した場合はtrue。
  */
-[[nodiscard]] bool WaitForState(
-    const zrdp::client::proxy::ClientProxyWorker& worker,
-    const zrdp::client::proxy::ClientProxyWorkerState state) {
-    const auto deadline =
-        std::chrono::steady_clock::now() +
-        std::chrono::seconds(2);
-    // background listener初期化を短い間隔で有限待機する。
-    while (std::chrono::steady_clock::now() < deadline) {
-        if (worker.snapshot().state == state) {
-            return true;
-        }
+[[nodiscard]] bool WaitForState( const zrdp::client::proxy::ClientProxyWorker	 &worker,
+								const zrdp::client::proxy::ClientProxyWorkerState state)
+{
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds( 2) ;
+	// background listener初期化を短い間隔で有限待機する
+	while( std::chrono::steady_clock::now() < deadline) {
+		// 期待worker状態へ達した場合は有限待機を終了する
+		if( worker.snapshot().state == state) {
+			return true ;
+		}
 
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(5));
-    }
+		std::this_thread::sleep_for( std::chrono::milliseconds( 5)) ;
+	}
 
-    return false;
+	return false ;
 }
 
 /**
@@ -112,23 +157,20 @@ private:
  * @param[in] worker 検証対象。
  * @return 2秒以内に一件以上を公開した場合はtrue。
  */
-[[nodiscard]] bool WaitForRejectedConnection(
-    const zrdp::client::proxy::ClientProxyWorker& worker) {
-    const auto deadline =
-        std::chrono::steady_clock::now() +
-        std::chrono::seconds(2);
-    // Socket送信とsnapshot公開は別threadなのでcounter公開まで有限pollする。
-    while (std::chrono::steady_clock::now() < deadline) {
-        if (worker.snapshot().rejected_connections >
-            0U) {
-            return true;
-        }
+[[nodiscard]] bool WaitForRejectedConnection( const zrdp::client::proxy::ClientProxyWorker &worker)
+{
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds( 2) ;
+	// Socket送信とsnapshot公開は別threadなのでcounter公開まで有限pollする
+	while( std::chrono::steady_clock::now() < deadline) {
+		// 固定拒否counterの増加を確認したら通知待ちを終了する
+		if( worker.snapshot().rejected_connections > 0U) {
+			return true ;
+		}
 
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(2));
-    }
+		std::this_thread::sleep_for( std::chrono::milliseconds( 2)) ;
+	}
 
-    return false;
+	return false ;
 }
 
 /**
@@ -136,22 +178,20 @@ private:
  * @param[in] worker 検証対象。
  * @return 2秒以内にreadyとなった場合はtrue。
  */
-[[nodiscard]] bool WaitForBridgeReady(
-    const zrdp::client::proxy::ClientProxyWorker& worker) {
-    const auto deadline =
-        std::chrono::steady_clock::now() +
-        std::chrono::seconds(2);
-    // owner commandの非同期適用を短い間隔で有限pollする。
-    while (std::chrono::steady_clock::now() < deadline) {
-        if (worker.snapshot().bridge_ready) {
-            return true;
-        }
+[[nodiscard]] bool WaitForBridgeReady( const zrdp::client::proxy::ClientProxyWorker &worker)
+{
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds( 2) ;
+	// owner commandの非同期適用を短い間隔で有限pollする
+	while( std::chrono::steady_clock::now() < deadline) {
+		// Bridge成立snapshotを確認したら準備待ちを終了する
+		if( worker.snapshot().bridge_ready) {
+			return true ;
+		}
 
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(2));
-    }
+		std::this_thread::sleep_for( std::chrono::milliseconds( 2)) ;
+	}
 
-    return false;
+	return false ;
 }
 
 /**
@@ -160,24 +200,21 @@ private:
  * @param[in] expected 最低timeout件数。
  * @return 2秒以内に到達した場合はtrue。
  */
-[[nodiscard]] bool WaitForTimeoutCount(
-    const zrdp::client::proxy::ClientProxyWorker& worker,
-    const std::uint64_t expected) {
-    const auto deadline =
-        std::chrono::steady_clock::now() +
-        std::chrono::seconds(2);
-    // workerの5 ms pollとsnapshot公開が完了するまで有限待機する。
-    while (std::chrono::steady_clock::now() < deadline) {
-        if (worker.snapshot().timed_out_connections >=
-            expected) {
-            return true;
-        }
+[[nodiscard]] bool WaitForTimeoutCount( const zrdp::client::proxy::ClientProxyWorker &worker,
+									   const std::uint64_t							 expected)
+{
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds( 2) ;
+	// workerの5 ms pollとsnapshot公開が完了するまで有限待機する
+	while( std::chrono::steady_clock::now() < deadline) {
+		// 期待timeout件数へ達した場合は期限検証の待機を終了する
+		if( worker.snapshot().timed_out_connections >= expected) {
+			return true ;
+		}
 
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(2));
-    }
+		std::this_thread::sleep_for( std::chrono::milliseconds( 2)) ;
+	}
 
-    return false;
+	return false ;
 }
 
 /**
@@ -185,38 +222,29 @@ private:
  * @param[in] port host byte orderのlistener port。
  * @return 接続済みSocket。失敗時はINVALID_SOCKETを所有する。
  */
-[[nodiscard]] TestSocket ConnectLoopback(
-    const std::uint16_t port) {
-    TestSocket socket(::socket(
-        AF_INET,
-        SOCK_STREAM,
-        IPPROTO_TCP));
-    if (socket.Get() == INVALID_SOCKET) {
-        return socket;
-    }
+[[nodiscard]] TestSocket ConnectLoopback( const std::uint16_t port)
+{
+	TestSocket socket( ::socket( AF_INET, SOCK_STREAM, IPPROTO_TCP)) ;
+	// test Socket生成失敗ではtimeout設定と接続を開始しない
+	if( socket.Get() == INVALID_SOCKET) {
+		return socket ;
+	}
 
-    DWORD timeout = 2000U;
-    static_cast<void>(setsockopt(
-        socket.Get(),
-        SOL_SOCKET,
-        SO_RCVTIMEO,
-        reinterpret_cast<const char*>(&timeout),
-        static_cast<int>(sizeof(timeout))));
-    sockaddr_in address{};
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr =
-        htonl(INADDR_LOOPBACK);
-    address.sin_port = htons(port);
-    // 外部addressへfallbackせず、loopback接続失敗を無効Socketとして返す。
-    if (connect(
-            socket.Get(),
-            reinterpret_cast<const sockaddr*>(&address),
-            static_cast<int>(sizeof(address))) ==
-        SOCKET_ERROR) {
-        return TestSocket{};
-    }
+	DWORD timeout = 2000U ;
+	static_cast<void>( setsockopt( socket.Get(), SOL_SOCKET, SO_RCVTIMEO,
+								 reinterpret_cast<const char *>( &timeout),
+								 static_cast<int>( sizeof( timeout)))) ;
+	sockaddr_in address{} ;
+	address.sin_family		= AF_INET ;
+	address.sin_addr.s_addr = htonl( INADDR_LOOPBACK) ;
+	address.sin_port		= htons( port) ;
+	// 外部addressへfallbackせず、loopback接続失敗を無効Socketとして返す
+	if( connect( socket.Get(), reinterpret_cast<const sockaddr *>( &address),
+			   static_cast<int>( sizeof( address))) == SOCKET_ERROR) {
+		return TestSocket{} ;
+	}
 
-    return socket;
+	return socket ;
 }
 
 /**
@@ -224,62 +252,45 @@ private:
  * @param[in] port host byte orderのport。
  * @return TCP owner table上の完全一致が一件ならtrue。
  */
-[[nodiscard]] bool HasOnlyLoopbackListener(
-    const std::uint16_t port) {
-    ULONG bytes = 0U;
-    const DWORD first = GetExtendedTcpTable(
-        nullptr,
-        &bytes,
-        FALSE,
-        AF_INET,
-        TCP_TABLE_OWNER_PID_LISTENER,
-        0U);
-    if (first != ERROR_INSUFFICIENT_BUFFER ||
-        bytes == 0U) {
-        return false;
-    }
+[[nodiscard]] bool HasOnlyLoopbackListener( const std::uint16_t port)
+{
+	ULONG		bytes = 0U ;
+	const DWORD first =
+		GetExtendedTcpTable( nullptr, &bytes, FALSE, AF_INET, TCP_TABLE_OWNER_PID_LISTENER, 0U) ;
+	// TCP tableの必要長を照会できなければlistener所属を検証済みにしない
+	if( first != ERROR_INSUFFICIENT_BUFFER || bytes == 0U) {
+		return false ;
+	}
 
-    std::vector<std::byte> storage(bytes);
-    auto* const table =
-        reinterpret_cast<PMIB_TCPTABLE_OWNER_PID>(
-            storage.data());
-    if (GetExtendedTcpTable(
-            table,
-            &bytes,
-            FALSE,
-            AF_INET,
-            TCP_TABLE_OWNER_PID_LISTENER,
-            0U) != NO_ERROR) {
-        return false;
-    }
+	std::vector<std::byte> storage( bytes) ;
+	auto *const			   table = reinterpret_cast<PMIB_TCPTABLE_OWNER_PID>( storage.data()) ;
+	// TCP table取得失敗ではloopback限定listenの確認を成功にしない
+	if( GetExtendedTcpTable( table, &bytes, FALSE, AF_INET, TCP_TABLE_OWNER_PID_LISTENER, 0U) !=
+	   NO_ERROR) {
+		return false ;
+	}
 
-    const DWORD process_id = GetCurrentProcessId();
-    std::size_t matches = 0U;
-    bool loopback = false;
-    // 同process・同portの全listener addressを列挙する。
-    for (DWORD index = 0U;
-         index < table->dwNumEntries;
-         ++index) {
-        const MIB_TCPROW_OWNER_PID& row =
-            table->table[index];
-        if (row.dwOwningPid == process_id &&
-            ntohs(
-                static_cast<u_short>(
-                    row.dwLocalPort)) == port) {
-            ++matches;
-            loopback =
-                row.dwLocalAddr ==
-                    htonl(INADDR_LOOPBACK);
-            if (!loopback) {
-                return false;
-            }
-        }
-    }
+	const DWORD process_id = GetCurrentProcessId() ;
+	std::size_t matches	   = 0U ;
+	bool		loopback   = false ;
+	// 同process・同portの全listener addressを列挙する
+	for( DWORD index = 0U; index < table->dwNumEntries; ++index) {
+		const MIB_TCPROW_OWNER_PID &row = table->table[index] ;
+		// このprocessと割当portに一致するlistenerだけを境界検証へ数える
+		if( row.dwOwningPid == process_id && ntohs( static_cast<u_short>( row.dwLocalPort)) == port) {
+			++matches ;
+			loopback = row.dwLocalAddr == htonl( INADDR_LOOPBACK) ;
+			// 対象listenerがloopback以外なら即座にsecurity境界違反として失敗にする
+			if( !loopback) {
+				return false ;
+			}
+		}
+	}
 
-    return matches == 1U && loopback;
+	return matches == 1U && loopback ;
 }
 
-}  // namespace
+} // namespace
 
 // -----------------------------------------------------------------------------
 // テスト実行
@@ -289,249 +300,202 @@ private:
  * @brief loopback Proxy workerのaccept、複数接続、停止cleanupを検証する。
  * @return 全検証成功時は0、失敗時は失敗段階を表す非0 code。
  */
-int main() {
-    WSADATA winsock{};
-    if (WSAStartup(MAKEWORD(2, 2), &winsock) != 0) {
-        return 1;
-    }
+int main()
+{
+	WSADATA winsock{} ;
+	// Winsock初期化失敗ではProxy workerのSocket試験を開始しない
+	if( WSAStartup( MAKEWORD( 2, 2), &winsock) != 0) {
+		return 1 ;
+	}
 
-    zrdp::client::proxy::ClientProxyWorker worker;
-    zrdp::client::proxy::ClientProxyWorkerSettings settings{};
-    settings.port = 0U;
-    settings.header_timeout_milliseconds = 100U;
-    settings.idle_timeout_milliseconds = 150U;
-    if (!worker.Start(settings, nullptr, nullptr) ||
-        !WaitForState(
-            worker,
-            zrdp::client::proxy::
-                ClientProxyWorkerState::Listening)) {
-        worker.Stop();
-        static_cast<void>(WSACleanup());
-        return 2;
-    }
+	zrdp::client::proxy::ClientProxyWorker		   worker ;
+	zrdp::client::proxy::ClientProxyWorkerSettings settings{} ;
+	settings.port						 = 0U ;
+	settings.header_timeout_milliseconds = 100U ;
+	settings.idle_timeout_milliseconds	 = 150U ;
+	// worker起動とListening遷移が揃わなければ試験資源を回収する
+	if( !worker.Start( settings, nullptr, nullptr) ||
+	   !WaitForState( worker, zrdp::client::proxy::ClientProxyWorkerState::Listening)) {
+		worker.Stop() ;
+		static_cast<void>( WSACleanup()) ;
+		return 2 ;
+	}
 
-    const auto listening = worker.snapshot();
-    if (listening.listening_port == 0U ||
-        listening.bridge_ready ||
-        !HasOnlyLoopbackListener(
-            listening.listening_port)) {
-        worker.Stop();
-        static_cast<void>(WSACleanup());
-        return 3;
-    }
+	const auto listening = worker.snapshot() ;
+	// 実port・Agent未交渉・loopback限定listenerの三条件を確認する
+	if( listening.listening_port == 0U || listening.bridge_ready ||
+	   !HasOnlyLoopbackListener( listening.listening_port)) {
+		worker.Stop() ;
+		static_cast<void>( WSACleanup()) ;
+		return 3 ;
+	}
 
-    TestSocket client(::socket(
-        AF_INET,
-        SOCK_STREAM,
-        IPPROTO_TCP));
-    if (client.Get() == INVALID_SOCKET) {
-        worker.Stop();
-        static_cast<void>(WSACleanup());
-        return 4;
-    }
+	TestSocket client( ::socket( AF_INET, SOCK_STREAM, IPPROTO_TCP)) ;
+	// local client Socketを生成できなければ接続試験を止める
+	if( client.Get() == INVALID_SOCKET) {
+		worker.Stop() ;
+		static_cast<void>( WSACleanup()) ;
+		return 4 ;
+	}
 
-    DWORD timeout = 2000U;
-    static_cast<void>(setsockopt(
-        client.Get(),
-        SOL_SOCKET,
-        SO_RCVTIMEO,
-        reinterpret_cast<const char*>(&timeout),
-        static_cast<int>(sizeof(timeout))));
-    sockaddr_in address{};
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr =
-        htonl(INADDR_LOOPBACK);
-    address.sin_port =
-        htons(listening.listening_port);
-    if (connect(
-            client.Get(),
-            reinterpret_cast<const sockaddr*>(&address),
-            static_cast<int>(sizeof(address))) ==
-        SOCKET_ERROR) {
-        worker.Stop();
-        static_cast<void>(WSACleanup());
-        return 5;
-    }
+	DWORD timeout = 2000U ;
+	static_cast<void>( setsockopt( client.Get(), SOL_SOCKET, SO_RCVTIMEO,
+								 reinterpret_cast<const char *>( &timeout),
+								 static_cast<int>( sizeof( timeout)))) ;
+	sockaddr_in address{} ;
+	address.sin_family		= AF_INET ;
+	address.sin_addr.s_addr = htonl( INADDR_LOOPBACK) ;
+	address.sin_port		= htons( listening.listening_port) ;
+	// loopback Proxyへ接続できなければ未起動Agentの応答を検証しない
+	if( connect( client.Get(), reinterpret_cast<const sockaddr *>( &address),
+			   static_cast<int>( sizeof( address))) == SOCKET_ERROR) {
+		worker.Stop() ;
+		static_cast<void>( WSACleanup()) ;
+		return 5 ;
+	}
 
-    std::string response(256U, '\0');
-    const int received = recv(
-        client.Get(),
-        response.data(),
-        static_cast<int>(response.size()),
-        0);
-    if (received <= 0) {
-        worker.Stop();
-        static_cast<void>(WSACleanup());
-        return 6;
-    }
+	std::string response( 256U, '\0') ;
+	const int received = recv( client.Get(), response.data(), static_cast<int>( response.size()), 0) ;
+	// Agent未成立時のHTTP responseを受信できなければhang防止試験を失敗にする
+	if( received <= 0) {
+		worker.Stop() ;
+		static_cast<void>( WSACleanup()) ;
+		return 6 ;
+	}
 
-    response.resize(
-        static_cast<std::size_t>(received));
-    if (!response.starts_with(
-            "HTTP/1.1 503 Service Unavailable\r\n") ||
-        response.find("Content-Length: 0\r\n") ==
-            std::string::npos) {
-        worker.Stop();
-        static_cast<void>(WSACleanup());
-        return 7;
-    }
+	response.resize( static_cast<std::size_t>( received)) ;
+	// 未起動Agentではbodyなしの固定503を短時間で返すことを確認する
+	if( !response.starts_with( "HTTP/1.1 503 Service Unavailable\r\n") ||
+	   response.find( "Content-Length: 0\r\n") == std::string::npos) {
+		worker.Stop() ;
+		static_cast<void>( WSACleanup()) ;
+		return 7 ;
+	}
 
-    if (!WaitForRejectedConnection(worker)) {
-        worker.Stop();
-        static_cast<void>(WSACleanup());
-        return 8;
-    }
+	// 拒否connectionの状態公開を有限時間で確認できることを検証する
+	if( !WaitForRejectedConnection( worker)) {
+		worker.Stop() ;
+		static_cast<void>( WSACleanup()) ;
+		return 8 ;
+	}
 
-    const auto rejected = worker.snapshot();
-    if (rejected.rejected_connections == 0U ||
-        rejected.active_streams != 0U) {
-        worker.Stop();
-        static_cast<void>(WSACleanup());
-        return 9;
-    }
+	const auto rejected = worker.snapshot() ;
+	// 未交渉接続の拒否で新しいstreamを作らないことを確認する
+	if( rejected.rejected_connections == 0U || rejected.active_streams != 0U) {
+		worker.Stop() ;
+		static_cast<void>( WSACleanup()) ;
+		return 9 ;
+	}
 
-    auto capabilities =
-        zrdp::protocol::MakePhase2HelloCapabilities();
-    capabilities.maximum_streams =
-        zrdp::client::proxy::
-            kMaximumClientProxyConnections;
-    if (!worker.EnqueueBridgeStart(capabilities) ||
-        !WaitForBridgeReady(worker)) {
-        worker.Stop();
-        static_cast<void>(WSACleanup());
-        return 11;
-    }
+	auto capabilities			 = zrdp::protocol::MakePhase2HelloCapabilities() ;
+	capabilities.maximum_streams = zrdp::client::proxy::kMaximumClientProxyConnections ;
+	// capability反映でBridgeが利用可能へ遷移することを確認する
+	if( !worker.EnqueueBridgeStart( capabilities) || !WaitForBridgeReady( worker)) {
+		worker.Stop() ;
+		static_cast<void>( WSACleanup()) ;
+		return 11 ;
+	}
 
-    {
-        TestSocket slow_header =
-            ConnectLoopback(listening.listening_port);
-        const char partial = 'G';
-        // 部分headerを一byte送っても絶対header期限を延長できないことを確認する。
-        if (slow_header.Get() == INVALID_SOCKET ||
-            send(
-                slow_header.Get(),
-                &partial,
-                1,
-                0) != 1 ||
-            !WaitForTimeoutCount(worker, 1U)) {
-            worker.Stop();
-            static_cast<void>(WSACleanup());
-            return 12;
-        }
+	{
+		TestSocket slow_header = ConnectLoopback( listening.listening_port) ;
+		const char partial	   = 'G' ;
+		// 部分headerを一byte送っても絶対header期限を延長できないことを確認する
+		if( slow_header.Get() == INVALID_SOCKET || send( slow_header.Get(), &partial, 1, 0) != 1 ||
+		   !WaitForTimeoutCount( worker, 1U)) {
+			worker.Stop() ;
+			static_cast<void>( WSACleanup()) ;
+			return 12 ;
+		}
 
-        std::array<char, 1> closed_probe{};
-        if (recv(
-                slow_header.Get(),
-                closed_probe.data(),
-                static_cast<int>(closed_probe.size()),
-                0) > 0) {
-            worker.Stop();
-            static_cast<void>(WSACleanup());
-            return 13;
-        }
-    }
+		std::array<char, 1> closed_probe{} ;
+		// header期限切れSocketから業務dataを返さないことを確認する
+		if( recv( slow_header.Get(), closed_probe.data(), static_cast<int>( closed_probe.size()), 0) >
+		   0) {
+			worker.Stop() ;
+			static_cast<void>( WSACleanup()) ;
+			return 13 ;
+		}
+	}
 
-    {
-        TestSocket idle_connection =
-            ConnectLoopback(listening.listening_port);
-        const std::string request =
-            "GET http://192.0.2.10/repository HTTP/1.1\r\n"
-            "Host: 192.0.2.10\r\n\r\n";
-        if (idle_connection.Get() == INVALID_SOCKET ||
-            send(
-                idle_connection.Get(),
-                request.data(),
-                static_cast<int>(request.size()),
-                0) != static_cast<int>(request.size())) {
-            worker.Stop();
-            static_cast<void>(WSACleanup());
-            return 14;
-        }
+	{
+		TestSocket		  idle_connection = ConnectLoopback( listening.listening_port) ;
+		const std::string request		  = "GET http://192.0.2.10/repository HTTP/1.1\r\n"
+											"Host: 192.0.2.10\r\n\r\n" ;
+		// idle試験用のlocal接続とrequest完送が成立することを確認する
+		if( idle_connection.Get() == INVALID_SOCKET ||
+		   send( idle_connection.Get(), request.data(), static_cast<int>( request.size()), 0) !=
+			   static_cast<int>( request.size())) {
+			worker.Stop() ;
+			static_cast<void>( WSACleanup()) ;
+			return 14 ;
+		}
 
-        bool open_observed = false;
-        std::uint32_t open_stream_id = 0U;
-        const auto open_deadline =
-            std::chrono::steady_clock::now() +
-            std::chrono::seconds(2);
-        // 有効headerがOPENへ進んだことを確認し、header timeoutとの混同を防ぐ。
-        while (std::chrono::steady_clock::now() <
-            open_deadline) {
-            zrdp::protocol::Frame frame{};
-            bool more_frames = false;
-            if (worker.TakeOutboundFrame(
-                    frame,
-                    more_frames) &&
-                frame.type ==
-                    zrdp::protocol::MessageType::Open) {
-                open_observed = true;
-                open_stream_id = frame.stream_id;
-                break;
-            }
+		bool		  open_observed	 = false ;
+		std::uint32_t open_stream_id = 0U ;
+		const auto	  open_deadline	 = std::chrono::steady_clock::now() + std::chrono::seconds( 2) ;
+		// 有効headerがOPENへ進んだことを確認し、header timeoutとの混同を防ぐ
+		while( std::chrono::steady_clock::now() < open_deadline) {
+			zrdp::protocol::Frame frame{} ;
+			bool				  more_frames = false ;
+			// idle対象のOPEN frameだけをstream IDの正本として取得する
+			if( worker.TakeOutboundFrame( frame, more_frames) &&
+			   frame.type == zrdp::protocol::MessageType::Open) {
+				open_observed  = true ;
+				open_stream_id = frame.stream_id ;
+				break ;
+			}
 
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(2));
-        }
+			std::this_thread::sleep_for( std::chrono::milliseconds( 2)) ;
+		}
 
-        if (!open_observed ||
-            !WaitForTimeoutCount(worker, 2U)) {
-            worker.Stop();
-            static_cast<void>(WSACleanup());
-            return 15;
-        }
+		// OPEN確認と期待timeout件数が有限期限内に揃うことを確認する
+		if( !open_observed || !WaitForTimeoutCount( worker, 2U)) {
+			worker.Stop() ;
+			static_cast<void>( WSACleanup()) ;
+			return 15 ;
+		}
 
-        bool timeout_close_observed = false;
-        const auto close_deadline =
-            std::chrono::steady_clock::now() +
-            std::chrono::seconds(2);
-        // idle期限をcounterだけでなくwireのCLOSE(Timeout)としても確認する。
-        while (std::chrono::steady_clock::now() <
-            close_deadline) {
-            zrdp::protocol::Frame frame{};
-            bool more_frames = false;
-            if (worker.TakeOutboundFrame(
-                    frame,
-                    more_frames) &&
-                frame.type ==
-                    zrdp::protocol::MessageType::Close &&
-                frame.stream_id == open_stream_id &&
-                frame.sequence == 0U &&
-                frame.payload ==
-                    std::vector<std::byte>{
-                        std::byte{0U},
-                        std::byte{0U},
-                        std::byte{0U},
-                        std::byte{1U},
-                    }) {
-                timeout_close_observed = true;
-                break;
-            }
+		bool	   timeout_close_observed = false ;
+		const auto close_deadline = std::chrono::steady_clock::now() + std::chrono::seconds( 2) ;
+		// idle期限をcounterだけでなくwireのCLOSE(Timeout)としても確認する
+		while( std::chrono::steady_clock::now() < close_deadline) {
+			zrdp::protocol::Frame frame{} ;
+			bool				  more_frames = false ;
+			// 同じstreamにTimeout理由のCLOSE requestが生成された場合だけ記録する
+			if( worker.TakeOutboundFrame( frame, more_frames) &&
+			   frame.type == zrdp::protocol::MessageType::Close &&
+			   frame.stream_id == open_stream_id && frame.sequence == 0U &&
+			   frame.payload == std::vector<std::byte>{
+									std::byte{0U},
+									std::byte{0U},
+									std::byte{0U},
+									std::byte{1U},
+								}) {
+				timeout_close_observed = true ;
+				break ;
+			}
 
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(2));
-        }
+			std::this_thread::sleep_for( std::chrono::milliseconds( 2)) ;
+		}
 
-        std::array<char, 1> closed_probe{};
-        if (!timeout_close_observed ||
-            recv(
-                idle_connection.Get(),
-                closed_probe.data(),
-                static_cast<int>(closed_probe.size()),
-                0) != 0) {
-            worker.Stop();
-            static_cast<void>(WSACleanup());
-            return 16;
-        }
-    }
+		std::array<char, 1> closed_probe{} ;
+		// timeout CLOSEとlocal SocketのFINが両方成立することを確認する
+		if( !timeout_close_observed || recv( idle_connection.Get(), closed_probe.data(),
+										   static_cast<int>( closed_probe.size()), 0) != 0) {
+			worker.Stop() ;
+			static_cast<void>( WSACleanup()) ;
+			return 16 ;
+		}
+	}
 
-    worker.Stop();
-    const auto stopped = worker.snapshot();
-    static_cast<void>(WSACleanup());
-    if (stopped.state !=
-            zrdp::client::proxy::
-                ClientProxyWorkerState::Stopped ||
-        stopped.listening_port != 0U) {
-        return 17;
-    }
+	worker.Stop() ;
+	const auto stopped = worker.snapshot() ;
+	static_cast<void>( WSACleanup()) ;
+	// worker停止時はlifecycleと公開listen portが初期値へ戻ることを確認する
+	if( stopped.state != zrdp::client::proxy::ClientProxyWorkerState::Stopped ||
+	   stopped.listening_port != 0U) {
+		return 17 ;
+	}
 
-    return 0;
+	return 0 ;
 }
