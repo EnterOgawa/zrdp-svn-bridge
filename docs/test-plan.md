@@ -32,6 +32,14 @@ CI異常時のcall stackは取得していないため、異常code一致だけ�
 実RDP、自動管理の最終受入、署名付き実更新は行わない。
 受入項目と未完了Gateは [公開・配布チェックリスト](publication-checklist.md) を参照する。
 
+最終CI: commit `14ce4819947598f0b2e22f8aa3417a5e4182cefc` の
+[GitHub Actions run](https://github.com/EnterOgawa/zrdp-svn-bridge/actions/runs/38095003422) が成功。
+新規Windows Server 2022でDebug／Release各47件、Release smoke20反復、Python41件と
+配布同梱・hash／拒否経路を確認した。read-only権限と固定commitのcheckout v6を使い、
+成果物upload・署名・Release・実RDP接続はない。
+結果を記録する文書だけのcommitは `[skip ci]` とし、文書リンク・公開treeをlocalで再検査する。
+検証対象の実装・build・test・workflow・package scriptは上記commitから変更しない。
+
 以下は各段階の履歴であり、過去の製品版、Doxygen警告数、廃止済みUIの記述を
 現在の合格・現在の操作として読み替えない。
 

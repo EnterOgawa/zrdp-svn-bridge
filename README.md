@@ -240,6 +240,8 @@ Releaseの二つのEXEは既定でリポジトリ直下の `out/` に出力し�
 コメント監査では継承による補完を無効にしたDoxygen、ローカルcallbackの追加監査、整形検査を併用しています。
 GitHub ActionsもWindows x64のbuild・Mock test・公開tree／同梱検査に使用します。
 ソース読取り権限だけで実RDP・実設定・署名鍵を使用せず、EXEやReleaseをuploadしません。
+新規Windows Server 2022でもDebug／Release各47件とsmoke20反復、同梱検査が
+[通過しています](https://github.com/EnterOgawa/zrdp-svn-bridge/actions/runs/38095003422)。
 本変更の自動Agent管理と署名付きセット更新の実RDP受入は、まだ完了していません。
 検証範囲・コメント検査のコマンドは [コーディング規約](docs/coding-standard.md) と [テスト計画](docs/test-plan.md) を参照してください。
 

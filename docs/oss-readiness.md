@@ -29,11 +29,11 @@ OSSの判断基準は [OSIの定義](https://opensource.org/osd)、ライセン�
 | build | 標準presetの個人固有VS pathを除去。configureが隔離fixture基点を作る |
 | 版識別 | 二EXE・manifest・resource・契約testを `0.7.21.0` へ同期。署名済み旧版と区別し、実行処理・protocolは変更しない |
 | ローカル回帰 | Debug／Release各47 CTest、Python self-test 41件、141 C++ fileの整形、Doxygen警告0件・追加契約監査不足0件 |
-| 到達可能履歴の再検査 | `c2578e7` 時点の12 commit・543 distinct blobを再走査。鍵・既知実接続情報・個人profile pathは検出せず。追加確認三件は不正Version testと拒否用multicastであり実endpointではない |
+| 到達可能履歴の再検査 | `14ce481` 時点の14 commit・558 distinct blobを再走査。鍵・既知実接続情報・個人profile pathは検出せず。数値の要確認三件は不正Version testと拒否用multicastであり実endpointではない |
 | 同梱検査 | LICENSE・NOTICE・inventory・二EXE・receiptの完全一致とhashを確認。未署名正式候補、既存ZIP、欠落／偽装Agent、不一致tag、隔離外出力を拒否 |
-| CI | ユーザー承認のread-only Windows x64／Mock workflowを追加。外部Actionを固定commitに限定、実接続・設定・鍵・artifact uploadなし。GitHub上の結果確認は実行後に追記 |
+| CI | commit `14ce481` のDebug／Release各47件、Release smoke20反復、Python41件・同梱検査が成功。[実行記録](https://github.com/EnterOgawa/zrdp-svn-bridge/actions/runs/38095003422)。read-only、公式Action固定commit、実接続・設定・鍵・artifact uploadなし |
 | 初回CIのbuild互換性 | Windows Server 2022のtype libraryに最新版CLSID宣言がなくC2065。公開CLSIDのhost内定義と最新Control選択の非接続検証へ修正し、選択順・認証・DLL非同梱を維持 |
-| CI二回目のtest異常 | Debug47件とRelease build・46件は成功。smokeが `0xc0000409`。test通知のmessage番号だけの判定に衝突を注入すると同じ異常を再現し、HWND＋所有tokenへ修正。修正後のローカル20反復は成功、CI再確認待ち |
+| CI二回目のtest異常 | smokeの `0xc0000409` を記録。test通知に衝突を注入して同じ異常を再現し、HWND＋所有tokenへ修正。修正後はローカルとCIで20反復成功。異常時call stackを取得したとは主張しない |
 | 旧Release | 全14assetとmetadataを保全。API size／SHA-256と一致し、公表SHA256SUMSの11payloadとも一致。tag objectとcommit対応をreceiptへ記録 |
 | 運用Gate | 旧配布物は公開対象から外す方針、GitHub非公開報告を採用する方針が確定。除外操作・受付有効化はまだ実行しない |
 | 履歴公開方針 | Gitのauthor／committer identityと過去の設計・Wordを含め、現状の履歴を公開する方針についてユーザー確認済み |

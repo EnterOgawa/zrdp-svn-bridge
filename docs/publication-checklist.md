@@ -21,10 +21,11 @@
 - [x] 新規cloneでも `BUILD_TESTING=ON` のconfigureで隔離fixture基点だけを作る。
 - [x] 公開tree検査、配布準備・同梱file検査scriptを用意。
 - [x] ローカルDebug／Release各47 CTest、Python self-test 41件、整形・コメント監査、同梱file／hash・拒否経路を確認。
-- [ ] 承認されたCIをGitHub上で実行し、結果を確認。
+- [x] 承認されたCIをGitHub上で実行。commit `14ce481` のDebug／Release各47件、Release smoke20反復、script・同梱検査が成功（[実行記録](https://github.com/EnterOgawa/zrdp-svn-bridge/actions/runs/38095003422)）。
 - [x] 到達可能な履歴を機械走査し、commit identity・過去文書の公開方針をユーザー確認。走査の限界は監査書に明記。
 - [ ] Public化直前の最新tree・履歴・公開対象の最終再確認。
-- [ ] 別Windows環境での再現性確認（CI結果とは別に、必要な利用環境を確認）。
+- [x] GitHubの新規Windows Server 2022環境で、cloneから標準presetのbuild・全回帰が成功。
+- [ ] 利用者の対象Windows／実RDP環境で、下記の最終受入を確認。
 
 ## 旧Releaseの保全と除外
 
