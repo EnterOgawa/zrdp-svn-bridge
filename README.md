@@ -110,6 +110,8 @@ ZRdp独自の起動確認ダイアログや、起動ボタンはありません�
 接続先の「ファイル名を指定して実行」が一時的に見える場合があります。自動処理中は入力を避けてください。
 Windowsの警告や組織の実行制限は自動承認・回避しません。
 前面状態や入力先の確認に失敗した場合、処理を停止してRDP接続を維持します。
+ただし、直前確認後のウィンドウ切替との競合により、ローカルの別画面へ貼り付け・Enterが届いて
+誤実行するリスクは完全には排除できません。起動処理はクリップボードを固定文字列へ置き換え、元の内容は復元しません。
 
 セッションのタイトルに `Agent:接続済み` と `Proxy:利用可 127.0.0.1:<port>` が表示されてからSVN／Tracを利用します。
 Agentの応答や最新設定の適用確認前に、Proxyを利用可能にしません。
@@ -220,6 +222,7 @@ WindowsのRDP DLLをコピー・同梱しません。
 任意の配置のVisual Studioを使う場合は、リポジトリのルートで次を実行します。
 
 ```powershell
+New-Item -ItemType Directory -Path work/tmp -Force | Out-Null
 cmake -S . -B build/local -G "Visual Studio 17 2022" -A x64
 cmake --build build/local --config Debug
 ctest --test-dir build/local -C Debug --output-on-failure
@@ -227,6 +230,7 @@ cmake --build build/local --config Release
 ctest --test-dir build/local -C Release --output-on-failure
 ```
 
+`work/tmp` は隔離したtest fixtureの基点です。Git管理外なので、新規cloneでは上記で作成します。
 Releaseの二つのEXEは既定でリポジトリ直下の `out/` に出力します。
 既存のEXEがある場合は事前に退避し、実行中のClient／Agentを終了してください。
 ビルドだけでは署名しません。外部ランタイムを必須としない構成です。
@@ -257,6 +261,7 @@ Releaseの二つのEXEは既定でリポジトリ直下の `out/` に出力し�
 - [アーキテクチャ](docs/architecture.md) ／ [RDP ActiveX](docs/rdp-activex.md) ／ [HTTP Proxy](docs/http-proxy.md)
 - [セキュリティ](docs/security.md) ／ [テスト計画](docs/test-plan.md) ／ [コーディング規約](docs/coding-standard.md)
 - [画像の作成条件](docs/images/README.md)
+- [OSS公開前監査と未完了項目](docs/oss-readiness.md)
 
 自作ソースのライセンスは [Apache License 2.0](LICENSE) です。
 Microsoft Windows、RDP ActiveX、開発ツールは同梱せず、それぞれの利用条件に従います。
