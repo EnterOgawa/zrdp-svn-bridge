@@ -118,7 +118,7 @@ repository、共通資料へ転載しない。
 登録が一件もない接続ではAgentを自動起動・再起動せず、`Agent:要設定` を表示する。
 RDP画面は継続できるがHTTP中継は使用できない。
 
-画像と入力・保存仕様は [README](../README.md#3-この接続のagent設定を登録する) と
+画像と入力・保存仕様は [README](../README.md#3-agentの接続先を登録する) と
 [Agent設定](agent-settings.md) を参照する。
 
 ## 5. RDP接続
