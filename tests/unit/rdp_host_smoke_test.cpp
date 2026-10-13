@@ -5,7 +5,7 @@
  *
  * @file rdp_host_smoke_test.cpp
  * @brief 非表示Win32環境でRDP ActiveX生成と接続前設定の契約を検証する。
- * @version 01.00.15
+ * @version 01.00.16
  * @date 2026/08/01
  * @author Shunji Ogawa
  *
@@ -31,6 +31,7 @@
  * Ver.01.00.13   Shunji Ogawa  2026/10/11  コメント監査の不足と実装不一致を修正。
  * Ver.01.00.14   Shunji Ogawa  2026/10/11  最新Controlの公開CLSIDと実行時選択を非接続で検証。
  * Ver.01.00.15   Shunji Ogawa  2026/10/11  CI thread通知の所有判定と固定marker・衝突回帰を追加。
+ * Ver.01.00.16   Shunji Ogawa  2026/10/13  専用STAの生成順を製品へ合わせ、起動失敗時もthreadを回収。
  * </pre>
  */
 //------------------------------------------------------------------------------
@@ -143,11 +144,11 @@ constexpr UINT kMessagePingIsolatedHost = WM_APP + 2U ;
 struct IsolatedHostThreadState {
 	/// isolated COM STA threadへ確認messageを配送するためのID。
 	std::atomic<DWORD>	  thread_id{0U} ;
-	/// isolated threadでControlの生成を完了したことを通知するatomic flag。
+	/// isolated threadでControlの生成結果を一度だけ公開するpromise。
 	std::promise<HRESULT> ready ;
-	/// 対象Controlの破棄を完了したことを通知するatomic flag。
+	/// 対象Controlの破棄完了を一度だけ公開するpromise。
 	std::promise<void>	  destroyed ;
-	/// 別sessionの確認messageへ応答できたことを通知するatomic flag。
+	/// 別sessionの確認messageへの応答を一度だけ公開するpromise。
 	std::promise<void>	  pinged ;
 } ;
 
@@ -170,6 +171,7 @@ void RunIsolatedHostThread( IsolatedHostThreadState &state) noexcept
 		return ;
 	}
 
+	std::cerr << "RDP smoke: isolated-host-create-start\n" ;
 	DiscardingObserver				  observer ;
 	zrdp::client::rdp::RdpControlHost host( observer) ;
 	const HWND						  parent =
@@ -177,6 +179,7 @@ void RunIsolatedHostThread( IsolatedHostThreadState &state) noexcept
 						600, nullptr, nullptr, GetModuleHandleW( nullptr), nullptr) ;
 	HRESULT create_result = parent == nullptr ? HRESULT_FROM_WIN32( GetLastError())
 											  : host.Create( parent, RECT{0, 0, 800, 600}) ;
+	std::cerr << "RDP smoke: isolated-host-create-done\n" ;
 	// 同番号のWindow messageと宛先tokenなしthread messageをtest通知へ誤認しない。
 	if( SUCCEEDED( create_result)) {
 		static_cast<void>( PostMessageW( parent, kMessagePingIsolatedHost, 0U, 0L)) ;
@@ -712,15 +715,33 @@ int wmain( int argc, wchar_t **argv)
 		std::future<HRESULT>	second_ready	= second_isolated.ready.get_future() ;
 		std::future<void>		first_destroyed = first_isolated.destroyed.get_future() ;
 		std::future<void>		second_pinged	= second_isolated.pinged.get_future() ;
-		std::thread				first_thread( RunIsolatedHostThread, std::ref( first_isolated)) ;
-		std::thread				second_thread( RunIsolatedHostThread, std::ref( second_isolated)) ;
+		std::thread				first_thread ;
+		std::thread				second_thread ;
 		constexpr auto			kThreadTestTimeout = std::chrono::seconds( 5) ;
-		const bool				first_started =
-			first_ready.wait_for( kThreadTestTimeout) == std::future_status::ready &&
-			SUCCEEDED( first_ready.get()) ;
-		const bool second_started =
-			second_ready.wait_for( kThreadTestTimeout) == std::future_status::ready &&
-			SUCCEEDED( second_ready.get()) ;
+		bool					first_started	   = false ;
+		bool					second_started	   = false ;
+		try {
+			// 製品のSessionWindowThread::Startと同じく、生成結果を得てから次を開始する
+			first_thread  = std::thread( RunIsolatedHostThread, std::ref( first_isolated)) ;
+			first_started = first_ready.wait_for( kThreadTestTimeout) == std::future_status::ready &&
+							SUCCEEDED( first_ready.get()) ;
+			// 先行hostが未完成・失敗なら別hostの同時初期化へ進まず、isolationを失敗にする
+			if( first_started) {
+				std::cerr << "RDP smoke: first-isolated-ready\n" ;
+				second_thread = std::thread( RunIsolatedHostThread, std::ref( second_isolated)) ;
+				second_started =
+					second_ready.wait_for( kThreadTestTimeout) == std::future_status::ready &&
+					SUCCEEDED( second_ready.get()) ;
+			}
+		} catch( ...) {
+			// thread生成・起動結果取得の例外でも、先行threadをjoinせず破棄しない
+			std::cerr << "RDP smoke: isolated-host-startup-exception\n" ;
+			// 既存契約の失敗を上書きせず、未知の起動例外だけを固定codeに分類する
+			if( result == 0) {
+				result = 59 ;
+			}
+		}
+
 		// 専用STAを二つとも生成できない環境ではisolation Gateを通過させない
 		if( (!first_started || !second_started) && result == 0) {
 			result = 39 ;
@@ -728,6 +749,7 @@ int wmain( int argc, wchar_t **argv)
 
 		// 両方の隔離STAが開始した場合だけ片側破棄と他側pingを試験する
 		if( first_started && second_started) {
+			std::cerr << "RDP smoke: second-isolated-ready\n" ;
 			static_cast<void>( PostThreadMessageW(
 				first_isolated.thread_id.load( std::memory_order_acquire),
 				kMessageDestroyIsolatedHost, 0U, reinterpret_cast<LPARAM>( &first_isolated))) ;
@@ -750,12 +772,28 @@ int wmain( int argc, wchar_t **argv)
 		}
 
 		// test結果にかかわらず両STAを起床してからjoinし、残留threadを作らない
-		static_cast<void>( PostThreadMessageW(
-			first_isolated.thread_id.load( std::memory_order_acquire), WM_QUIT, 0U, 0L)) ;
-		static_cast<void>( PostThreadMessageW(
-			second_isolated.thread_id.load( std::memory_order_acquire), WM_QUIT, 0U, 0L)) ;
-		first_thread.join() ;
-		second_thread.join() ;
+		// 起動を試みなかったthreadや生成例外で空のthreadへ終了通知を送らない
+		if( first_thread.joinable()) {
+			static_cast<void>( PostThreadMessageW(
+				first_isolated.thread_id.load( std::memory_order_acquire), WM_QUIT, 0U, 0L)) ;
+		}
+
+		// 二つ目を起動した場合だけ、その専用STAへ終了を要求する
+		if( second_thread.joinable()) {
+			static_cast<void>( PostThreadMessageW(
+				second_isolated.thread_id.load( std::memory_order_acquire), WM_QUIT, 0U, 0L)) ;
+		}
+
+		// 起動済みthreadの終了を確認し、promiseとCOM ownerを残したまま破棄しない
+		if( first_thread.joinable()) {
+			first_thread.join() ;
+		}
+
+		// 二つ目も実際の起動に成功したthreadだけを回収する
+		if( second_thread.joinable()) {
+			second_thread.join() ;
+		}
+
 		std::cerr << "RDP smoke: isolated-hosts-joined\n" ;
 
 		ATL::AtlAxWinTerm() ;
