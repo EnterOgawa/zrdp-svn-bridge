@@ -25,7 +25,7 @@ SECRETS = re.compile(
     r"\bgh[pousr]_[A-Za-z0-9]{30,}\b|\bgithub_pat_[A-Za-z0-9_]{30,}\b|"
     r"\bAKIA[0-9A-Z]{16}\b|\bxox[baprs]-[A-Za-z0-9-]{20,}\b"
 )
-SOURCE_SUFFIXES = {".cpp", ".h", ".rc", ".py", ".ps1"}
+SOURCE_SUFFIXES = {".cpp", ".h", ".rc", ".py", ".ps1", ".iss"}
 MD_LINK = re.compile(r'!?\[[^\]\n]*\]\(([^)\n]+)\)|<img\b[^>]*\bsrc="([^"]+)"')
 
 

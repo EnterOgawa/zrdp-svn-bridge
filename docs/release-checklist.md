@@ -8,7 +8,7 @@
 2026-10-07のworkspace整理で除去した。旧Word文書と作業記録はcommit `cfdaa8c`
 から参照できる。過去の署名済み社内版のhashと配布記録は
 [Version 0.7.20リリースノート](release-notes-0.7.20.md)を参照する。
-現行の公開準備版は未署名・正式Release未作成であり、
+現行の正式版は `0.7.21.0` であり、[現行リリースノート](release-notes-0.7.21.md)、
 [公開・配布Gate](publication-checklist.md) と [現行仕様](current-specification.md) を参照する。
 
 ## 1. 配布候補

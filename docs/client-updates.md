@@ -1,15 +1,16 @@
 # ZRdp SVN Bridge Client／Agentのセット自動更新
 
-更新日: 2026-10-11
+更新日: 2026-10-13
 
 ClientはGitHubの公開Releaseを確認し、新版があれば利用者へ通知する。
 EXEの取得は利用者の同意後、置換はすべてのRDP session WindowとAgent設定画面の
 終了、および受付済み設定保存の完了後に行う。
 Clientと同じdirectoryのAgent EXEも同じ版へ更新する。接続設定、履歴、INI、診断logは更新しない。
 
-現在の署名済み配布物`0.7.20.0`は、この更新機能を含まない。初回は本機能を含む
-セット更新対応の新版Clientと同一版Agentを署名し、手動配布する必要がある。旧updaterはformat 2を拒否する。リポジトリはPrivateのままであり、
-公開Releaseの作成・署名・uploadは別の承認とRelease Gateを必要とする。
+旧配布物`0.7.20.0`は、この更新機能を含まない。正式版`0.7.21.0`は、
+同版・同署名者のClient／Agentとformat 2 manifestを持つ初回bootstrap版である。
+最初はSetupまたはportable ZIPで手動導入し、次の新版からセット更新を利用する。旧updaterはformat 2を拒否する。
+リポジトリはPrivateのままであり、匿名の自動確認・取得は利用できない。Release作成の承認をPublic化の承認とは扱わない。
 
 ## 利用者の操作
 

@@ -274,6 +274,30 @@ attachmentは必要な許可済み対象だけで段階的に確認する。
 Redirect先がhostname、HTTPS、別の未許可endpointの場合はZRdpのsecurity境界により
 失敗する。ZRdpへTrac credentialを入力しない。
 
+### 9.1 Eclipse内蔵ブラウザーでのWeb表示
+
+Windows版Eclipseの内蔵EdgeブラウザーはWebView2を使い、通常はWindows側のProxy設定に従う。
+Eclipseの「ネットワーク接続」やMylynのrepository固有Proxy設定をそのまま引き継ぐものではない。
+MylynやSVNは接続できてもWeb表示だけtimeoutする場合は、ブラウザーの経路を確認する。
+
+Windows全体の設定を変えずに経路を確認するには、`eclipse.ini` の既存の `-vmargs` より下に次の一行を追加する。
+同じ `org.eclipse.swt.browser.EdgeArgs` が既にある場合は重複追加せず、既存の指定を確認する。
+
+```ini
+-Dorg.eclipse.swt.browser.EdgeArgs=--proxy-server=http://127.0.0.1:18080
+```
+
+portは対象RDP sessionのtitleに表示された値へ合わせる。Eclipseを完全に終了して再起動し、
+承認済みの既存 `http://` Trac URLを開く。2026-10-13にユーザー環境でこの指定によるWeb表示を確認した。
+
+この指定はEclipse内のWebView2全体へ適用される。対象外のWebサイト、HTTPSやhostnameの表示は
+ZRdpの制限により失敗するため、一時的な確認または対象用途に限定した環境で使用する。
+追加した一行を削除してEclipseを再起動すると、元の経路へ戻せる。
+WindowsのProxy、Zscaler、証明書、組織policyは変更しない。URLの置換や直接接続fallbackも行わない。
+
+参考: [SWTのWebView2設定](https://github.com/eclipse-platform/eclipse.platform.swt/blob/master/bundles/org.eclipse.swt/Readme.WebView2.md)、
+[MicrosoftのWebView2 browser flags](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/webview-features-flags)。
+
 ## 10. 複数RDP session
 
 一つの接続管理Windowから「新しい接続」を繰り返す。Proxy portは次のように割り当て

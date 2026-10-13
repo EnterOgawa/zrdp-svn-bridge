@@ -1,6 +1,6 @@
 # ライセンスと依存物inventory
 
-更新日: 2026-10-11。対象: 現行repositoryと公開準備版 `0.7.21.0`。
+更新日: 2026-10-13。対象: 現行repositoryと公開準備版 `0.7.21.0`。
 2026-10-11にユーザーから、自作コード・文書・画像の権利帰属と組織としての
 Apache-2.0公開許諾が確認済みとの回答を受けた。
 
@@ -40,9 +40,19 @@ Microsoft componentをApache-2.0として再許諾しない。所有するtool�
 | Doxygen | 独立した追加コメント監査。製品のruntime要件ではない |
 | Git、GitHub CLI | source管理と承認されたremote操作 |
 | GitHub Actions／公式checkout action | 承認されたWindows build・Mock検証。外部Actionはcommit SHAへ固定 |
+| Inno Setup 6.3以上 | `.iss` からSetupを生成。compiler本体は同梱しない。下記の標準installer engineは生成物に含む |
 
 各toolのlicenseはtool提供元のものを使う。tool自体を製品ZIPへ同梱しない。
 source repositoryの `LICENSE`／`NOTICE` と、本inventoryをpackageへ含める。
+
+## Setup／アンインストーラーに含むcomponent
+
+Inno Setupの標準engineを、生成されるSetupとアンインストーラーに使用する。
+アプリと自作 `.iss` はApache-2.0だが、Inno Setup engineは提供元の
+[Inno Setup License](https://jrsoftware.org/files/is/license.txt) に従う。
+engineを改変せず、About表示等の元の著作権表示とwebsiteを保持する。
+`NOTICE` と同梱READMEにも出典を記載する。compiler、SDK、署名toolは同梱しない。
+ビルドに使うInno Setupの版を変更した場合は、その版のlicenseを再確認する。
 
 ## 設定とデータ
 

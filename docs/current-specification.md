@@ -1,7 +1,7 @@
 # ZRdp SVN Bridge 現行仕様
 
-更新日: 2026-10-11。対象: 公開準備版 `0.7.21.0`。正式Release未作成・実機最終受入待ち。
-過去の署名済み社内版と同じ成果物ではない。
+更新日: 2026-10-13。対象: 正式版 `0.7.21.0`。ユーザーの実機確認と正式版承認を受けた。
+確認範囲と配布物は [リリースノート](release-notes-0.7.21.md) を参照する。リポジトリはPrivateを維持する。
 
 ## 構成とセキュリティ境界
 
@@ -70,6 +70,16 @@ Client起動時と24時間周期で匿名のGitHub Release確認を行う。`cli
 二file同時atomic性、電源断時の完全自動復旧は保証しない。
 [セット更新](client-updates.md) と [ADR 0023](adr/0023-paired-client-agent-updates.md) を参照する。
 
+## インストールとアンインストール
+
+Inno Setupのユーザー別Setupで、同版Client／Agentとlicense文書を開発PCへ配置できる。
+既定は `%LOCALAPPDATA%\Programs\ZRdp SVN Bridge`。管理者権限は不要で、portable配置も維持する。
+アンインストールでは、接続履歴とAgent設定の削除を選択できる。既定は保持で、取消では変更しない。
+削除対象はcurrent-userの `connection-history.bin` と `agent-settings.bin` の二fileだけ。
+同じWindowsユーザーの全接続分が対象となり、ログ・backup・手動INI・Windows資格情報と接続先Agentは残す。
+使用中、read-only、link、確認不能では選択削除を拒否し、フォルダー再帰削除はしない。
+詳細と実機Gateは [インストーラー](installer.md) を参照する。
+
 ## 残存リスクと確認範囲
 
 - SendInputは接続先を直接指定しない。直前確認後の前面切替との競合で、ローカル側へ誤入力・誤実行するリスクが残る。
@@ -77,7 +87,8 @@ Client起動時と24時間周期で匿名のGitHub Release確認を行う。`cli
 - Agentのtray終了だけでは、Clientの自動復旧を止めない。意図して止める場合は設定を全削除するかRDPを切断する。
 - 設定変更・切断時のHTTP streamを途中再開せず、Commit等を自動再実行しない。結果はserver側で確認する。
 - 同じWindowsユーザー／管理者や、process全体のcrashに対する完全隔離は提供しない。
-- 実RDP、全自動管理、署名済みセット更新の最終実機Gateは別確認であり、Mock合格から推定しない。
+- 通常のRDP／Agent動作、SetupのインストールとTrac Web表示はユーザー実機で受入済み。
+  前景競合、policy拒否、全session組合せ、署名済み新版へのセット更新とrollbackは別の確認範囲であり、Mock合格から推定しない。
 
 旧仕様 [specification](specification.md) と [過去受入・制約](known-limitations.md) は歴史記録。
 操作は [README](../README.md)／[user-guide](user-guide.md)、公開Gateは [publication-checklist](publication-checklist.md) を正本とする。

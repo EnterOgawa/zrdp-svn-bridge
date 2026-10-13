@@ -1,6 +1,6 @@
 # 公開・配布Gate
 
-更新日: 2026-10-11。対象: 公開準備版 `0.7.21.0`。
+更新日: 2026-10-13。対象: 正式版 `0.7.21.0`。Private Releaseの作成は承認済み。Public化は未承認。
 チェック済みは証拠を伴うものだけとし、文書作成と運用上の有効化を分ける。
 このfileはRelease作成・Public化・旧配布物削除の許可ではない。
 
@@ -11,7 +11,9 @@
 - [x] Git履歴のauthor／committer identityと過去の設計・Word文書は、現状の履歴を公開する方針でユーザー確認済み（2026-10-11）。
 - [x] 脆弱性はPublic化時にGitHubの非公開報告機能を有効にする。
 - [x] GitHub Actionsはread-only source取得・Windows x64／Mock検証のみ、実設定・鍵・実接続・成果物uploadなしの設計で承認済み。
-- [x] 署名、Release作成、tag・asset操作、visibility変更は今回行わない。
+- [x] 2026-10-11の準備作業では署名、Release作成、tag・asset操作、visibility変更を行わなかった。
+- [x] 2026-10-13に署名済み版の実機受入と正式版承認を得て、commit・push・Release作成の明示指示を受けた。
+      リポジトリはPrivateを維持し、旧Releaseとvisibilityは変更しない。
 
 ## ソース・文書・build
 
@@ -53,9 +55,12 @@ tag／Git履歴の扱いは別確認する。無断rewrite・force push・tag削
 Private状態では有効なpublic reporting窓口と見なさない。
 APIの404は有効化成功ではない。公開前の利用者は既存の非公開連絡経路を使う。
 
-## 署名を使わない実機受入
+## 自動管理の詳細な実機確認
 
-次は**未実施**。利用者が許可したRDP sessionだけで行う。
+2026-10-13に通常Setupのインストール、Agentの期待した動作、SVN接続、Eclipse内蔵ブラウザーの
+Proxy指定によるTrac Web表示をユーザーが確認し、現状を正式版として承認した。
+以下の異常系や細かな組合せは、その包括的な承認だけから個別合格へ転記しない。
+追加確認は利用者が許可したRDP sessionだけで行う。
 実endpoint・user・画面・INIをrepository、CI、報告templateへ転載しない。
 
 | ID | 操作 | 確認する結果 | 結果 |
@@ -73,15 +78,17 @@ APIの404は有効化成功ではない。公開前の利用者は既存の非�
 SendInputの前景競合・誤実行リスク、clipboard非復元は [現行仕様](current-specification.md) に明記する。
 以前のbutton起動合格をこの表へ自動転記しない。
 
-## 後日の署名・正式Release
+## 署名と正式Release
 
-- [x] 過去配布物と区別する開発Versionを `0.7.21.0` に更新（正式Release未作成）。
-- [ ] Client／Agentを同版で署名し、Windows trust・timestamp・hash・metadataを確認。
+- [x] 過去配布物と区別するVersionを `0.7.21.0` に更新し、ユーザーが正式版として承認。
+- [x] Client／Agent／Setupとcompilerが保持した埋込み用アンインストーラーのWindows trust・timestamp・同一署名者・hash・metadataを確認。
 - [ ] 検証済み旧署名セットからの同意付き更新、rollback、接続先反映を実機確認。
-- [ ] signed packageにLICENSE／NOTICE／inventory・同版二EXE・format 2 manifestを同梱し、検査。
-- [ ] README・公開file・配布fileをユーザーが最終確認。
-- [ ] ユーザーの別の明示指示でRelease／tag／assetを作成する。
+- [x] signed packageにLICENSE／NOTICE／inventory・同版二EXE・format 2 manifestを同梱し、検査。
+- [x] ユーザーがREADMEを確認し、署名済みSetupとアプリを実機確認後に正式版として承認。
+- [x] ユーザーからPrivate Release／tag／asset作成の明示指示を受けた。
 - [ ] 署名以外の公開・実機Gateも完了した後、別の明示指示でPublicへ変更する。
 
+正式版の確認範囲、署名済みfileのhashと配布内容は [リリースノート](release-notes-0.7.21.md) を参照する。
+Private Releaseは次の新版への匿名自動更新の実機確認を代替しない。
 未署名development packageを公式Releaseへ流用しない。archive作成scriptはGitHubを操作しない。
 署名・remote操作を自動化する権限を、このチェックリストの存在から推定しない。

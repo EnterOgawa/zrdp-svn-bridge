@@ -1,8 +1,11 @@
 # 配布物のlocal準備と検査
 
-更新日: 2026-10-11。公開準備版 `0.7.21.0`。
+更新日: 2026-10-13。正式版 `0.7.21.0`。配布内容と確認範囲は [リリースノート](release-notes-0.7.21.md) を参照する。
 この手順はarchiveをlocalに作るだけで、署名・Release作成・upload・tag pushをしない。
 Git管理外の `work/tmp` 以下だけへcreate-newで出力し、既存archiveを上書きしない。
+
+開発PCへのインストール用Setupは [.issによるインストーラー](installer.md) を参照する。
+ZIPは従来のportable配布・Client／Agentセット更新向けとして維持する。
 
 ## 署名前の同梱検査
 
@@ -15,9 +18,9 @@ Git管理外の `work/tmp` 以下だけへcreate-newで出力し、既存archive
 生成名に `_development`、同梱receiptに `development-not-for-release` を付ける。
 更新manifestは作らず、公式Release／自動更新assetとして扱わない。
 
-## 後日の署名済みセット
+## 署名済みセット
 
-署名・実機・公開Gateを通過した後だけ実行する。
+署名検証と実機受入を完了したセットから作成する。Releaseの作成・uploadとPublic化は別々の明示承認を必要とする。
 
 ```powershell
 ./scripts/New-PortablePackage.ps1 -ExecutableDirectory ./out -OutputDirectory ./work/tmp/signed-package-review -Tag v0.7.21.0

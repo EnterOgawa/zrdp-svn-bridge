@@ -4,6 +4,8 @@
 Copyright (c) 2026 EnterSystem CO.,LTD.
 SPDX-License-Identifier: Apache-2.0
 """
+from pathlib import Path
+import re
 import unittest
 
 from check_repository import file_issues, workflow_issues
@@ -31,6 +33,10 @@ class RepositoryBoundaryTest(unittest.TestCase):
 
     def test_missing_own_header(self):
         self.assertIn("missing-own-license-header", file_issues("scripts/test.py", b"pass"))
+
+    def test_installer_own_header(self):
+        self.assertEqual(file_issues("installer/app_installer_setup.iss", HEADER.encode()), [])
+        self.assertIn("missing-own-license-header", file_issues("installer/app_installer_setup.iss", b"[Setup]"))
 
     def test_binary_not_committed(self):
         self.assertIn("forbidden-file", file_issues("docs/app.exe", b"MZ\0"))
@@ -67,6 +73,55 @@ class RepositoryBoundaryTest(unittest.TestCase):
 
     def test_privileged_event(self):
         self.assertIn("ci-forbidden-operation", workflow_issues(WORKFLOW + "\npull_request_target:\n"))
+
+
+class InstallerBoundaryTest(unittest.TestCase):
+    """compilerを導入しないCIでも、installerの配布・削除・署名境界を維持する。"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = (Path(__file__).resolve().parents[1] / "installer/app_installer_setup.iss").read_text(encoding="utf-8-sig")
+
+    def test_fixed_payload_only(self):
+        sources = re.findall(r'^Source: "([^"]+)"', self.text, re.M)
+        self.assertEqual(sources, ["{#ClientImage}", "{#AgentImage}", "{#RepositoryDirectory}\\LICENSE",
+            "{#RepositoryDirectory}\\NOTICE", "{#RepositoryDirectory}\\docs\\dependencies.md", "{#SourcePath}\\README.txt"])
+        self.assertNotIn("recursesubdirs", self.text.lower())
+
+    def test_user_install_without_automatic_close(self):
+        for directive in ("PrivilegesRequired=lowest", "DefaultDirName={localappdata}\\Programs\\{#AppName}",
+                "CloseApplications=no", "RestartApplications=no", "SignToolRetryCount=0"):
+            self.assertIn(directive, self.text)
+
+    def test_no_recursive_or_unconditional_delete(self):
+        self.assertNotRegex(self.text, r"(?im)^\s*\[(?:InstallDelete|UninstallDelete)\]")
+        self.assertNotRegex(self.text, r"(?im)^\s*(?:RegDelete|DelTree|DeleteFile|TerminateProcess)\s*\(")
+
+    def test_opt_in_connection_data_only(self):
+        self.assertIn("Option.Checked := False;", self.text)
+        self.assertIn("DeleteConnectionData := (Choice = mrOk) and Requested;", self.text)
+        self.assertIn("if (CurUninstallStep <> usPostUninstall) or not DeleteConnectionData then Exit;", self.text)
+        self.assertIn("{param:DELETECONNECTIONDATA|0}') = '1'", self.text)
+        self.assertEqual(self.text.count("DeleteConnectionFile(Path)"), 1)
+        paths = self.text.split("function ConnectionDataPath", 1)[1].split("end;", 1)[0]
+        self.assertEqual(re.findall(r"\+ '([^']+)'", paths), ["connection-history.bin", "agent-settings.bin"])
+        self.assertIn("ExpandConstant('{localappdata}\\ZRdpSvnBridge')", self.text)
+        self.assertIn("'{#InstallerOutputDirectory}\\connection-data'", self.text)
+        self.assertNotIn("{param:CONNECTIONDATADIR", self.text)
+
+    def test_connection_data_safety_and_cancel(self):
+        self.assertIn("(Attributes and $400) <> 0", self.text)
+        self.assertIn("(Attributes and ($1 or $10 or $400)) <> 0", self.text)
+        self.assertIn("RecordUninstallChoice(mrCancel, True)", self.text)
+        self.assertIn("Result := RecordUninstallChoice(Choice, Option.Checked);", self.text)
+        cleanup = self.text.split("procedure CurUninstallStepChanged", 1)[1]
+        self.assertLess(cleanup.index("ConnectionDataSafetyReason()"), cleanup.index("DeleteConnectionFile(Path)"))
+
+    def test_test_mode_and_explicit_signing(self):
+        self.assertIn("#ifdef InstallerTestMode", self.text)
+        self.assertIn("CreateUninstallRegKey=no", self.text)
+        self.assertIn("#ifndef InstallerTestMode\n[Icons]", self.text)
+        self.assertIn("#ifdef EnableEvSigning\nSignTool=ZRdpSvnBridgeEV\nSignedUninstaller=yes", self.text)
 
 
 if __name__ == "__main__":

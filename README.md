@@ -10,8 +10,8 @@ ZRdp SVN Bridgeは、その間をRDP接続でつなぐWindowsアプリです。H
 リポジトリURLや作業コピーはそのまま。SVN／TracクライアントのProxy設定を対象ごとに指定して利用します。
 Agent設定を一度登録すれば、次からはRDP接続するだけでAgentが自動起動します。
 
-現在は公開準備中の開発版 `0.7.21.0` です。この版のReleaseはまだありません。
-自動Agent管理と署名付きセット更新の最終実機確認はこれからです。
+正式版は `0.7.21.0` です。[Releaseからダウンロード](https://github.com/EnterOgawa/zrdp-svn-bridge/releases/tag/v0.7.21.0)できます。
+変更点と確認範囲は [リリースノート](docs/release-notes-0.7.21.md) をご覧ください。
 
 ## ✨ できること
 
@@ -21,14 +21,19 @@ Agent設定を一度登録すれば、次からはRDP接続するだけでAgent�
 - 既存のURLを変えずに、HTTP方式のSVN／Tracへアクセス
 - ClientとAgentをセットで取得する、確認付きの更新
 
-インストーラーは不要です。開発PCで動くClientと、接続先で動くタスクトレイアプリのAgentを使います。
+開発PCで動くClientと、接続先で動くタスクトレイアプリのAgentを使います。
 Agent用の受信ポートやWindowsサービス、ドライバーを追加する必要はありません。
 
 ## 🚀 はじめて使う
 
-### 1. 二つのEXEを用意する
+### 1. アプリを用意する
 
-同じバージョンのClientとAgentを、開発PCの書込み可能なフォルダへ置きます。
+インストーラーを使う場合は、Setupを実行すると二つのEXEがまとめて配置されます。
+スタートメニューからClientを起動してください。手動配置のportable版も利用できます。
+アンインストール時には、接続履歴とAgent設定を残すか削除するかを選べます。
+Setupの作成方法とアンインストールについては [インストーラー](docs/installer.md) をご覧ください。
+
+手動で配置する場合は、同じバージョンのClientとAgentを開発PCの書込み可能なフォルダへ置きます。
 
 ```text
 ZRdp/
@@ -92,6 +97,7 @@ Windowsの警告が出た場合は、内容を確認して対応してくださ�
 最初の接続は既定で `18080`、追加接続には `18081`、`18082`…の空き枠を割り当てます。
 SVN／Tracの認証方法も従来どおりです。
 JavaHLやMylynでの設定例は [利用手順](docs/user-guide.md#8-javahl-svnのproxy設定) にまとめています。
+Eclipse内蔵のEdgeブラウザーでTracを開く場合は、[ブラウザー側のProxy指定](docs/user-guide.md#91-eclipse内蔵ブラウザーでのweb表示) も必要です。
 
 ## 🖥️ 普段の使い方
 
@@ -205,7 +211,7 @@ Debug／Release各47件のテストと、Windows x64の [GitHub Actions](https:/
 
 - [利用手順](docs/user-guide.md) ／ [Agent設定と自動管理](docs/agent-settings.md)
 - [アーキテクチャ](docs/architecture.md) ／ [通信プロトコル](docs/protocol.md)
-- [配布物の準備](docs/portable-package.md) ／ [公開準備の状況](docs/oss-readiness.md)
+- [インストーラー](docs/installer.md) ／ [portable配布の準備](docs/portable-package.md) ／ [公開準備の状況](docs/oss-readiness.md)
 
 ## 📄 ライセンス
 
