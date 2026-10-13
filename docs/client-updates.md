@@ -10,7 +10,7 @@ Clientと同じdirectoryのAgent EXEも同じ版へ更新する。接続設定�
 旧配布物`0.7.20.0`は、この更新機能を含まない。正式版`0.7.21.0`は、
 同版・同署名者のClient／Agentとformat 2 manifestを持つ初回bootstrap版である。
 最初はSetupまたはportable ZIPで手動導入し、次の新版からセット更新を利用する。旧updaterはformat 2を拒否する。
-リポジトリはPrivateのままであり、匿名の自動確認・取得は利用できない。Release作成の承認をPublic化の承認とは扱わない。
+取得元が非公開の場合は、匿名の自動確認・取得を利用できない。
 
 ## 利用者の操作
 
@@ -41,7 +41,7 @@ RDPを自動切断しない。接続管理Windowだけを閉じても、生存�
 
 EXEと同じdirectoryの`client.ini`を使う。fileがない場合、または`[update]`がない
 場合も、指定済みの既定公開元`EnterOgawa/zrdp-svn-bridge`を確認する。
-Private repositoryへ認証tokenを渡す機能は持たず、公開前は取得に失敗する。
+非公開repositoryへ認証tokenを渡す機能は持たない。その場合はSetupまたはportable版で手動更新する。
 
 ```ini
 [proxy]

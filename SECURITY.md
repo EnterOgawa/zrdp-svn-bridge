@@ -1,19 +1,19 @@
 # セキュリティ報告
 
-ZRdp SVN Bridgeは公開準備中です。repositoryはPrivateのままであり、
-GitHubの非公開脆弱性報告機能はまだ有効化していません。
-Public化時に同機能を有効にし、受付画面とmaintainerへの通知を確認する方針です。
+ZRdp SVN Bridgeの脆弱性は、非公開の窓口でお知らせください。
+認証情報や再現手順などの詳細を、公開IssueやPRへ投稿しないでください。
 
 ## 報告先
 
-公開後、repositoryの **Security → Advisories → Report a vulnerability** を使用してください。
+repositoryの **Security → Advisories → Report a vulnerability** が利用できる場合は、そちらを使用してください。
 受付先は [非公開報告画面](https://github.com/EnterOgawa/zrdp-svn-bridge/security/advisories/new) です。
 この画面が利用できない場合、公開Issueへ詳細を投稿しないでください。
-公開前の既存利用者は、配布時の既存の非公開連絡経路でmaintainerへ連絡してください。
+既存利用者は、配布時の非公開連絡経路でmaintainerへ連絡してください。
 公開用の別メールアドレスは指定していません。
 
-GitHubの機能はPublic repository向けです。有効化と通知の確認は
-[公式手順](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository) に従います。
+GitHubの非公開報告機能はPublic repository向けです。公開時に有効化し、受付と通知を確認します。
+運用状況は [公開チェックリスト](docs/publication-checklist.md#非公開報告機能public化時の運用gate)、
+有効化の手順は [公式手順](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository) を参照してください。
 
 ## 対象と保守範囲
 

@@ -1,7 +1,7 @@
 # ZRdp SVN Bridge 現行仕様
 
 更新日: 2026-10-13。対象: 正式版 `0.7.21.0`。ユーザーの実機確認と正式版承認を受けた。
-確認範囲と配布物は [リリースノート](release-notes-0.7.21.md) を参照する。リポジトリはPrivateを維持する。
+確認範囲と配布物は [リリースノート](release-notes-0.7.21.md) を参照する。
 
 ## 構成とセキュリティ境界
 
@@ -63,7 +63,7 @@ metadata、同版、file安全性は検証するが、metadataは信頼性・改
 ## 更新
 
 Client起動時と24時間周期で匿名のGitHub Release確認を行う。`client.ini` の
-`[update] enabled=false` で無効化できる。現在のPrivate repositoryは匿名取得できない。
+`[update] enabled=false` で無効化できる。取得元が非公開の場合は匿名取得できない。
 同意後に同じtag・VersionのClient／Agentセットを取得し、署名・timestamp・同一公開鍵・hash・metadataを検証する。
 全RDP／設定Windowを閉じ、保存完了後に適用・再起動する。接続先Agentは次回認証後に更新する。
 未署名buildはこの自動更新経路を使わず、二EXEを手動で揃える。
@@ -87,8 +87,8 @@ Inno Setupのユーザー別Setupで、同版Client／Agentとlicense文書を�
 - Agentのtray終了だけでは、Clientの自動復旧を止めない。意図して止める場合は設定を全削除するかRDPを切断する。
 - 設定変更・切断時のHTTP streamを途中再開せず、Commit等を自動再実行しない。結果はserver側で確認する。
 - 同じWindowsユーザー／管理者や、process全体のcrashに対する完全隔離は提供しない。
-- 通常のRDP／Agent動作、SetupのインストールとTrac Web表示はユーザー実機で受入済み。
-  前景競合、policy拒否、全session組合せ、署名済み新版へのセット更新とrollbackは別の確認範囲であり、Mock合格から推定しない。
+- 現行正式版の実機利用はユーザーが全て問題なしと確認し、受入済み。
+  故障注入・入力競合の境界は関連Mock回帰の結果として区別する。次の署名済み新版へのセット更新とrollbackは次版で実機確認する。
 
 旧仕様 [specification](specification.md) と [過去受入・制約](known-limitations.md) は歴史記録。
 操作は [README](../README.md)／[user-guide](user-guide.md)、公開Gateは [publication-checklist](publication-checklist.md) を正本とする。

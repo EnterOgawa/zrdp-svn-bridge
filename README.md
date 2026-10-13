@@ -135,7 +135,7 @@ Clientの起動時と、その後24時間ごとにGitHub Releaseを確認しま�
 
 自動更新には、現在の二つのEXEと更新候補の有効な署名・同じ署名者などの検証が必要です。
 未署名の自前ビルドは、ClientとAgentを手動で揃えて更新してください。
-現在はPrivateリポジトリのため、自動確認からReleaseを取得できません。
+取得元が非公開の場合やGitHubへ接続できない場合は、Setupまたはportable版で手動更新してください。
 
 更新確認を止めたい場合は、Clientの横に次の `client.ini` を置きます。
 
@@ -167,7 +167,7 @@ Proxyの基準ポートも `client.ini` で変更できます。
 | Agentが接続済みにならない | RDP画面が前面か、Windowsの警告が出ていないか、転送・実行が許可されているか |
 | 設定変更後に通信できない | Agentの再接続を待ち、SVN／TracのProxyポートを確認 |
 | Proxyポートが使用中 | 別のClientやアプリが同じポートを使っていないか |
-| 更新確認に失敗する | 現在はPrivateのため取得不可。RDPの利用は続けられる |
+| 更新確認に失敗する | GitHubへ接続できるか、取得元のReleaseが公開されているかを確認。RDPの利用は続けられる |
 
 不具合に気づいたら、バージョン、発生時刻、行った操作、エラーコードを添えてお知らせください。
 接続先・ユーザー名・URL・認証情報や、実環境の画面画像・ダンプは、公開IssueやPRに載せないでください。
@@ -190,7 +190,7 @@ ctest --preset release
 Releaseの二つのEXEは `out/` に出力されます。ビルド前に実行中のClient／Agentを終了し、必要な旧EXEは退避してください。
 ビルドだけでは署名されません。RDP ActiveXはWindowsにインストール済みのものを使い、DLLは同梱しません。
 
-Debug／Release各47件のテストと、Windows x64の [GitHub Actions](https://github.com/EnterOgawa/zrdp-svn-bridge/actions/runs/38095003422) で検証しています。
+Debug／Release各47件のテストと、Windows x64の [GitHub Actions](https://github.com/EnterOgawa/zrdp-svn-bridge/actions/runs/38342932101) で検証しています。
 実機確認の範囲や開発手順は [テスト計画](docs/test-plan.md) と [コーディング規約](docs/coding-standard.md) をご覧ください。
 
 ### リポジトリ構成

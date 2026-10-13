@@ -1,6 +1,6 @@
 # ZRdp SVN Bridge 0.7.21.0 リリースノート
 
-リリース日: 2026-10-13。Windows x64向け正式版です。リポジトリはPrivateのまま配布します。
+リリース日: 2026-10-13。Windows x64向け正式版です。作成時点ではPrivate repositoryで配布しました。
 
 Agentの配置と起動をRDP接続にまとめ、接続ごとの設定で普段の操作を簡素化しました。
 ClientとAgentをまとめて導入できる署名済みSetupとportable ZIPを用意しています。
@@ -27,7 +27,7 @@ portable版ではZIPを展開し、同じフォルダーの `ZRdpSvnBridge.exe` 
 ログ、backup、手動INI、Windows資格情報と接続先PCのAgentは削除しません。
 
 旧 `0.7.20.0` からは初回手動導入が必要です。登録したAgent設定に従い、次のRDP認証後に接続先へ反映します。
-Private repositoryでは匿名の自動更新取得はできません。署名済み新版の取得・置換・rollbackを通した実機受入は、次の新版で確認します。
+非公開の取得元では匿名の自動更新取得はできません。署名済み新版の取得・置換・rollbackを通した実機受入は、次の新版で確認します。
 
 ## SVNとTrac
 
@@ -46,7 +46,9 @@ HTTP、登録済みIPv4・ポートだけを対象とし、HTTPS、CONNECT、hos
 - Client／Agent／Setupとcompilerが保持した埋込み用アンインストーラーは、Windows trust `Valid`、timestampと同一署名者を確認しました。
 - ユーザー実機で通常Setupのインストール、RDP／Agentの期待した動作、SVN接続、Trac Web表示を確認し、正式版として承認を受けました。
 
-通常アンインストールの対話操作、インストール後のアンインストーラー署名、前景競合・policy拒否・全session組合せは、個別の実機確認結果とは区別します。
+最終監査後の対応では、インストール済みClient／Agent／アンインストーラーの版・有効な署名・timestamp・同一署名者も確認しました。
+最終確認後にも、ユーザーが現行版の実機利用は全て問題なしと確認しました。
+故障注入・入力競合の境界は関連回帰の結果として区別し、次の署名済み新版へのセット更新は次版で実機確認します。
 Setupのマウス操作が進まなかった事象は、同じSetupのままPC再起動後に解消しました。Windows／driverの具体的な原因は未特定です。
 
 ## 配布物
@@ -56,7 +58,8 @@ Setupのマウス操作が進まなかった事象は、同じSetupのままPC�
 - `ZRdpSvnBridge.exe`、`ZRdpSvnAgent.exe`、`zrdp-client-update.ini`: 同じRelease tagのセット更新用asset。
 - `SHA256SUMS.txt`: 配布fileのSHA-256一覧。
 
-実INI、履歴、credential、鍵、ログ、dump、PDB、実環境の画像は含めません。旧三Releaseの削除・差替えとPublic化は行いません。
+実INI、履歴、credential、鍵、ログ、dump、PDB、実環境の画像は含めません。
+現行の公開対象と確認状況は [公開チェックリスト](publication-checklist.md) を参照してください。
 
 | File | byte数 | SHA-256 |
 |---|---:|---|
