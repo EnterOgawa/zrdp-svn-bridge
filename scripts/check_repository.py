@@ -27,6 +27,14 @@ SECRETS = re.compile(
 )
 SOURCE_SUFFIXES = {".cpp", ".h", ".rc", ".py", ".ps1", ".iss"}
 MD_LINK = re.compile(r'!?\[[^\]\n]*\]\(([^)\n]+)\)|<img\b[^>]*\bsrc="([^"]+)"')
+PUBLIC_DOCUMENT_PATHS = frozenset({
+    "docs/agent-settings.md", "docs/client-updates.md", "docs/configuration.md",
+    "docs/dependencies.md", "docs/diagnostics.md", "docs/installer.md",
+    "docs/known-limitations.md", "docs/portable-package.md", "docs/security.md",
+    "docs/user-guide.md", "docs/images/agent-settings.png", "docs/images/agent-tray.png",
+    "docs/images/connection-manager.png",
+})
+LOCAL_ONLY_PATHS = frozenset({"agents.md", "assets/icons/readme.md"})
 
 
 def repository_paths(root: Path) -> list[Path]:
@@ -44,6 +52,9 @@ def file_issues(path: str, data: bytes) -> list[str]:
     """機密／生成物のfile名、既知secret形式、自作codeの権利表示を確認する。"""
     name = Path(path)
     issues = []
+    relative = name.as_posix().casefold()
+    if relative in LOCAL_ONLY_PATHS or (relative.startswith("docs/") and relative not in PUBLIC_DOCUMENT_PATHS):
+        issues.append("local-only-publication-file")
     if name.suffix.lower() in FORBIDDEN_EXTENSIONS or name.name.lower() in FORBIDDEN_NAMES or name.name.startswith(".env"):
         issues.append("forbidden-file")
     if any(part in {"work", "build", "out", ".vs"} for part in name.parts):
@@ -62,8 +73,8 @@ def file_issues(path: str, data: bytes) -> list[str]:
     return issues
 
 
-def missing_links(root: Path, path: Path, text: str) -> list[str]:
-    """Markdownの相対fileリンクを検査し、外部URLとanchor-onlyは通信しない。"""
+def missing_links(root: Path, path: Path, text: str, public_paths: set[Path] | None = None) -> list[str]:
+    """相対リンクを検査し、公開検査では存在しても非公開のfileへ依存させない。"""
     text = re.sub(r"(?ms)^```[^\n]*\n.*?^```[ \t]*$", "", text)
     missing = []
     for match in MD_LINK.finditer(text):
@@ -75,6 +86,9 @@ def missing_links(root: Path, path: Path, text: str) -> list[str]:
         candidate = candidate.resolve()
         if not candidate.is_relative_to(root.resolve()) or not candidate.exists():
             missing.append(target)
+        elif public_paths is not None and candidate not in public_paths:
+            if not candidate.is_dir() or not any(p.is_relative_to(candidate) for p in public_paths):
+                missing.append(target)
     return missing
 
 
@@ -102,6 +116,7 @@ def audit(root: Path) -> dict:
     """現在treeだけを読み、実設定・network・binary実行へ触れず結果を集める。"""
     issues = []
     paths = repository_paths(root)
+    public_paths = {p.resolve() for p in paths if p.is_file()}
     for path in paths:
         if not path.is_file():
             issues.append({"path": str(path.relative_to(root)), "kind": "tracked-file-missing"})
@@ -111,14 +126,14 @@ def audit(root: Path) -> dict:
         issues.extend({"path": relative, "kind": kind} for kind in file_issues(relative, data))
         if path.suffix == ".md":
             issues.extend({"path": relative, "kind": "missing-local-link", "target": t}
-                          for t in missing_links(root, path, data.decode("utf-8-sig")))
+                          for t in missing_links(root, path, data.decode("utf-8-sig"), public_paths))
         if relative.startswith(".github/workflows/"):
             issues.extend({"path": relative, "kind": kind} for kind in workflow_issues(data.decode("utf-8-sig")))
     license_text = (root / "LICENSE").read_text(encoding="utf-8-sig").replace("\r\n", "\n").strip() + "\n"
     if hashlib.sha256(license_text.encode()).hexdigest() != APACHE_SHA256:
         issues.append({"path": "LICENSE", "kind": "canonical-apache-license-mismatch"})
-    for name in ("NOTICE", "SECURITY.md", "CONTRIBUTING.md", "docs/dependencies.md", "docs/publication-checklist.md"):
-        if not (root / name).is_file():
+    for name in ("README.md", "NOTICE", "SECURITY.md", "CONTRIBUTING.md", "docs/dependencies.md"):
+        if not (root / name).is_file() or (root / name).resolve() not in public_paths:
             issues.append({"path": name, "kind": "missing-publication-document"})
     cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
     match = re.search(r"\bVERSION\s+(\d+\.\d+\.\d+)", cmake)

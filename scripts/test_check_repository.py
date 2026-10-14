@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""公開tree検査の境界をmemoryで検証する。
+"""公開tree検査の境界をmemoryと隔離fileで検証する。
 
 Copyright (c) 2026 EnterSystem CO.,LTD.
 SPDX-License-Identifier: Apache-2.0
 """
 from pathlib import Path
 import re
+import tempfile
 import unittest
 
-from check_repository import file_issues, workflow_issues
+from check_repository import file_issues, missing_links, workflow_issues
 
 HEADER = "Copyright (c) 2026 EnterSystem CO.,LTD.\nSPDX-License-Identifier: Apache-2.0\n"
 WORKFLOW = """permissions:
@@ -52,9 +53,40 @@ class RepositoryBoundaryTest(unittest.TestCase):
 
     def test_secret_values_not_returned(self):
         value = "ghp_" + "A" * 40
-        result = file_issues("docs/fixture.txt", value.encode())
+        result = file_issues("docs/configuration.md", value.encode())
         self.assertEqual(result, ["secret-pattern"])
         self.assertNotIn(value, str(result))
+
+    def test_local_agent_rules_not_published(self):
+        self.assertIn("local-only-publication-file", file_issues("AGENTS.md", b"local rules"))
+
+    def test_maintenance_documents_not_published(self):
+        for path in ("docs/adr/0001-local.md", "docs/publication-checklist.md", "docs/roadmap.md", "assets/icons/README.md"):
+            with self.subTest(path=path):
+                self.assertIn("local-only-publication-file", file_issues(path, b"local record"))
+
+    def test_public_documents_and_images_allowed(self):
+        self.assertEqual(file_issues("docs/configuration.md", b"public instructions"), [])
+        self.assertEqual(file_issues("docs/images/agent-settings.png", b"PNG\x00"), [])
+
+    def test_existing_local_only_link_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            readme = root / "README.md"
+            readme.write_text("public", encoding="utf-8")
+            (root / "AGENTS.md").write_text("local", encoding="utf-8")
+            self.assertEqual(missing_links(root, readme, "[rules](AGENTS.md)", {readme.resolve()}), ["AGENTS.md"])
+
+    def test_public_file_and_folder_links_allowed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            readme = root / "README.md"
+            readme.write_text("public", encoding="utf-8")
+            (root / "docs").mkdir()
+            configuration = root / "docs" / "configuration.md"
+            configuration.write_text("public", encoding="utf-8")
+            public_paths = {readme.resolve(), configuration.resolve()}
+            self.assertEqual(missing_links(root, readme, "[config](docs/configuration.md) [docs](docs)", public_paths), [])
 
     def test_valid_workflow(self):
         self.assertEqual(workflow_issues(WORKFLOW), [])

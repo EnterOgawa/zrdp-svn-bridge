@@ -11,13 +11,9 @@ repositoryの **Security → Advisories → Report a vulnerability** が利用�
 既存利用者は、配布時の非公開連絡経路でmaintainerへ連絡してください。
 公開用の別メールアドレスは指定していません。
 
-GitHubの非公開報告機能はPublic repository向けです。公開時に有効化し、受付と通知を確認します。
-運用状況は [公開チェックリスト](docs/publication-checklist.md#非公開報告機能public化時の運用gate)、
-有効化の手順は [公式手順](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository) を参照してください。
-
 ## 対象と保守範囲
 
-現行mainと、今後公開する最新の正式Releaseを対象に報告を受け付けます。
+現行mainと最新の正式Releaseを対象に報告を受け付けます。
 旧社内配布物はPublic配布・継続的なbackportの対象としません。
 保守対応はbest effortです。対応期限、全旧Versionの修正、組織policyへの適合を保証しません。
 Windows／RDP ActiveX／Visual Studio自体の問題は、それぞれの提供元にも報告してください。
@@ -39,4 +35,4 @@ dumpや実画面には機密情報が残るため、まず必要性と安全な�
 この文書は報告方針であり、機密情報の送付許可や製品の安全性の保証ではありません。
 
 実装上の境界は [security設計](docs/security.md)、残存リスクは
-[現行仕様](docs/current-specification.md) を参照してください。
+[既知の制約](docs/known-limitations.md) を参照してください。

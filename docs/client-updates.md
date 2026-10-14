@@ -1,15 +1,14 @@
 # ZRdp SVN Bridge Client／Agentのセット自動更新
 
-更新日: 2026-10-13
+更新日: 2026-10-14
 
 ClientはGitHubの公開Releaseを確認し、新版があれば利用者へ通知する。
 EXEの取得は利用者の同意後、置換はすべてのRDP session WindowとAgent設定画面の
 終了、および受付済み設定保存の完了後に行う。
 Clientと同じdirectoryのAgent EXEも同じ版へ更新する。接続設定、履歴、INI、診断logは更新しない。
 
-旧配布物`0.7.20.0`は、この更新機能を含まない。正式版`0.7.21.0`は、
-同版・同署名者のClient／Agentとformat 2 manifestを持つ初回bootstrap版である。
-最初はSetupまたはportable ZIPで手動導入し、次の新版からセット更新を利用する。旧updaterはformat 2を拒否する。
+正式版`0.7.21.0`はセット更新に対応した初回版である。
+最初はSetupまたはportable ZIPで導入し、次の新版からセット更新を利用する。
 取得元が非公開の場合は、匿名の自動確認・取得を利用できない。
 
 ## 利用者の操作
@@ -119,7 +118,7 @@ helperが終了したことを確認し、旧版backupの署名・製品名・ve
 
 1. ClientとAgentのFileVersionとProductVersionを現在の配布版より大きい同一四要素へ更新する。
    UIのversion表示も合わせる。Bridge protocolと更新bootstrap形式は互換性を確認する。
-2. Debug／Release test、実機受入、署名・timestampのRelease Gateを通過させる。
+2. Debug／Release testと実機での動作確認を行い、署名・timestampを検証する。
 3. 完成した同一版・同一署名者の署名済み二EXEから、空の出力directoryへmanifestを作成する。
 
    ```powershell
@@ -129,14 +128,13 @@ helperが終了したことを確認し、旧版backupの署名・製品名・ve
    この例のtagは説明用であり、Releaseの作成を意味しない。scriptは二EXEの同版・同一署名者、有効な署名と
    timestamp、製品情報、x64、bootstrapを確認し、sizeとSHA-256を計算する。
    既存manifestを上書きせず、EXEの署名やGitHub uploadを行わない。
-4. 公開が明示承認された場合だけ、指定repositoryの対応tagのReleaseへ
+4. 配布するrepositoryの対応tagのReleaseへ
    `ZRdpSvnBridge.exe`、`ZRdpSvnAgent.exe`、`zrdp-client-update.ini`を添付する。
 5. manifestのtagとassetを一致させ、GitHubのlatest Releaseとして公開する。
    manifest作成後にEXEを再署名・変更した場合は、manifestも作り直す。
 
 利用者向けZIPにはLICENSE／NOTICE／依存物inventoryも含める。
 固定二EXEの同梱・hash・署名前検査は [local配布準備](portable-package.md) を参照する。
-旧三Releaseは公開対象から外す方針で保全し、削除・差替えは別の明示承認を必要とする。
 
 manifest format 2は次の十keyを持つASCII INIである。値を手入力せず、完成EXEから生成する。
 
@@ -154,32 +152,5 @@ agent_size=<Agent EXE byte数>
 agent_sha256=<Agent EXEの64文字hex>
 ```
 
-初回の署名済みbootstrap版を手動適用した後、同じ署名鍵を使用する次の新版から
-自動更新を利用できる。公開後は、通知・拒否・同意・session終了待ち・再起動・
-backup保全を確認済みのlocal配置で受入確認する。
-
-## 検証状態
-
-初期追加時は隔離buildのDebug／Releaseで各37 CTestを通過し、Agent設定追加後は
-2026-10-08に各41 CTestで回帰確認した。同意状態、有限queue、
-session生存中の適用禁止、manifest・URL検証、異常CLI拒否を単体testし、差替えと
-復元はfake transactionおよび隔離したWindows file fixtureで確認した。
-既存署名済みClientのWindows署名検証と、未署名候補の拒否も確認した。
-初期実装ではmanifest生成scriptのserializationと拒否条件、旧更新menuと無効設定のdialog、
-dialog中のWindow終了も確認した。画面検証ではRDP接続を開始していない。
-2026-10-10の追加指示で旧menuと手動確認入口を除去し、起動時と24時間周期の自動確認へ統一した。
-EXE取得・適用の同意、署名検証と全session終了待ちは変更しない。
-
-公開Releaseから署名済み新版へ更新する一連の実機受入は、初回bootstrap版の
-署名・手動配布と次の新版Releaseを用意した後のGateとして残る。
-初回実装の検証時点では旧署名済み`out/`、製品version、実設定、repositoryのPrivate設定を
-変更していない。その後の開発成果物は利用者指定の`D:\develop\zrdp\out`へ出力し、
-旧署名済みEXEを事前保全する。出力先の更新だけでは署名済み配布版の更新とは扱わない。
-
-セット更新は[ADR 0023](adr/0023-paired-client-agent-updates.md)、従来の同意・適用境界は[ADR 0013](adr/0013-consented-client-updates.md)を参照する。
-
-
-2026-10-10のセット更新ではformat 1の拒否、Agent必須key・上限・固定asset、未署名・別署名者・混在版の拒否、
-二fileの実置換・各file lock・第二file失敗時のAgent復元を隔離fixtureで確認した。
-Debug／Release各47 CTest、format確認とformatter self-test 16件、Doxygenの新規警告なしを確認した。
-署名済み公開Releaseからの二EXE取得、正常再起動と両backup保全は実機受入Gateとして残る。
+次版の配布時は、通知・見送り・同意・session終了待ち・再起動・backup保全までを確認する。
+`0.7.21.0`から次の署名済み新版への一連の実機更新は、次版の公開時に確認する予定である。

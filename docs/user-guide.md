@@ -1,12 +1,7 @@
 # ZRdp SVN Bridge 利用手順書
 
-- 文書ID: `ZRDP-USER-001`
-- 対象: 公開準備版 `0.7.21.0`（新Release未作成）
-- 対象利用者: 試行利用者・自前ビルド利用者
-- 更新日: 2026-10-11
-
-過去の署名済み社内配布物とは操作が異なる。現行の接続別設定・
-Agent自動管理・セット更新を説明する。過去の受入結果を最新ソースの受入結果として扱わない。
+正式版 `0.7.21.0` の接続・設定・使い方をまとめています。
+まず試してみたい方は [README](../README.md) からどうぞ。
 
 ## 1. はじめに
 
@@ -288,7 +283,7 @@ Windows全体の設定を変えずに経路を確認するには、`eclipse.ini`
 ```
 
 portは対象RDP sessionのtitleに表示された値へ合わせる。Eclipseを完全に終了して再起動し、
-承認済みの既存 `http://` Trac URLを開く。2026-10-13にユーザー環境でこの指定によるWeb表示を確認した。
+承認済みの既存 `http://` Trac URLを開く。
 
 この指定はEclipse内のWebView2全体へ適用される。対象外のWebサイト、HTTPSやhostnameの表示は
 ZRdpの制限により失敗するため、一時的な確認または対象用途に限定した環境で使用する。
@@ -348,10 +343,6 @@ remote desktop寸法を変更しない。
 - RDP接続先の再起動や最終外部切断では、対象Windowがerror dialogなしで閉じる。
 - 接続管理Windowと別sessionは継続する。
 - すべてのsessionを終了後、接続管理Windowを閉じてClientを終了する。
-
-社内配布版Version `0.7.20.0`では、すべてのWindowを閉じた後にタスクマネージャーで
-`ZRdpSvnBridge.exe`が残っていないことを確認する。残留した場合は配布・利用を中止し、
-発生時刻とClient logを報告する。
 
 処理中のSVN／Trac通信は切断される。Commit等の結果はserver側で確認してから必要な
 操作を再実行する。
@@ -417,8 +408,8 @@ Password、repository URL、source、diff、ticket本文、screen capture、pack
 更新確認は起動時と24時間ごとに自動実行する。ダウンロード・適用は同意後に行い、
 同VersionのClient／Agentをセットで取得する。適用前にSVN／Trac操作を完了し、
 すべてのRDP sessionとAgent設定画面を閉じ、設定保存の完了を待つ。
-接続先Agentは次回RDP接続時に更新する。署名・manifest・部分失敗時のrollbackと
-現在のPrivate取得制約は [セット更新](client-updates.md) を参照する。
+接続先Agentは次回RDP接続時に更新する。署名・manifest・部分失敗時のrollbackは
+[セット更新](client-updates.md) を参照する。
 
 未署名の自前buildは自動更新対象外である。手動更新ではClientを終了して、開発PCの
 二つのEXEを同Versionで置き換える。次の接続で接続先へ反映する。
@@ -435,7 +426,9 @@ Password、repository URL、source、diff、ticket本文、screen capture、pack
 
 ## 17. 関連文書
 
-- [最終仕様書](specification.md)
+- [設定](configuration.md)
+- [Agent設定](agent-settings.md)
 - [既知の制約](known-limitations.md)
 - [診断ログ詳細](diagnostics.md)
-- [社内配布・署名確認書](release-checklist.md)
+- [セット更新](client-updates.md)
+- [インストーラー](installer.md)

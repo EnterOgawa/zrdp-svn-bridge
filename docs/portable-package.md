@@ -1,6 +1,6 @@
 # 配布物のlocal準備と検査
 
-更新日: 2026-10-13。正式版 `0.7.21.0`。配布内容と確認範囲は [リリースノート](release-notes-0.7.21.md) を参照する。
+同じ版のClient／Agentとライセンス文書をまとめたportable ZIPを作成する。
 この手順はarchiveをlocalに作るだけで、署名・Release作成・upload・tag pushをしない。
 Git管理外の `work/tmp` 以下だけへcreate-newで出力し、既存archiveを上書きしない。
 
@@ -20,7 +20,7 @@ ZIPは従来のportable配布・Client／Agentセット更新向けとして維�
 
 ## 署名済みセット
 
-署名検証と実機受入を完了したセットから作成する。Releaseの作成・uploadとPublic化は別々の明示承認を必要とする。
+署名検証と実機確認を完了したセットから作成する。
 
 ```powershell
 ./scripts/New-PortablePackage.ps1 -ExecutableDirectory ./out -OutputDirectory ./work/tmp/signed-package-review -Tag v0.7.21.0
@@ -55,4 +55,3 @@ Agent偽装名・不一致tagの拒否、
 
 失敗時のstageは削除せず検査用に残す。全入力HANDLEは閉じ、元EXEを変更しない。
 stage／archiveはGit管理外のlocal生成物である。確認後の整理は対象を明示して行う。
-公開時の操作は [公開・配布Gate](publication-checklist.md) に従う。

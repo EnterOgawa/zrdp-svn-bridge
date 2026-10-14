@@ -11,7 +11,7 @@ ZRdp SVN Bridgeは、その間をRDP接続でつなぐWindowsアプリです。H
 Agent設定を一度登録すれば、次からはRDP接続するだけでAgentが自動起動します。
 
 正式版は `0.7.21.0` です。[Releaseからダウンロード](https://github.com/EnterOgawa/zrdp-svn-bridge/releases/tag/v0.7.21.0)できます。
-変更点と確認範囲は [リリースノート](docs/release-notes-0.7.21.md) をご覧ください。
+変更点はReleaseの説明をご覧ください。
 
 ## ✨ できること
 
@@ -157,7 +157,7 @@ Proxyの基準ポートも `client.ini` で変更できます。
 - 切断した通信の途中再開やCommitの自動再実行はしません。操作中に切断した場合は、サーバー側で結果を確認してください。
 
 利用環境でのSVN／Mylynの動作確認もお願いします。
-詳しい対応範囲は [現行仕様](docs/current-specification.md)、注意点は [セキュリティ](docs/security.md) と [既知の制約](docs/known-limitations.md) にまとめています。
+詳しい注意点は [セキュリティ](docs/security.md) と [既知の制約](docs/known-limitations.md) にまとめています。
 
 ## 🛠️ 困ったとき
 
@@ -190,8 +190,8 @@ ctest --preset release
 Releaseの二つのEXEは `out/` に出力されます。ビルド前に実行中のClient／Agentを終了し、必要な旧EXEは退避してください。
 ビルドだけでは署名されません。RDP ActiveXはWindowsにインストール済みのものを使い、DLLは同梱しません。
 
-Debug／Release各47件のテストと、Windows x64の [GitHub Actions](https://github.com/EnterOgawa/zrdp-svn-bridge/actions/runs/38342932101) で検証しています。
-実機確認の範囲や開発手順は [テスト計画](docs/test-plan.md) と [コーディング規約](docs/coding-standard.md) をご覧ください。
+Debug／Release各47件のテストを、Windows x64の [GitHub Actions](https://github.com/EnterOgawa/zrdp-svn-bridge/actions/workflows/windows-ci.yml) でも実行しています。
+開発時の検証と書式は [貢献方法](CONTRIBUTING.md) をご覧ください。
 
 ### リポジトリ構成
 
@@ -200,7 +200,7 @@ Debug／Release各47件のテストと、Windows x64の [GitHub Actions](https:/
 | `src/`、`tests/` | Client・Agent・共通処理とテスト |
 | `assets/`、`cmake/` | アイコンとビルド補助 |
 | `config/examples/` | 設定例 |
-| `docs/`、`docs/adr/` | 操作・設計・設計判断の記録 |
+| `docs/` | 利用・設定・更新・配布の説明と画面画像 |
 | `scripts/` | ソース検査と配布準備 |
 | `out/`、`build/`、`work/` | ビルド結果・ローカル作業用。Git管理外 |
 
@@ -210,8 +210,8 @@ Debug／Release各47件のテストと、Windows x64の [GitHub Actions](https:/
 ## 📚 もう少し詳しく知りたい方へ
 
 - [利用手順](docs/user-guide.md) ／ [Agent設定と自動管理](docs/agent-settings.md)
-- [アーキテクチャ](docs/architecture.md) ／ [通信プロトコル](docs/protocol.md)
-- [インストーラー](docs/installer.md) ／ [portable配布の準備](docs/portable-package.md) ／ [公開準備の状況](docs/oss-readiness.md)
+- [設定](docs/configuration.md) ／ [更新](docs/client-updates.md)
+- [インストーラー](docs/installer.md) ／ [portable配布の準備](docs/portable-package.md)
 
 ## 📄 ライセンス
 

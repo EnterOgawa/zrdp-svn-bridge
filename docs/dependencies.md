@@ -1,8 +1,6 @@
 # ライセンスと依存物inventory
 
-更新日: 2026-10-13。対象: 現行repositoryと公開準備版 `0.7.21.0`。
-2026-10-11にユーザーから、自作コード・文書・画像の権利帰属と組織としての
-Apache-2.0公開許諾が確認済みとの回答を受けた。
+自作コード・文書・画像はApache-2.0で公開しています。
 
 ## repository内の自作物
 
@@ -10,8 +8,8 @@ Apache-2.0公開許諾が確認済みとの回答を受けた。
 |---|---|
 | `src/`、`tests/`、build／監査script | 本projectの自作実装。Copyright (c) 2026 EnterSystem CO.,LTD.／Apache-2.0 |
 | 自作文書とREADME | 同じ権利者の許諾に基づくApache-2.0 |
-| 製品icon | AI生成・加工した独自資産。外部logo・stock assetなしとの制作記録。[出典とprompt](https://github.com/EnterOgawa/zrdp-svn-bridge/blob/main/assets/icons/README.md) |
-| READMEのUI画像 | 実UIの架空fixtureを撮影。実環境dataなし。[作成条件](https://github.com/EnterOgawa/zrdp-svn-bridge/blob/main/docs/images/README.md) |
+| 製品icon | AI生成・加工した独自資産。外部logo・stock assetは使用しない |
+| READMEのUI画像 | 説明用の設定で実UIを撮影した自作画像 |
 
 第三者のsourceをvendor取り込みするdependency managerや、submoduleは使用していない。
 将来取り込む場合は、このinventory・LICENSE／NOTICEを更新し、元の権利表示を保持する。
@@ -58,4 +56,3 @@ engineを改変せず、About表示等の元の著作権表示とwebsiteを保�
 
 SVN、Mylyn、Trac、Zscalerは外部環境・利用対象であり同梱物ではない。
 設定templateは文書用アドレスだけを使う。実INI・履歴・資格情報・署名鍵はGit／packageに含めない。
-保全した旧ReleaseのbinaryとWordは、公開予定の最新版packageへ混在させない。

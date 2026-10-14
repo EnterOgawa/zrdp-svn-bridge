@@ -1,6 +1,6 @@
 # ZRdp SVN Bridge インストーラー
 
-更新日: 2026-10-13。対象: 正式版 `0.7.21.0`。
+更新日: 2026-10-14。対象: 正式版 `0.7.21.0`。
 
 ## インストールする方へ
 
@@ -81,7 +81,7 @@ Clientによるセット更新は、アプリ一覧に記録したSetup版を更
 Innoの動作は公式の [SignTool](https://jrsoftware.org/is6help/topic_setup_signtool.htm) と
 [SignedUninstaller](https://jrsoftware.org/is6help/topic_setup_signeduninstaller.htm) を参照してください。
 
-## 検証
+## 隔離して検証する
 
 ```powershell
 ./scripts/Test-Installer.ps1 -ExecutableDirectory ./out -RunInstallation
@@ -91,30 +91,3 @@ Innoの動作は公式の [SignTool](https://jrsoftware.org/is6help/topic_setup_
 混在版とdowngrade拒否も検証します。test modeはuninstall登録、shortcut、Client起動を無効にし、
 `work/tmp` の新規folderだけで実行します。test modeの接続情報保存先はcompiler出力先配下の
 `connection-data` に固定します。実接続先や実ユーザー設定を使用しません。
-
-2026-10-13に以下を確認しました。
-
-- 通常modeと隔離test modeのcompile
-- 欠落Client／Agent、役割の偽装、混在版、既存Setupの上書き拒否
-- 新規配置、同版再インストール、二EXEと文書のhash一致
-- 使用中EXEがある場合のinstall／uninstall拒否、旧Setupによるdowngrade拒否
-- アンインストール後の設定・ログ・未知のfile保持、元の署名済み二EXEのhash保持
-- 接続情報の保持・選択削除、取消、保存先とfileの不在、silent不正値の保持
-- 接続情報の使用中・読み取り専用・directory偽装・junction拒否、無関係fileとbackup保持
-- 削除選択を反映した署名済みSetupとcompilerの埋込み用アンインストーラーを検証
-  （Windows trust `Valid`、SHA-256署名、RFC 3161 timestamp、同梱二EXEと同一署名者）
-
-削除選択を反映した署名済み更新版は `out/ZRdp_SVN_Bridge_Setup_0.7.21.0.exe` です。
-変更前の署名済みSetupはworkspace内のbackupへ保全し、配布先を更新しています。
-未署名版 `out/ZRdp_SVN_Bridge_Setup_0.7.21.0_unsigned.exe` も保全しています。
-Client／Agentは再build・再署名せず、元のhashを保持しています。
-
-2026-10-13にユーザーが通常Setupでのインストールと、インストール後のAgent／SVN／Trac動作を確認し、正式版として承認しました。
-マウス操作が進まなかった問題は、Setupを変更せずPC再起動後に解消しています。Windowsやドライバーのどちらが原因かは特定していません。
-
-最終監査後の対応では、インストール済みClient／Agent／`unins000.exe` をread-onlyで検証し、
-製品版 `0.7.21.0`、有効な署名・timestamp・同じ署名者を確認しました。
-現行版の実機利用はユーザーが全て問題なしと確認しています。
-shortcut・アプリ一覧・通常アンインストールの選択／取消などの項目別記録は、包括的な実機受入と分けて扱います。
-接続情報の保持・削除と拒否条件は、上記の隔離回帰検証で確認しています。
-確認手順は [公開前の実機確認](publication-validation.md#インストーラーの確認項目) を参照してください。
