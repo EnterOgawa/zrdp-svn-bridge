@@ -1,0 +1,87 @@
+#pragma code_page(65001)
+
+//------------------------------------------------------------------------------
+/**
+ * Copyright (c) 2026 EnterSystem CO.,LTD.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * @file ZRdpSvnAgent.rc
+ * @brief Agentのversion情報と共通application iconを定義する。
+ * @version 01.00.06
+ * @date 2026/08/01
+ * @author Shunji Ogawa
+ *
+ * @details 実allowlistやendpointをresourceへ埋め込まず、portable EXEの
+ *          固定metadataだけを保持する。
+ *
+ * @par 更新履歴
+ * <pre>
+ * VerNo.         author        update      comment
+ * Ver.01.00.00   Shunji Ogawa  2026/10/07  指定C/C++規約へコメントと書式を統一。
+ * Ver.01.00.01   Shunji Ogawa  2026/10/09  初回配置と固定Agent起動の自動化を追加。
+ * Ver.01.00.02   Shunji Ogawa  2026/10/10  Agent起動の統合と明示未署名配置テストを追加。
+ * Ver.01.00.03   Shunji Ogawa  2026/10/10  起動と設定の分離、tray常駐、backup付き更新を追加。
+ * Ver.01.00.04   Shunji Ogawa  2026/10/10  Agent配置・起動の署名要件と未署名別経路を撤廃。
+ * Ver.01.00.05   Shunji Ogawa  2026/10/10  セット更新の互換性確認用Bridge protocolを追加。
+ * Ver.01.00.06   Shunji Ogawa  2026/10/11  公開準備版0.7.21.0の識別へ更新。
+ * </pre>
+ */
+//------------------------------------------------------------------------------
+
+#include <windows.h>
+#include <winver.h>
+#include "agent_tray_resources.h"
+
+STRINGTABLE
+BEGIN
+    IDS_AGENT_TRAY_WAITING "ZRdp SVN Bridge - Agent: Client接続待ち"
+    IDS_AGENT_TRAY_READY "ZRdp SVN Bridge - Agent: SVN Bridge接続済み"
+    IDS_AGENT_TRAY_RECOVERING "ZRdp SVN Bridge - Agent: RDP復帰待ち"
+    IDS_AGENT_TRAY_UNAVAILABLE "ZRdp SVN Bridge - Agent: SVN Bridge利用不能"
+    IDS_AGENT_TRAY_EXIT "Agentを終了"
+    IDS_AGENT_TRAY_FAILED "Agentのタスクトレイ表示を維持できないため停止しました。接続先のExplorerと通知領域を確認してから、再度起動してください。"
+    IDS_AGENT_SETUP_RUNNING "このRDPセッションでAgentが起動中、または配置処理が実行中です。Agentのタスクトレイから終了してください。旧console版はCtrl+Cで終了し、新しいRDP接続からAgent起動をやり直してください。強制終了や上書きは行っていません。"
+    IDS_AGENT_SESSION_REQUIRED "AgentはactiveなRDPユーザーセッション内で起動してください。"
+    IDS_AGENT_ALREADY_RUNNING "このRDPセッションではAgentが起動済みです。既存Agentのタスクトレイで状態を確認してください。"
+    IDS_AGENT_CHANNEL_UNAVAILABLE "ESVNBRGを開けません。ZRdp Clientから接続した同じRDPセッションで起動してください。"
+    IDS_AGENT_BRIDGE_STOPPED "protocolまたはSVN stream処理のエラーでAgentを停止しました。診断ログとClientの状態を確認してください。RDP接続自体は維持します。"
+    IDS_AGENT_SETUP_ROLLBACK_FAILED "Agent更新に失敗し、元の二ファイルへ自動復旧できませんでした。Agentは起動していません。接続先の %LOCALAPPDATA%\\ZRdp\\backup-* に元ファイルを保全しています。バックアップを確認し、旧Agentとagent.iniを復旧してください。"
+END
+
+// -----------------------------------------------------------------------------
+// Portable EXE version情報
+// -----------------------------------------------------------------------------
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 0,7,21,0
+PRODUCTVERSION 0,7,21,0
+ FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+ FILEFLAGS VS_FF_DEBUG
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041104B0"
+        BEGIN
+            VALUE "CompanyName", "EnterOgawa\0"
+            VALUE "FileDescription", "ZRdp SVN Agent\0"
+            VALUE "FileVersion", "0.7.21.0\0"
+            VALUE "InternalName", "ZRdpSvnAgent\0"
+            VALUE "OriginalFilename", "ZRdpSvnAgent.exe\0"
+            VALUE "ProductName", "ZRdp SVN Bridge\0"
+            VALUE "ProductVersion", "0.7.21.0\0"
+            VALUE "AgentSetupProtocol", "1\0"
+            VALUE "BridgeProtocol", "1\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0411, 1200
+    END
+END

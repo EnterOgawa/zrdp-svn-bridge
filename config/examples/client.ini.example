@@ -1,0 +1,7 @@
+; ZRdpSvnBridge Phase 5 loopback Proxy template
+; Copy this file next to ZRdpSvnBridge.exe as client.ini only when the
+; default 127.0.0.1:18080 port conflicts with another local application.
+; Do not commit the resulting client.ini.
+
+[proxy]
+port=18080

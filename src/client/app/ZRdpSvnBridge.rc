@@ -1,0 +1,190 @@
+#pragma code_page(65001)
+
+//------------------------------------------------------------------------------
+/**
+ * Copyright (c) 2026 EnterSystem CO.,LTD.
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * @file ZRdpSvnBridge.rc
+ * @brief Clientのmanifest、version、icon、日本語UI文字列を定義する。
+ * @version 01.00.06
+ * @date 2026/08/01
+ * @author Shunji Ogawa
+ *
+ * @details credentialや実接続先をresourceへ埋め込まず、配布EXEに必要な
+ *          固定metadataと利用者向け文字列だけを保持する。
+ *
+ * @par 更新履歴
+ * <pre>
+ * VerNo.         author        update      comment
+ * Ver.01.00.00   Shunji Ogawa  2026/10/07  指定C/C++規約へコメントと書式を統一。
+ * Ver.01.00.01   Shunji Ogawa  2026/10/07  Clientの同意付き更新と設定の分離を追加。
+ * Ver.01.00.02   Shunji Ogawa  2026/10/08  Agent設定画面の入口を追加。
+ * Ver.01.00.03   Shunji Ogawa  2026/10/10  managerメニューを撤廃し自動更新確認へ統一。
+ * Ver.01.00.04   Shunji Ogawa  2026/10/10  自動起動の未設定案内をtitle resourceへ追加。
+ * Ver.01.00.05   Shunji Ogawa  2026/10/10  Client／Agentセット更新のmetadataと案内を追加。
+ * Ver.01.00.06   Shunji Ogawa  2026/10/11  公開準備版0.7.21.0の識別へ更新。
+ * </pre>
+ */
+//------------------------------------------------------------------------------
+
+#include "resource.h"
+#include <windows.h>
+#include <winver.h>
+
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+
+// -----------------------------------------------------------------------------
+// 実行時manifest
+// -----------------------------------------------------------------------------
+
+#ifndef RT_MANIFEST
+#define RT_MANIFEST 24
+#endif
+
+IDR_MAIN_MANIFEST RT_MANIFEST "ZRdpSvnBridge.manifest"
+
+// -----------------------------------------------------------------------------
+// Portable EXE version情報
+// -----------------------------------------------------------------------------
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 0,7,21,0
+PRODUCTVERSION 0,7,21,0
+ FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+ FILEFLAGS VS_FF_DEBUG
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041104B0"
+        BEGIN
+            VALUE "CompanyName", "EnterOgawa\0"
+            VALUE "FileDescription", "ZRdp SVN Bridge\0"
+            VALUE "FileVersion", "0.7.21.0\0"
+            VALUE "InternalName", "ZRdpSvnBridge\0"
+            VALUE "OriginalFilename", "ZRdpSvnBridge.exe\0"
+            VALUE "ProductName", "ZRdp SVN Bridge\0"
+            VALUE "ProductVersion", "0.7.21.0\0"
+            VALUE "UpdaterProtocol", "1\0"
+            VALUE "PairedUpdateProtocol", "1\0"
+            VALUE "BridgeProtocol", "1\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0411, 1200
+    END
+END
+
+STRINGTABLE
+BEGIN
+    IDS_UPDATE_OFFER_FORMAT           "ClientとAgentの新しいバージョンがあります。\n\n現在: %s\n更新先: %s\n\nダウンロードと署名検証を開始しますか？\nRDP接続は自動切断しません。すべてのRDPウィンドウとAgent設定画面を閉じ、設定保存が完了した後、ClientとAgentをセットで更新し、Clientを再起動します。接続先のAgentは次回RDP接続時に更新します。"
+    IDS_UPDATE_CHECKING               "更新: 確認中"
+    IDS_UPDATE_DOWNLOADING            "更新: 取得・検証中"
+    IDS_UPDATE_WAITING                "更新: RDP／設定ウィンドウ終了待ち"
+    IDS_UPDATE_APPLYING               "更新: 適用中"
+    IDS_UPDATE_LATEST                 "このClientより新しい互換バージョンはありません。"
+    IDS_UPDATE_DISABLED               "Clientの自動更新は無効です。client.iniの[update]設定を確認してください。"
+    IDS_UPDATE_BUSY                   "更新の確認・準備が進行中、またはRDPウィンドウの終了を待っています。"
+    IDS_UPDATE_FAILURE_FORMAT         "Clientの更新を確認・適用できませんでした。RDP接続と設定は変更していません。\n\n分類: update-%u\n公開Release、通信制限、互換性、書込み権限を確認してください。"
+    IDS_UPDATE_SIGNATURE_FAILURE_FORMAT "署名または発行者の検証に失敗したため、ClientとAgentを更新しません。未署名の開発版からの自動更新も行いません。\n\n分類: update-%u\nWindowsで信頼される、現在と同じ発行者の同一版の署名済みClientとAgentが必要です。"
+    IDS_UPDATE_CONNECT_BLOCKED        "Clientの更新適用中は新しいRDP接続を開始できません。更新後の再起動をお待ちください。"
+    IDS_UPDATE_RECOVERED              "更新を完了できなかったため、旧版ClientとAgentに復元しました。この起動では同じ更新を自動提示しません。接続は通常どおり利用できます。"
+    IDS_UPDATE_HELPER_FAILED          "Client更新の完了または復旧を確認できませんでした。旧版Client・Agentのbackupと更新用stageを手動で確認してください。稼働中のプログラムは強制停止していません。"
+    IDS_APP_TITLE                     "ZRdp SVN Bridge - Phase 9 (0.7.21)"
+    IDS_CONNECTION_NAME_LABEL         "接続名:"
+    IDS_SERVER_LABEL                  "接続先:"
+    IDS_DOMAIN_LABEL                  "ドメイン:"
+    IDS_USER_NAME_LABEL               "ユーザー名:"
+    IDS_CONNECT                       "接続"
+    IDS_DISCONNECT                    "切断"
+    IDS_FULL_SCREEN                   "全画面"
+    IDS_WINDOW_MODE                   "ウィンドウ"
+    IDS_DISPLAY_MODE_NATIVE           "等倍表示（スクロール）"
+    IDS_STATUS_DISCONNECTED           "RDP: 未接続 | SVN Bridge: 停止"
+    IDS_STATUS_CONNECTING             "RDP: 接続中 | SVN Bridge: 停止"
+    IDS_STATUS_CONNECTED              "RDP: 接続済み | SVN Bridge: Agent確認中（Echo成立前はSVNを利用できません）"
+    IDS_STATUS_DISCONNECTING          "RDP: 切断中 | SVN Bridge: 停止"
+    IDS_STATUS_RECONNECTING           "RDP: 自動再接続中 | SVN Bridge: 停止"
+    IDS_STATUS_AUTH_WARNING           "RDP: 認証警告を表示中（自動承認しません） | SVN Bridge: 停止"
+    IDS_STATUS_WARNING_FORMAT         "RDP警告: code=%ld | SVN Bridge: 専用状態欄を確認してください"
+    IDS_STATUS_FATAL_FORMAT           "RDP致命的エラー: code=%ld | SVN Bridge: 停止"
+    IDS_STATUS_DISCONNECTED_FORMAT    "RDP: 切断（reason=%ld, extended=%ld） | SVN Bridge: 停止"
+    IDS_SERVER_REQUIRED               "接続先PC名またはIPアドレスを入力してください。"
+    IDS_ACTIVE_X_CREATE_FAILED        "Windows Remote Desktop ActiveX Controlを作成できませんでした。"
+    IDS_CONNECT_FAILED                "RDP接続を開始できませんでした。"
+    IDS_DISCONNECT_FAILED             "RDP切断要求を送信できませんでした。"
+    IDS_CLOSE_CONFIRM                 "RDP接続中です。切断してZRdp SVN Bridgeを終了しますか？"
+    IDS_CLOSE_CONFIRM_TITLE           "接続中の終了確認"
+    IDS_UNEXPECTED_ERROR              "予期しないエラーが発生しました。"
+    IDS_STATUS_CHANNEL_DATA           "RDP: 接続済み | SVN Bridge: data受信"
+    IDS_STATUS_INITIAL_FORMAT         "RDP: 未接続（%s） | SVN Bridge: 停止"
+    IDS_STATUS_CONNECT_REQUESTED      "RDP: 接続要求を送信中（Microsoft認証画面を確認してください） | SVN Bridge: 停止"
+    IDS_LOG_CREATE_FAILED             "診断ログを作成できませんでした。接続は続行できますが、原因調査用ログは保存されません。"
+    IDS_DISCONNECT_ERROR_FORMAT       "RDP接続を確立または維持できませんでした。\n\n%s\n\nDisconnect reason: %ld (0x%08lX)\nExtended reason: %ld (0x%08lX)"
+    IDS_DISCONNECT_REASON_UNAVAILABLE "Windows Remote Desktopから詳細な説明を取得できませんでした。"
+    IDS_RDP_ERROR_TITLE               "RDP接続エラー"
+    IDS_DISPLAY_SETTING_FAILED        "表示モードを変更できませんでした。"
+    IDS_DISPLAY_MODE_LABEL            "表示モード:"
+    IDS_DISPLAY_MODE_SMART_SIZING     "Smart Sizing（縮小表示）"
+    IDS_DISPLAY_MODE_DYNAMIC_RESOLUTION "動的解像度（Window追従）"
+    IDS_RDP_IDENTITY_INVALID          "ドメインとユーザー名を確認してください。ドメイン欄を使用する場合、ユーザー名に「\\」を含めず、両方を入力してください。"
+    IDS_STATUS_PRE_LOGIN_RETRY        "RDP: 一時的な認証接続失敗を検出したため、しばらく待って再試行します | SVN Bridge: 停止"
+    IDS_BRIDGE_LABEL                  "SVN Bridge:"
+    IDS_BRIDGE_ECHO_TEST              "Echoテスト"
+    IDS_BRIDGE_STOPPED                "停止"
+    IDS_BRIDGE_WAITING_AGENT          "Agent待機中（接続先RDPセッションでAgentを起動してください）"
+    IDS_BRIDGE_READY                  "Agent接続済み（Echo未確認）"
+    IDS_BRIDGE_ECHO_RUNNING_FORMAT    "Echo検証中: %llu / %llu byte"
+    IDS_BRIDGE_ECHO_PASSED_FORMAT     "Echo検証成功: %llu byte"
+    IDS_BRIDGE_FAILED_FORMAT          "Bridge停止: error=%u（RDP画面は継続できます）"
+    IDS_BRIDGE_INCOMPATIBLE           "Agent非互換（ClientとAgentのversionを合わせてください）"
+    IDS_PROXY_STARTING                "Proxy: 起動中"
+    IDS_PROXY_LISTENING_FORMAT        "Proxy: 127.0.0.1:%u 待受中（Bridge成立まで503応答）"
+    IDS_PROXY_READY_FORMAT            "Proxy: 127.0.0.1:%u 利用可 / stream=%u / C→A=%llu byte / A→C=%llu byte"
+    IDS_PROXY_FAILED_FORMAT           "Proxy停止: error=%u, WSA=%u, 設定=%u（RDP画面は継続できます）"
+    IDS_PROXY_STOPPED                 "Proxy: 停止"
+    IDS_CONNECTION_MANAGER_TITLE      "ZRdp 接続マネージャー (0.7.21)"
+    IDS_CONNECT_NEW_SESSION           "新しい接続"
+    IDS_MANAGER_STATUS_FORMAT         "接続中セッション: %u / 次のProxy: 127.0.0.1:%u"
+    IDS_MANAGER_NO_PORT_FORMAT        "接続中セッション: %u / 利用可能なProxyポートがありません"
+    IDS_MANAGER_PROXY_CONFIG_ERROR_FORMAT "接続中セッション: %u / Proxy設定エラー: %u"
+    IDS_SESSION_LIMIT_REACHED         "同時接続セッション数が上限に達しています。不要なセッションを閉じてください。"
+    IDS_SESSION_PORT_UNAVAILABLE      "割り当て可能なProxyポートがありません。client.iniのbase portを確認してください。"
+    IDS_SESSION_CREATE_FAILED         "新しいRDPセッションウィンドウを作成できませんでした。"
+    IDS_SESSION_RESOURCE_EXHAUSTED    "新しいRDPセッションに必要なリソースを確保できませんでした。"
+    IDS_SESSION_TITLE_FORMAT          "ZRdp SVN Bridge 0.7.21 - %s | RDP:%s | Agent:%s | Proxy:%s 127.0.0.1:%u | stream=%u | C→A=%llu | A→C=%llu"
+    IDS_SESSION_TITLE_CONFIG_ERROR_FORMAT "ZRdp SVN Bridge 0.7.21 - %s | RDP:%s | Agent:%s | Proxy設定エラー:%u"
+    IDS_TITLE_RDP_NOT_CONNECTED       "未接続"
+    IDS_TITLE_RDP_CONNECTING          "接続中"
+    IDS_TITLE_RDP_CONNECTED           "接続済み"
+    IDS_TITLE_RDP_RECONNECTING        "再接続中"
+    IDS_TITLE_RDP_DISCONNECTING       "切断中"
+    IDS_TITLE_RDP_FAILED              "エラー"
+    IDS_TITLE_AGENT_NEEDS_SETTINGS    "要設定"
+    IDS_TITLE_AGENT_STOPPED           "停止"
+    IDS_TITLE_AGENT_WAITING           "待機中"
+    IDS_TITLE_AGENT_CONNECTED         "接続済み"
+    IDS_TITLE_AGENT_ECHO_RUNNING      "Echo確認中"
+    IDS_TITLE_AGENT_FAILED            "エラー"
+    IDS_TITLE_AGENT_INCOMPATIBLE      "非互換"
+    IDS_TITLE_PROXY_STOPPED           "停止"
+    IDS_TITLE_PROXY_STARTING          "起動中"
+    IDS_TITLE_PROXY_LISTENING         "待受中"
+    IDS_TITLE_PROXY_READY             "利用可"
+    IDS_TITLE_PROXY_FAILED            "エラー"
+    IDS_LOCAL_RESOURCES_LABEL         "ローカル リソース:"
+    IDS_REDIRECT_MICROPHONE           "マイクを接続先で使用する"
+    IDS_REMOTE_AUDIO_LABEL            "リモート音声:"
+    IDS_AUDIO_PLAY_ON_CLIENT          "このPCで再生する"
+    IDS_AUDIO_PLAY_ON_REMOTE          "接続先PCで再生する"
+    IDS_AUDIO_DO_NOT_PLAY             "再生しない"
+    IDS_AUDIO_SETTING_INVALID         "リモート音声の再生先を選択してください。"
+END

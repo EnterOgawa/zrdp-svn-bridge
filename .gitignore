@@ -1,0 +1,83 @@
+# Visual Studio / CMake
+.vs/
+out/
+build/
+cmake-build-*/
+CMakeUserPresets.json
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+
+# Compiler and linker outputs
+*.obj
+*.pch
+*.pdb
+*.ilk
+*.exe
+*.dll
+*.lib
+*.exp
+*.tlh
+*.tli
+
+# Python source-formatting tool caches
+__pycache__/
+*.pyc
+
+# Logs, dumps, and captures
+logs/
+dumps/
+captures/
+*.dmp
+*.pcap
+*.pcapng
+*.etl
+*.rdp
+*.log
+
+# Local environment configuration
+config/local/
+config/*.local.*
+agent.ini
+client.ini
+connection-history.bin*
+
+# Credentials and signing material
+.env
+.env.*
+*.pfx
+*.p12
+*.key
+*.pem
+
+# Packaged release artifacts
+*.msi
+*.msix
+*.cab
+*.zip
+*.7z
+
+# Local analysis, proposals, temporary work, and Subversion metadata
+work/
+.svn/
+
+# Local maintenance rules and records (kept on the maintainer's PC)
+/AGENTS.md
+/assets/icons/README.md
+/docs/*
+!/docs/agent-settings.md
+!/docs/client-updates.md
+!/docs/configuration.md
+!/docs/dependencies.md
+!/docs/diagnostics.md
+!/docs/installer.md
+!/docs/known-limitations.md
+!/docs/portable-package.md
+!/docs/security.md
+!/docs/user-guide.md
+!/docs/images/
+/docs/images/*
+!/docs/images/agent-settings.png
+!/docs/images/agent-tray.png
+!/docs/images/connection-manager.png
